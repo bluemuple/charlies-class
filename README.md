@@ -20,22 +20,29 @@ A class website for Year 6/7 maths games, built to run free on **GitHub Pages**
 Students go by **first name only** (e.g. *Tepono*), on screen and on the
 printed cards.
 
-## Quick start (no setup)
+## It is live
 
-Open `admin.html` in a browser. With no Supabase keys the site runs in
-**Local demo mode** — everything works, but data stays in that browser only.
+| | |
+| --- | --- |
+| Students | **https://harufocus.com** |
+| Teacher admin | **https://harufocus.com/admin.html** |
+| Repo | `bluemuple/charlies-class` (GitHub Pages, `main` branch, root) |
+| Database | Supabase project `charlies-class`, table `public.students` |
 
-## Going live
+Publishing a change:
 
-1. **Supabase** (free): create a project at supabase.com → *SQL Editor* →
-   paste all of `supabase/schema.sql` → **Run**. Then *Project Settings → API*:
-   copy the **Project URL** and **anon public key** into `js/config.js`.
-2. **GitHub Pages**: push this folder to a repo on the `bluemuple` account →
-   repo *Settings → Pages* → deploy from the `main` branch, root folder.
-   The site appears at `https://bluemuple.github.io/<repo-name>/`.
+```bash
+git add -A && git commit -m "..." && git push
+```
 
-Once the keys are in, every Chromebook shares the same roster, codes, and
-money, and the admin page updates live while the class plays.
+GitHub Pages rebuilds in under a minute. The `CNAME` file in this folder is
+what claims `harufocus.com` — don't delete it.
+
+## Local demo mode
+
+Blank out both values in `js/config.js` and the site runs entirely in the
+browser (seeded from `js/roster.js`), which is handy offline. The header badge
+always says which mode you are in: *Live — Supabase* or *Local demo*.
 
 ## The printed login cards
 
