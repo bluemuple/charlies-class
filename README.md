@@ -110,14 +110,24 @@ This is a class game with play money, so the setup is deliberately simple.
   for more Whare in your room. Confetti + a slot-machine reveal, the seller
   earns the crack-reward, and the attempt lands in both players' history.
 
+## The Pet Shop 🐾
+
+In *My room*: one pet per student, bought from six mystery silhouettes —
+Goldfish 10 · Axolotl 12 · Cat 14 · Dog 16 · Budgie 18 · Triceratops 20 Whare
+(a couple of games' earnings). Name it with the ✏️, feed it snacks from *My
+stuff* (the snack flies over, the pet softly swaps to its happy picture,
++5 ❤️), and every 10 ❤️ the student picks one of five animal-appropriate
+superpowers ("🎾 Fact Fetcher", "🛡️ Triple Shield"…) shown as badges.
+Snacks can't be sold — they are pet food by design.
+
 ## Roadmap
 
 1. ✅ Teacher admin (roster, self-chosen codes, money, welcome cards, teacher lock)
 2. ✅ Student entry with emoji avatar picker
 3. ✅ Game hub: profile room (money, stuff + selling, rule-attempt history)
 4. ✅ Algebra Machine multiplayer
-5. Pet Shop — six silhouette pets, naming, feeding snacks, affection hearts,
-   superpowers every 10 affection; prices tuned so ~2 games buys a pet
+5. ✅ Al-Zebra (beginners) — zebra rule-painting, carrot races, speed ratings
+6. ✅ Pet Shop — pets, naming, feeding, affection, superpowers
 
 ## Notes for future work
 

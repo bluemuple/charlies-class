@@ -17,7 +17,10 @@ window.CharlieStore = (function(){
   var CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js';
 
   /* Everything except `code`. code_set is a generated column (code is not null). */
-  var ROSTER_COLS = 'id,name,gender,emoji,money,code_set,items,guesses';
+  var ROSTER_COLS = 'id,name,gender,emoji,money,code_set,items,guesses,pet';
+  /* if migration-pets.sql hasn't run yet, retreat by ONE column — never to '*',
+     which would ship the whole class's codes to every browser */
+  var NO_PET_COLS = 'id,name,gender,emoji,money,code_set,items,guesses';
   var LS_MACHINES = 'charlies-class-machines-v1';
 
   /* Supabase shows several URLs on its dashboard; accept any of them and
@@ -47,6 +50,7 @@ window.CharlieStore = (function(){
       money: row.money || 0,
       items: row.items || [],
       guesses: row.guesses || [],
+      pet: row.pet || null,
       codeSet: ('code_set' in row) ? !!row.code_set : !!(row.code && String(row.code).length)
     };
   }
@@ -119,12 +123,27 @@ window.CharlieStore = (function(){
     var blob = (err.message||'') + (err.details||'') + (err.hint||'');
     return /code_set|items|guesses/.test(blob);
   }
-  function cols(){ return legacy ? '*' : ROSTER_COLS; }
+  var petless = false;   // migration-pets.sql not run yet — drop only that column
+  function missingPet(err){
+    if(!err) return false;
+    var blob = (err.message||'') + (err.details||'') + (err.hint||'');
+    return /\bpet\b/.test(blob) && !/code_set|items|guesses/.test(blob);
+  }
+  function cols(){ return legacy ? '*' : (petless ? NO_PET_COLS : ROSTER_COLS); }
+  function noteMissingColumn(err){
+    if(!petless && missingPet(err)){
+      petless = true;
+      try{ console.warn('Charlie\'s Class: run supabase/migration-pets.sql — pets are off until then.'); }catch(e){}
+      return true;
+    }
+    if(!legacy && missingCodeSet(err)){ legacy = true; return true; }
+    return false;
+  }
 
   function sbList(){
     return client.from('students').select(cols()).order('name').then(function(r){
       if(r.error){
-        if(!legacy && missingCodeSet(r.error)){ legacy = true; return sbList(); }
+        if(noteMissingColumn(r.error)) return sbList();
         throw r.error;
       }
       return r.data.map(shape);
@@ -214,7 +233,10 @@ window.CharlieStore = (function(){
         return client.from('students').update({code:code})
           .eq('id', id).is('code', null).select(cols())
           .then(function(r){
-            if(r.error) throw r.error;
+            if(r.error){
+              if(noteMissingColumn(r.error)) return api.setCode(id, code);
+              throw r.error;
+            }
             emit();
             return r.data.length ? shape(r.data[0]) : null;
           });
@@ -238,7 +260,7 @@ window.CharlieStore = (function(){
           .eq('id', id).eq('code', code)
           .then(function(r){
             if(r.error){
-              if(!legacy && missingCodeSet(r.error)){ legacy = true; return api.verifyLogin(id, code); }
+              if(noteMissingColumn(r.error)) return api.verifyLogin(id, code);
               throw r.error;
             }
             return r.data.length ? shape(r.data[0]) : null;

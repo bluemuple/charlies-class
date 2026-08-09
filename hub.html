@@ -122,6 +122,56 @@
     0%,100%{text-shadow:0 0 2px rgba(255,214,64,.3); filter:brightness(1);}
     50%{text-shadow:0 0 12px rgba(255,196,0,1), 0 0 26px rgba(255,230,120,.8); filter:brightness(1.45);}
   }
+
+  /* ---------- the pet ---------- */
+  .pet-card{text-align:center;}
+  .pet-love{font-size:18px; font-weight:800; color:var(--accent); margin-bottom:2px;}
+  .pet-name{font-size:16px; font-weight:800; color:var(--teal-dark); margin-bottom:6px;}
+  .pet-name button{border:0; background:none; font-size:15px; opacity:.6; padding:2px 4px;}
+  .pet-name button:hover{opacity:1; transform:scale(1.15);}
+  .pet-stage{position:relative; width:min(62vw,230px); margin:0 auto;}
+  .pet-stage img{width:100%; border-radius:16px; display:block; box-shadow:0 4px 14px rgba(31,90,84,.18);}
+  .pet-stage img.happy{
+    position:absolute; inset:0; opacity:0; transition:opacity 1.2s ease;
+  }
+  .pet-stage.fed img.happy{opacity:1;}
+  .pet-hint{font-size:12.5px; color:#8aa19c; margin-top:6px;}
+  .pet-powers{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:8px;}
+  .pet-powers span{
+    background:#f4f0fd; color:#5b3fa8; border:1.5px solid #d9cff2;
+    border-radius:14px; padding:3px 10px; font-size:12px; font-weight:700;
+  }
+  .snack-fly{position:fixed; z-index:80; pointer-events:none; width:56px;}
+
+  /* pet shop grid (silhouettes until they come home) */
+  .pet-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
+  .pet-grid button{
+    border:2px solid #e2edeb; border-radius:14px; background:#fbfdfc; padding:10px;
+    transition:.12s; text-align:center;
+  }
+  .pet-grid button:hover{transform:translateY(-3px); border-color:var(--teal);}
+  .pet-grid img{width:100%; border-radius:10px; display:block;}
+  .pet-grid .pn{font-size:14px; font-weight:800; color:var(--teal-dark); margin-top:6px;}
+  .pet-grid .pp{font-size:12.5px; font-weight:800; color:#8a6d00; background:var(--yellow);
+               border-radius:12px; padding:2px 10px; display:inline-block; margin-top:4px;}
+
+  /* superpower chooser */
+  #powerWrap{
+    position:fixed; inset:0; z-index:60; display:none;
+    background:rgba(10,30,28,.65); align-items:center; justify-content:center; padding:16px;
+  }
+  #powerWrap.open{display:flex;}
+  #powerBox{
+    background:#fff; border-radius:20px; padding:22px 24px; width:min(94vw,460px);
+    box-shadow:0 16px 50px rgba(0,0,0,.5); max-height:90vh; overflow-y:auto;
+  }
+  #powerTitle{font-size:19px; font-weight:800; color:var(--teal-dark); margin-bottom:4px;}
+  #powerList button{
+    display:block; width:100%; text-align:left; margin-top:8px;
+    border:2px solid #d9cff2; background:#f9f7fe; border-radius:12px;
+    padding:10px 12px; font-size:14px; font-weight:600; color:var(--ink); line-height:1.4;
+  }
+  #powerList button:hover{background:#f0eafd; border-color:#5b3fa8; transform:translateX(3px);}
   .prof-btn{
     width:100%; border:0; border-radius:12px; padding:11px 0; font-size:15px;
     font-weight:700; margin-top:8px; background:var(--teal); color:#fff;
@@ -201,8 +251,8 @@
         <div id="attemptsBox"></div>
       </div>
       <div class="prof-sec">
-        <h3>Pet Shop</h3>
-        <div class="prof-empty">The Pet Shop opens soon — save your Whare! 🐾</div>
+        <h3>My pet</h3>
+        <div id="petBox"></div>
       </div>
       <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
       <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
@@ -211,6 +261,25 @@
       <div id="profPickerBox"></div>
       <button class="prof-btn quiet" id="pickerBack">← Never mind</button>
     </div>
+    <div id="profShop" style="display:none">
+      <div class="prof-head" style="margin-bottom:6px">
+        <h3 style="font-size:16px;color:var(--teal-dark)">🐾 Pet Shop</h3>
+      </div>
+      <p style="font-size:13.5px;color:#8aa19c;margin-bottom:10px">
+        One pet per student — it lives in your room, eats your spare snacks,
+        and learns a superpower every 10 ❤️.</p>
+      <div class="pet-grid" id="petGrid"></div>
+      <button class="prof-btn quiet" id="shopBack">← Never mind</button>
+    </div>
+  </div>
+</div>
+
+<!-- superpower chooser (every 10 affection) -->
+<div id="powerWrap">
+  <div id="powerBox">
+    <div id="powerTitle"></div>
+    <p style="font-size:13.5px;color:#8aa19c;margin-bottom:10px">Pick ONE — choose wisely!</p>
+    <div id="powerList"></div>
   </div>
 </div>
 
@@ -256,6 +325,7 @@
     $('profName').textContent = me.name;
     $('profMoney').textContent = me.money || 0;
     renderStuff();
+    renderPet();
     renderAttempts();
   }
 
@@ -281,23 +351,233 @@
         + '<span class="nm">'+esc(p.name)+'</span></button>';
     }).join('') + '</div>';
   }
+  /* ONE latch for every write that touches me.items (sell OR feed) — two
+     quick clicks must never both compute from the same stale copy */
+  var stuffBusy = false;
   $('stuffBox').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-i]'); if(!b) return;
+    var b = e.target.closest('button[data-i]'); if(!b || stuffBusy) return;
     var i = parseInt(b.dataset.i, 10);
     var k = (me.items||[])[i];
     var p = k && G.PRODUCTS[k];
     if(!p) return;
     if(!p.sell){
-      toast('🐾 ' + p.name + ' is pet food! Buy a pet when the Pet Shop opens.');
+      if(me.pet) feedPet(i, k, b);
+      else toast('🐾 ' + p.name + ' is pet food — buy a pet in the Pet Shop below!');
       return;
     }
     if(!window.confirm('Sell your ' + p.name + ' for ' + p.sell + ' Whare?')) return;
+    stuffBusy = true;
     var items = me.items.slice();
     items.splice(i, 1);
     store.update(me.id, {items:items, money:(me.money||0) + p.sell}).then(function(){
       toast('💰 Sold! +' + p.sell + ' Whare');
+      return refresh();
+    }).then(function(){ stuffBusy = false; })
+      .catch(function(){ stuffBusy = false; toast('Hmm, that didn\'t save — try again!'); });
+  });
+
+  /* ---------------- the pet: shop, naming, feeding, superpowers ----------
+     One pet per student. Feeding a snack = +5 affection; every 10 affection
+     the student picks one superpower from the animal's list. */
+  var PETS = {
+    1:{name:'Goldfish', price:10, powers:[
+      '🫧 Bubble of Calm — one deep breath fixes a wobbly moment',
+      '📚 Goldfish Memory — never forgets homework due dates',
+      '💧 Deep-Water Focus — 10 quiet minutes of pure concentration',
+      '✨ Shiny Scales — a confidence sparkle before you speak up',
+      '🌊 Cool Current — washes arguments away before they grow']},
+    2:{name:'Axolotl', price:12, powers:[
+      '🩹 Regrow — bounce back fast from any mistake',
+      '😊 Forever Smile — instant cheer-up on grey days',
+      '🔬 Lab Partner — makes science homework feel easy',
+      '🌙 Soft Glow — a gentle nightlight for good sleep',
+      '🧘 Chill Champion — teaches world-class calm']},
+    3:{name:'Cat', price:14, powers:[
+      '🧶 Stress Pounce — pounces on your stress so you don\'t have to',
+      '😴 Power-Nap Coach — perfect 20-minute recharges',
+      '🔍 Curiosity Boost — turns boring study into exploring',
+      '💜 Purr Engine — purrs at exactly the focus frequency',
+      '🚪 Confident Strut — walk into any room like you own it']},
+    4:{name:'Dog', price:16, powers:[
+      '🎾 Fact Fetcher — fetches the answer you almost remembered',
+      '🏃 Walk Buddy — gets you outside and moving every day',
+      '🛡️ Mood Guard — barks bad moods right out of the room',
+      '🤝 Friend Magnet — makes making friends easier',
+      '👂 Best Listener — hears every worry, judges none']},
+    5:{name:'Budgie', price:18, powers:[
+      '🗣️ Vocab Parrot — repeats your spelling words till they stick',
+      '🎵 Happy Whistle — whistles your favourite song when you\'re down',
+      '🎤 Speech Coach — practise presentations to a kind audience',
+      '🌈 Colour Splash — brightens the most boring afternoon',
+      '🪽 Big-Picture View — flies up high so you see what matters']},
+    6:{name:'Triceratops', price:20, powers:[
+      '🛡️ Triple Shield — blocks three worries at once',
+      '🪨 Homework Crusher — stomps big tasks into little pieces',
+      '💪 Brave Horns — lends courage for tests and try-outs',
+      '🥦 Veggie Power — cheers you on to eat the green stuff',
+      '⛰️ Unshakeable — stands steady when everything wobbles']}
+  };
+  function petImg(t, happy){
+    t = parseInt(t, 10) || 1;
+    return 'assets/pets/p' + t + (happy ? '-h' : '') + '.jpg';
+  }
+  function petCallName(pet){ return pet.name || ('your ' + PETS[pet.type].name); }
+
+  function renderPet(){
+    var box = $('petBox');
+    if(!me.pet){
+      box.innerHTML = '<div class="prof-empty">No pet yet — pets eat your spare snacks and learn a superpower every 10 ❤️!</div>'
+        + '<button class="prof-btn" id="shopOpenBtn">🐾 Visit the Pet Shop</button>';
+      return;
+    }
+    var pet = me.pet, meta = PETS[pet.type] || PETS[1];
+    box.innerHTML =
+      '<div class="pet-card">'
+      + '<div class="pet-love">❤️ ' + (parseInt(pet.affection, 10) || 0) + '</div>'
+      + '<div class="pet-name">'
+      +   (pet.name ? esc(pet.name) : '<span style="color:#8aa19c">Name me!</span>')
+      +   ' <button id="petNameBtn" title="Name your pet">✏️</button></div>'
+      + '<div class="pet-stage' + (Date.now() < fedUntil ? ' fed' : '') + '" id="petStage">'
+      +   '<img src="' + petImg(pet.type, false) + '" alt="' + esc(meta.name) + '">'
+      +   '<img class="happy" src="' + petImg(pet.type, true) + '" alt="">'
+      + '</div>'
+      + ((pet.powers && pet.powers.length)
+          ? '<div class="pet-powers">' + pet.powers.map(function(pw){
+              return '<span>' + esc(pw.split(' — ')[0]) + '</span>';
+            }).join('') + '</div>' : '')
+      + '<div class="pet-hint">Feed snacks from My stuff — every 10 ❤️ unlocks a superpower!</div>'
+      + '</div>';
+  }
+  $('petBox').addEventListener('click', function(e){
+    if(e.target.closest('#shopOpenBtn')){ renderShop(); showView('shop'); return; }
+    if(e.target.closest('#petNameBtn')){ namePet(); return; }
+  });
+
+  function namePet(){
+    var meta = PETS[me.pet.type];
+    var name = window.prompt('What will you name your ' + meta.name + '?', me.pet.name || '');
+    if(name === null) return;
+    name = String(name).trim().slice(0, 16);
+    if(!name){ toast('A pet needs a name!'); return; }
+    var pet = Object.assign({}, me.pet, {name: name});
+    store.update(me.id, {pet: pet}).then(function(){
+      toast('✨ ' + name + ' loves it!');
       refresh();
+    }).catch(function(){ toast('Hmm, that didn\'t save — try again!'); });
+  }
+
+  function renderShop(){
+    $('petGrid').innerHTML = Object.keys(PETS).map(function(t){
+      var m = PETS[t];
+      return '<button data-t="' + t + '"><img src="assets/pets/s' + t + '.jpg" alt="mystery pet">'
+        + '<div class="pn">' + m.name + '</div><div class="pp">' + m.price + ' W</div></button>';
+    }).join('');
+  }
+  var buying = false;
+  $('petGrid').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-t]'); if(!b || buying) return;
+    var t = parseInt(b.dataset.t, 10), meta = PETS[t];
+    if(me.pet){ toast('You already have a pet — one each!'); return; }
+    if((me.money || 0) < meta.price){
+      toast('Save up! The ' + meta.name + ' costs ' + meta.price + ' Whare — you have ' + (me.money || 0) + '.');
+      return;
+    }
+    if(!window.confirm('Buy the ' + meta.name + ' for ' + meta.price + ' Whare?')) return;
+    buying = true;
+    store.update(me.id, {
+      money: (me.money || 0) - meta.price,
+      pet: {type: t, name: null, affection: 0, powers: []}
+    }).then(function(){
+      toast('🎉 Your ' + meta.name + ' is home — give it a name!');
+      showView('main');
+      return refresh();          // hold the latch until `me` is fresh —
+    }).then(function(){          // no sneaky second purchase in the gap
+      buying = false;
+    }).catch(function(){ buying = false; toast('Hmm, that didn\'t save — try again!'); });
+  });
+
+  var fedUntil = 0;
+  function feedPet(idx, itemKey, fromBtn){
+    if(stuffBusy) return;
+    stuffBusy = true;
+    var p = G.PRODUCTS[itemKey];
+    var pet = me.pet, meta = PETS[pet.type];
+    var items = me.items.slice(); items.splice(idx, 1);
+    var newPet = Object.assign({}, pet, {affection: (pet.affection || 0) + 5});
+    store.update(me.id, {items: items, pet: newPet}).then(function(){
+      /* the snack flies over to the pet */
+      var stage = $('petStage');
+      if(fromBtn && stage){
+        var a = fromBtn.getBoundingClientRect(), c = stage.getBoundingClientRect();
+        if(a.width && c.width){
+          var g = document.createElement('div');
+          g.className = 'snack-fly sprite';
+          g.style.cssText += ';background-position:' + (p.col * 25) + '% ' + (p.row * 100 / 3) + '%';
+          g.style.left = (a.left + a.width/2 - 28) + 'px';
+          g.style.top = (a.top + a.height/2 - 28) + 'px';
+          document.body.appendChild(g);
+          try{
+            g.animate([
+              {transform: 'translate(0,0) scale(1)', opacity: 1},
+              {transform: 'translate(' + ((c.left + c.width/2) - (a.left + a.width/2)) + 'px,'
+                        + ((c.top + c.height/2) - (a.top + a.height/2)) + 'px) scale(.3)', opacity: .2}
+            ], {duration: 700, easing: 'ease-in'}).onfinish = function(){ if(g.parentNode) g.remove(); };
+          }catch(err){}
+          setTimeout(function(){ if(g.parentNode) g.remove(); }, 900);
+        }
+      }
+      toast('😋 ' + petCallName(pet) + ' loved the ' + p.name + '! +5 ❤️');
+      return refresh();
+    }).then(function(){
+      /* soft happy crossfade, then back to normal — fedUntil lets renderPet
+         re-apply the class if a realtime refresh rebuilds the stage mid-glow */
+      fedUntil = Date.now() + 2400;
+      var stage = $('petStage');
+      if(stage) stage.classList.add('fed');
+      setTimeout(function(){
+        fedUntil = 0;
+        var s2 = $('petStage');
+        if(s2) s2.classList.remove('fed');
+      }, 2400);
+      stuffBusy = false;
+      maybeOfferPower();
+    }).catch(function(){
+      stuffBusy = false;
+      toast('Hmm, the snack got lost — try again!');
     });
+  }
+
+  function maybeOfferPower(){
+    var pet = me && me.pet;
+    if(!pet) return;
+    var earned = Math.floor((pet.affection || 0) / 10);
+    if(earned <= (pet.powers || []).length) return;
+    var meta = PETS[pet.type];
+    var remaining = meta.powers.filter(function(pw){ return (pet.powers || []).indexOf(pw) === -1; });
+    if(!remaining.length) return;
+    $('powerTitle').textContent = '🌟 ' + petCallName(pet) + ' can learn a superpower!';
+    $('powerList').innerHTML = remaining.map(function(pw, i){
+      return '<button data-pw="' + i + '">' + esc(pw) + '</button>';
+    }).join('');
+    $('powerList').dataset.opts = JSON.stringify(remaining);
+    $('powerWrap').classList.add('open');
+  }
+  $('powerList').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-pw]'); if(!b || !me.pet) return;
+    var opts = JSON.parse($('powerList').dataset.opts || '[]');
+    var pw = opts[parseInt(b.dataset.pw, 10)];
+    if(!pw) return;
+    if((me.pet.powers || []).indexOf(pw) !== -1){    // chosen in another tab meanwhile
+      $('powerWrap').classList.remove('open');
+      refresh();
+      return;
+    }
+    var pet = Object.assign({}, me.pet, {powers: (me.pet.powers || []).concat([pw])});
+    store.update(me.id, {pet: pet}).then(function(){
+      $('powerWrap').classList.remove('open');       // close only once it's saved
+      toast('🌟 New superpower learned!');
+      return refresh().then(maybeOfferPower).catch(function(){});
+    }).catch(function(){ toast('Hmm, that didn\'t save — tap it again!'); });
   });
 
   /* ------------- my rule attempts (side panel history) -------------
@@ -336,16 +616,24 @@
   }
 
   /* ---------------- profile drawer ---------------- */
-  function openProf(){ $('profWrap').classList.add('open'); showPicker(false); }
+  function openProf(){
+    $('profWrap').classList.add('open');
+    showPicker(false);
+    maybeOfferPower();     // an earned-but-unchosen superpower greets you here
+  }
   function closeProf(){ $('profWrap').classList.remove('open'); }
   $('meBtn').addEventListener('click', openProf);
   $('profClose').addEventListener('click', closeProf);
   $('profWrap').addEventListener('click', function(e){ if(e.target === $('profWrap')) closeProf(); });
 
-  function showPicker(on){
-    $('profMain').style.display = on ? 'none' : '';
-    $('profPicker').style.display = on ? '' : 'none';
+  /* the profile popup has three faces: the room, the emoji picker, the shop */
+  function showView(which){
+    $('profMain').style.display = which === 'main' ? '' : 'none';
+    $('profPicker').style.display = which === 'picker' ? '' : 'none';
+    $('profShop').style.display = which === 'shop' ? '' : 'none';
   }
+  function showPicker(on){ showView(on ? 'picker' : 'main'); }
+  $('shopBack').addEventListener('click', function(){ showView('main'); });
   $('editEmojiBtn').addEventListener('click', function(){
     window.CharlieEmoji.mount($('profPickerBox'), {
       initial: me && me.emoji,

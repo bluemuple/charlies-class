@@ -51,6 +51,7 @@ function load(file, extra){
         const a = {}; setTimeout(() => a.onfinish && a.onfinish(), 5); return a;
       };
       window.confirm = () => true;
+      window.prompt = () => "Bubbles";
       window.printed = 0;
       window.print = () => { window.printed++; };
       if(extra) extra(window);
@@ -784,6 +785,58 @@ async function testHub(){
   ok(/Rule was/.test(rows[1].textContent), "finished game reveals the real rule");
   ok(rows[0].classList.contains("win") && rows[0].querySelector(".rule"),
      "cracked rule gets the sparkle style");
+
+  /* ---- the Pet Shop ---- */
+  ok(!!d.querySelector("#shopOpenBtn"), "no pet yet — the shop invites you in");
+  d.querySelector("#shopOpenBtn").click();
+  await waitFor(() => d.querySelectorAll("#petGrid button").length === 6, "six mystery pets on the shelves");
+  const shopTxt = $("petGrid").textContent;
+  ok(/Goldfish/.test(shopTxt) && /Axolotl/.test(shopTxt) && /Triceratops/.test(shopTxt),
+     "pets are named in English");
+  const prices = [...d.querySelectorAll("#petGrid .pp")].map(x => parseInt(x.textContent));
+  ok(prices.join(",") === "10,12,14,16,18,20", "prices climb gently with level");
+
+  // too expensive first (willow has 13), then the goldfish comes home
+  d.querySelector('#petGrid button[data-t="6"]').click();
+  await waitFor(() => /Save up/.test($("toast").textContent), "can't afford the Triceratops yet");
+  d.querySelector('#petGrid button[data-t="1"]').click();
+  await waitFor(() => {
+    return w.CharlieStore.list().then(l => {
+      const s = l.find(x => x.id === "willow-kolo");
+      return s.pet && s.pet.type === 1 && s.money === 3;
+    });
+  }, "goldfish bought — 10 Whare paid", 5000);
+  await waitFor(() => /❤️ 0/.test($("petBox").textContent), "the pet is home with 0 hearts");
+  ok(/Name me/.test($("petBox").textContent), "it asks for a name");
+
+  // naming via the pencil (prompt says Bubbles)
+  d.querySelector("#petNameBtn").click();
+  await waitFor(() => /Bubbles/.test($("petBox").textContent), "the goldfish is now Bubbles");
+
+  // feeding: the leftover cookie becomes +5 hearts
+  await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 1, "one snack left to feed");
+  d.querySelector('#stuffBox button[data-i="0"]').click();
+  await waitFor(() => {
+    return w.CharlieStore.list().then(l => {
+      const s = l.find(x => x.id === "willow-kolo");
+      return s.pet.affection === 5 && s.items.length === 0;
+    });
+  }, "feeding gives +5 affection and eats the snack", 5000);
+
+  // one more snack crosses 10 — superpower time
+  await w.CharlieStore.update("willow-kolo", { items: ["gummies"] });
+  await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 1, "a fresh snack appears");
+  d.querySelector('#stuffBox button[data-i="0"]').click();
+  await waitFor(() => $("powerWrap").classList.contains("open"), "10 hearts opens the superpower choice", 6000);
+  ok(d.querySelectorAll("#powerList button").length === 5, "five goldfish superpowers to pick from");
+  d.querySelector("#powerList button").click();
+  await waitFor(() => {
+    return w.CharlieStore.list().then(l => {
+      const s = l.find(x => x.id === "willow-kolo");
+      return s.pet.powers.length === 1;
+    });
+  }, "the chosen superpower sticks", 5000);
+  await waitFor(() => d.querySelectorAll("#petBox .pet-powers span").length === 1, "the power shows as a badge");
 
   const cards = d.querySelectorAll(".games .game");
   ok(/Al-Zebra/.test(cards[0].textContent) && /beginners/.test(cards[0].textContent),
