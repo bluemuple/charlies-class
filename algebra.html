@@ -86,6 +86,20 @@
   .shelf button:hover{transform:scale(1.05);}
   .shelf button.sel{border-color:var(--good); background:#eaf7ec;}
   .shelf button .nm{font-size:11px; font-weight:700; color:#5c7671; margin-top:4px; display:block;}
+  /* the machine being stocked, on the right — picks fly into it */
+  .stock-grid{display:grid; grid-template-columns:1fr 168px; gap:14px; align-items:start;}
+  @media (max-width:720px){ .stock-grid{grid-template-columns:1fr;} .stock-right{display:none;} }
+  .stock-right{text-align:center;}
+  #stockVend{width:100%; max-width:150px; filter:drop-shadow(0 6px 12px rgba(31,90,84,.3));}
+  #stockVend.tremble{animation:tremble .3s ease-in-out;}
+  @keyframes tremble{
+    0%,100%{transform:translate(0,0) rotate(0)}
+    25%{transform:translate(-3px,1px) rotate(-.8deg)}
+    50%{transform:translate(3px,-1px) rotate(.8deg)}
+    75%{transform:translate(-2px,1px) rotate(-.5deg)}
+  }
+  #stockVendCount{font-size:12.5px; font-weight:800; color:var(--teal-dark); margin-top:6px;}
+  .ghost-fly{position:fixed; z-index:65; pointer-events:none; width:70px;}
   #stockDone{
     display:block; margin:14px auto 0; border:0; border-radius:12px;
     background:var(--good); color:#fff; font-size:16px; font-weight:800; padding:12px 30px;
@@ -104,8 +118,11 @@
   }
   #ruleScreen .caret{display:inline-block; width:3px; height:1.1em; background:#7CFC98; margin-left:3px; animation:blink 1s steps(1) infinite;}
   @keyframes blink{50%{opacity:0}}
-  .rule-side{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:12px;}
-  .rulepad{display:grid; grid-template-columns:repeat(4,64px); gap:8px;}
+  /* laptop on the left, all the controls in a column on its right */
+  .rule-grid{display:grid; grid-template-columns:minmax(280px,1fr) 290px; gap:16px; align-items:start;}
+  @media (max-width:820px){ .rule-grid{grid-template-columns:1fr;} .rule-right{max-width:340px; margin:0 auto;} }
+  .rule-right{display:flex; flex-direction:column; gap:12px; align-items:center;}
+  .rulepad{display:grid; grid-template-columns:repeat(4,58px); gap:7px;}
   .rulepad button{
     height:52px; border:0; border-radius:12px; background:var(--card);
     font-size:21px; font-weight:800; color:var(--ink); box-shadow:0 2px 6px rgba(31,90,84,.16);
@@ -114,14 +131,43 @@
   .rulepad button:active, .rulepad button.press{transform:translateY(2px) scale(.94); background:var(--cream);}
   .rulepad button.op{background:#f4f0fd; color:#5b3fa8;}
   .rulepad button.xkey{background:var(--yellow); color:#6b5c00;}
-  .rule-help{max-width:330px; font-size:13.5px; color:#4c6b66; line-height:1.55; text-align:left;}
-  .rule-help b{color:var(--teal-dark);}
-  .rule-help .shortcut{font-family:"Menlo",monospace; background:#eef7f5; border-radius:6px; padding:0 6px;}
-  #rewardLine{
-    margin-top:8px; font-size:15px; font-weight:800; color:#8a6d00;
-    background:var(--yellow); border-radius:10px; padding:7px 12px; display:inline-block;
+  #rewardBox{
+    position:relative; background:var(--yellow); border-radius:10px;
+    padding:8px 34px 8px 12px;
   }
-  .cap-row{display:flex; align-items:center; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
+  #rewardLine{font-size:15px; font-weight:800; color:#8a6d00;}
+  /* little ⓘ buttons that open the help popups */
+  .ibtn{
+    width:26px; height:26px; border-radius:50%; border:2px solid #9fd3c9;
+    background:#fff; color:var(--teal-dark); font-weight:800;
+    font-family:Georgia,serif; font-style:italic; font-size:15px; line-height:1;
+    box-shadow:0 2px 6px rgba(31,90,84,.25);
+  }
+  .ibtn:hover{background:var(--cream); transform:scale(1.1);}
+  .ibtn.mini{position:absolute; right:5px; top:50%; transform:translateY(-50%); width:22px; height:22px; font-size:13px;}
+  .ibtn.mini:hover{transform:translateY(-50%) scale(1.1);}
+  #howInfo{position:absolute; left:85%; top:36.5%; z-index:4;}
+  /* the grey worked example on the laptop screen */
+  #ruleScreen .ghosttxt{color:#3d6b52; text-shadow:none;}
+  /* info popup */
+  #infoWrap{
+    position:fixed; inset:0; z-index:75; display:none;
+    background:rgba(10,30,28,.6); align-items:center; justify-content:center; padding:16px;
+  }
+  #infoWrap.open{display:flex;}
+  #infoBox{
+    background:#fff; border-radius:18px; padding:22px 24px; width:min(94vw,440px);
+    box-shadow:0 16px 50px rgba(0,0,0,.45);
+  }
+  #infoTitle{font-size:18px; font-weight:800; color:var(--teal-dark); margin-bottom:10px;}
+  #infoText{font-size:14.5px; color:#4c6b66; line-height:1.6;}
+  #infoText b{color:var(--teal-dark);}
+  #infoText .shortcut{font-family:"Menlo",monospace; background:#eef7f5; border-radius:6px; padding:0 6px;}
+  #infoClose{
+    margin-top:16px; width:100%; border:0; border-radius:10px; padding:10px 0;
+    font-size:15px; font-weight:700; background:var(--teal); color:#fff;
+  }
+  .cap-row{display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap;}
   .cap-row .seg{display:flex; border:2px solid #d7e5e2; border-radius:10px; overflow:hidden;}
   .cap-row .seg button{border:0; background:#f6fbfa; padding:8px 18px; font-size:15px; font-weight:700; color:#5c7671;}
   .cap-row .seg button.active{background:var(--teal); color:#fff;}
@@ -470,12 +516,20 @@
         <div id="timerWrap"><div id="timerBar"></div></div>
         <span id="timerLeft">90s</span>
       </div>
-      <div class="shelf-tabs">
-        <button data-shelf="s" class="active">🍪 Snacks</button>
-        <button data-shelf="n">🧸 Non-snacks <span id="nsCount"></span></button>
+      <div class="stock-grid">
+        <div class="stock-left">
+          <div class="shelf-tabs">
+            <button data-shelf="s" class="active">🍪 Snacks</button>
+            <button data-shelf="n">🧸 Non-snacks <span id="nsCount"></span></button>
+          </div>
+          <div class="shelf on" id="shelfS"></div>
+          <div class="shelf" id="shelfN"></div>
+        </div>
+        <div class="stock-right">
+          <img id="stockVend" src="assets/vending.png" alt="your vending machine">
+          <div id="stockVendCount">empty</div>
+        </div>
       </div>
-      <div class="shelf on" id="shelfS"></div>
-      <div class="shelf" id="shelfN"></div>
       <button id="stockDone">✓ Done — write my rule</button>
     </div>
   </section>
@@ -485,39 +539,33 @@
     <h2>💻 Write your secret rule</h2>
     <p class="sub">The machine will follow it: <b>input → rule → output</b>.</p>
     <div class="card">
-      <div class="rule-wrap">
-        <img src="assets/rule.jpg" alt="laptop plugged into the vending machine">
-        <div id="ruleScreen"></div>
-      </div>
-      <div class="rule-side">
-        <div>
+      <div class="rule-grid">
+        <div class="rule-wrap">
+          <img src="assets/rule.jpg" alt="laptop plugged into the vending machine">
+          <div id="ruleScreen"></div>
+          <button id="howInfo" class="ibtn" title="How it works">i</button>
+        </div>
+        <div class="rule-right">
           <div class="rulepad" id="rulePad">
             <button class="xkey" data-k="x">𝑥</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
             <button class="op" data-k="+">+</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
             <button class="op" data-k="-">−</button><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
             <button class="op" data-k="*">×</button><button class="op" data-k="/">÷</button><button data-k="0">0</button><button data-k="back">⌫</button>
           </div>
-          <div id="rewardLine">Crack-reward: 0 Whare</div>
+          <div id="rewardBox">
+            <span id="rewardLine">Crack-reward: 0 Whare</span>
+            <button id="rewardInfo" class="ibtn mini" title="How rewards work">i</button>
+          </div>
+          <div class="cap-row">
+            <span style="font-weight:700;color:#4c6b66">Customers:</span>
+            <div class="seg" id="capSeg">
+              <button data-c="1" class="active">1</button>
+              <button data-c="2">2</button>
+              <button data-c="3">3</button>
+            </div>
+          </div>
+          <button id="openShop">🎪 Open my shop!</button>
         </div>
-        <div class="rule-help">
-          <b>How it works</b><br>
-          𝑥 is the customer's number. Example rule: <b>𝑥 × 3 + 2</b><br>
-          Shortcut keys: <span class="shortcut">x</span> <span class="shortcut">+</span>
-          <span class="shortcut">-</span> <span class="shortcut">*</span> <span class="shortcut">/</span>
-          <span class="shortcut">⌫</span> — up to <b>two operations</b>.<br><br>
-          💰 When a customer cracks your rule, <b>you earn the reward</b>.
-          Harder rules pay more (÷ beats ×, × beats −, − beats +, and two
-          operations pay extra) — but an easy rule gets cracked fast for less!
-        </div>
-      </div>
-      <div class="cap-row">
-        <span style="font-weight:700;color:#4c6b66">Customers:</span>
-        <div class="seg" id="capSeg">
-          <button data-c="1" class="active">1</button>
-          <button data-c="2">2</button>
-          <button data-c="3">3</button>
-        </div>
-        <button id="openShop">🎪 Open my shop!</button>
       </div>
     </div>
   </section>
@@ -630,6 +678,15 @@
   </div>
   <div id="canCaption"></div>
   <p class="tap">Click anywhere to continue</p>
+</div>
+
+<!-- help popup (ⓘ buttons) -->
+<div id="infoWrap">
+  <div id="infoBox">
+    <div id="infoTitle"></div>
+    <div id="infoText"></div>
+    <button id="infoClose">Got it!</button>
+  </div>
 </div>
 
 <!-- win -->
@@ -762,14 +819,49 @@
       b.classList.toggle('sel', picked.indexOf(b.dataset.k) !== -1);
     });
   }
-  function togglePick(k){
+  function renderVendCount(){
+    $('stockVendCount').textContent = picked.length ? picked.length + ' / 7 loaded' : 'empty';
+  }
+  /* a ghost of the product flies into the little machine, which trembles */
+  function ghostFly(k, fromEl){
+    var vend = $('stockVend');
+    var from = fromEl ? fromEl.getBoundingClientRect() : null;
+    var to = vend.getBoundingClientRect();
+    if(!from || !from.width || !to.width){ renderVendCount(); return; }
+    var g = document.createElement('div');
+    g.className = 'ghost-fly sprite' + (G.PRODUCTS[k].sheet==='n' ? ' n' : '');
+    g.style.cssText += ';' + spriteStyle(k);
+    g.style.left = (from.left + from.width/2 - 35) + 'px';
+    g.style.top = (from.top + from.height/2 - 35) + 'px';
+    document.body.appendChild(g);
+    var dx = (to.left + to.width/2) - (from.left + from.width/2);
+    var dy = (to.top + to.height/2) - (from.top + from.height/2);
+    var cleaned = false;
+    function land(){
+      if(cleaned) return; cleaned = true;
+      if(g.parentNode) g.remove();
+      vend.classList.remove('tremble'); void vend.offsetWidth; vend.classList.add('tremble');
+      renderVendCount();
+    }
+    try{
+      var anim = g.animate([
+        { transform:'translate(0,0) scale(1)', opacity:.95 },
+        { transform:'translate('+dx+'px,'+dy+'px) scale(.25)', opacity:.4 }
+      ], { duration:450, easing:'cubic-bezier(.45,.1,.4,1)' });
+      anim.onfinish = land;
+    }catch(e){}
+    setTimeout(land, 600);
+  }
+  function togglePick(k, fromEl){
+    if(autoFilling) return;
     var i = picked.indexOf(k);
-    if(i !== -1){ picked.splice(i,1); renderPick(); return; }
+    if(i !== -1){ picked.splice(i,1); renderPick(); renderVendCount(); return; }
     if(picked.length >= G.MAX_PICK){ toast('Your machine holds 7 products — take one out first!'); return; }
     if(G.PRODUCTS[k].sheet==='n' && nonSnackCount() >= G.MAX_NONSNACK){
       toast('Only 3 non-snacks allowed — they\'re expensive!'); return;
     }
     picked.push(k); renderPick();
+    ghostFly(k, fromEl);
   }
   document.querySelector('.shelf-tabs').addEventListener('click', function(e){
     var b = e.target.closest('button[data-shelf]'); if(!b) return;
@@ -782,23 +874,66 @@
   $('shelfS').addEventListener('click', shelfClick);
   $('shelfN').addEventListener('click', shelfClick);
   function shelfClick(e){
-    var b = e.target.closest('button[data-k]'); if(b) togglePick(b.dataset.k);
+    var b = e.target.closest('button[data-k]'); if(b) togglePick(b.dataset.k, b);
   }
+  var autoFilling = false;
   function startTimer(){
-    timeLeft = G.PICK_SECONDS;
+    timeLeft = window.ALGEBRA_STOCK_SECONDS || G.PICK_SECONDS;
+    var total = timeLeft;
     clearInterval(timerIv);
     timerIv = setInterval(function(){
       timeLeft--;
-      var pct = Math.max(0, timeLeft / G.PICK_SECONDS * 100);
+      var pct = Math.max(0, timeLeft / total * 100);
       $('timerBar').style.width = pct + '%';
       $('timerBar').classList.toggle('low', timeLeft <= 15);
       $('timerLeft').textContent = Math.max(0,timeLeft) + 's';
       if(timeLeft <= 0){
         clearInterval(timerIv);
-        toast('⏰ Time\'s up! The shelves filled themselves.');
-        finishStock();
+        autoFillStock();
       }
     }, 1000);
+  }
+  /* time's up: the machine stocks itself — 3 non-snacks (switching to that
+     shelf so the seller sees it), then snacks to 7, each flying in — then on */
+  function autoFillStock(){
+    if(autoFilling || current() !== 'scrStock') return;
+    autoFilling = true;
+    toast('⏰ Time\'s up! The machine is stocking itself…');
+    var queue = [];
+    var ns = Object.keys(G.PRODUCTS).filter(function(k){
+      return G.PRODUCTS[k].sheet==='n' && picked.indexOf(k)===-1;
+    });
+    var sn = Object.keys(G.PRODUCTS).filter(function(k){
+      return G.PRODUCTS[k].sheet==='s' && picked.indexOf(k)===-1;
+    });
+    G.shuffle(ns); G.shuffle(sn);
+    var nsWanted = Math.max(0, G.MAX_NONSNACK - nonSnackCount());
+    while(nsWanted-- > 0 && ns.length && picked.length + queue.length < G.MAX_PICK)
+      queue.push({k:ns.pop(), shelf:'n'});
+    while(picked.length + queue.length < G.MAX_PICK && sn.length)
+      queue.push({k:sn.pop(), shelf:'s'});
+    var step = window.ALGEBRA_STOCK_SECONDS ? 80 : 380;
+    (function next(){
+      if(current() !== 'scrStock'){ autoFilling = false; return; }
+      if(!queue.length){
+        autoFilling = false;
+        setTimeout(function(){ if(current()==='scrStock') finishStock(); }, step * 2);
+        return;
+      }
+      var it = queue.shift();
+      showShelf(it.shelf);
+      var btn = document.querySelector('.shelf button[data-k="' + it.k + '"]');
+      picked.push(it.k); renderPick();
+      ghostFly(it.k, btn);
+      setTimeout(next, step);
+    })();
+  }
+  function showShelf(which){
+    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
+      x.classList.toggle('active', x.dataset.shelf === which);
+    });
+    $('shelfS').classList.toggle('on', which==='s');
+    $('shelfN').classList.toggle('on', which==='n');
   }
   function finishStock(){
     clearInterval(timerIv);
@@ -812,20 +947,61 @@
     renderRuleScreen();
     show('scrRule');
   }
-  $('stockDone').addEventListener('click', finishStock);
+  $('stockDone').addEventListener('click', function(){
+    if(autoFilling) return;
+    finishStock();
+  });
 
   /* ================= SELLER : rule ================= */
-  var tokens = [], capacity = 1;
+  var tokens = [{t:'var'}], capacity = 1;   // 𝑥 starts on the screen, ready to build on
   function renderRuleScreen(){
-    var html = tokens.map(function(t){
-      if(t.t==='var') return '<i>𝑥</i>';
-      if(t.t==='num') return esc(t.v);
-      return '&nbsp;' + G.opGlyph(t.v) + '&nbsp;';
-    }).join('');
+    var html;
+    if(tokens.length === 0){
+      /* the whole example in grey until something is typed */
+      html = '<span class="caret"></span><span class="ghosttxt">&nbsp;ex)&nbsp;<i>𝑥</i>&nbsp;+&nbsp;2</span>';
+    } else {
+      html = tokens.map(function(t){
+        if(t.t==='var') return '<i>𝑥</i>';
+        if(t.t==='num') return esc(t.v);
+        return '&nbsp;' + G.opGlyph(t.v) + '&nbsp;';
+      }).join('') + '<span class="caret"></span>';
+      if(tokens.length === 1 && tokens[0].t === 'var'){
+        html += '<span class="ghosttxt">&nbsp;+&nbsp;2</span>';   // the example carries on in grey
+      }
+    }
     /* one single flex item, so the spaces inside survive the flex layout */
-    $('ruleScreen').innerHTML = '<span>' + html + '<span class="caret"></span></span>';
+    $('ruleScreen').innerHTML = '<span>' + html + '</span>';
     $('rewardLine').textContent = 'Crack-reward: ' + G.reward(tokens) + ' Whare';
   }
+
+  /* ⓘ popups */
+  var INFO = {
+    how: {
+      title: '💻 How it works',
+      text: '<i style="font-family:Georgia,serif">𝑥</i> is the customer\'s number. Example rule: <b>𝑥 × 3 + 2</b> — '
+        + 'when a customer puts in 2, the machine gives out 8.<br><br>'
+        + 'Type with the keypad or your keyboard: <span class="shortcut">x</span> '
+        + '<span class="shortcut">+</span> <span class="shortcut">-</span> <span class="shortcut">*</span> '
+        + '<span class="shortcut">/</span> <span class="shortcut">⌫</span> — up to <b>two operations</b>.'
+    },
+    reward: {
+      title: '💰 Crack-rewards',
+      text: 'When a customer cracks your rule, <b>you earn the reward</b>. Harder rules pay more: '
+        + '÷ beats ×, × beats −, − beats +, and using two operations pays extra.<br><br>'
+        + 'But careful — an easy rule gets cracked fast for less!'
+    }
+  };
+  function openInfo(which){
+    $('infoTitle').innerHTML = INFO[which].title;
+    $('infoText').innerHTML = INFO[which].text;
+    $('infoWrap').classList.add('open');
+  }
+  $('howInfo').addEventListener('click', function(){ openInfo('how'); });
+  $('rewardInfo').addEventListener('click', function(){ openInfo('reward'); });
+  $('infoClose').addEventListener('click', function(){ $('infoWrap').classList.remove('open'); });
+  $('infoWrap').addEventListener('click', function(e){
+    if(e.target === $('infoWrap')) $('infoWrap').classList.remove('open');
+  });
   function addTok(k){
     var last = tokens[tokens.length-1];
     if(k === 'back'){
@@ -933,6 +1109,28 @@
       confetti();
       toast('🎉 ' + m.winner.name + ' cracked your rule — you earned ' + m.reward + ' Whare!');
     }
+    if(m.state==='done') scheduleMallExit('scrSell');
+  }
+
+  /* when a game finishes, everyone — seller included — heads back to the mall */
+  var exitTimer = null;
+  function scheduleMallExit(fromScr){
+    if(exitTimer) return;
+    var mid = machineId;
+    exitTimer = setTimeout(function(){
+      exitTimer = null;
+      if(machineId !== mid || current() !== fromScr) return;
+      if($('winWrap').classList.contains('on')) return;   // winner leaves via the button
+      goToMall();
+    }, 5000);
+  }
+  function goToMall(){
+    cancelRound();
+    machineId = null; role = 'buyer';
+    winShown = false;
+    show('scrMall');
+    refresh();
+    toast('🏬 Back to the mall!');
   }
   $('startBtn').addEventListener('click', function(){
     withMachine(function(m){
@@ -956,7 +1154,9 @@
 
   /* ================= BUYER : mall ================= */
   function renderMall(machines){
-    var open = machines.filter(function(m){ return m.state==='open' || m.state==='playing'; });
+    var open = machines.filter(function(m){
+      return (m.type||'algebra') !== 'zebra' && (m.state==='open' || m.state==='playing');
+    });
     if(!open.length){
       $('sections').innerHTML = '<div class="empty-mall">The mall is quiet… ask someone to open a shop! 🏪</div>';
       return;
@@ -1090,6 +1290,7 @@
         if(w.id === me.id){ showWin(m); }
         else { confetti(); }
       }
+      scheduleMallExit('scrPlay');
     }
 
     /* rule line + results table (who did what) */
@@ -1449,7 +1650,7 @@
   }
   $('winClose').addEventListener('click', function(){
     $('winWrap').classList.remove('on');
-    renderPlay();
+    goToMall();
   });
 
   function confetti(){
@@ -1518,8 +1719,11 @@
 
   /* ---------------- navigation ---------------- */
   $('roleSeller').addEventListener('click', function(){
-    picked = []; tokens = []; capacity = 1;
-    renderPick(); renderRuleScreen();
+    picked = []; tokens = [{t:'var'}]; capacity = 1; autoFilling = false;
+    Array.prototype.forEach.call($('capSeg').children, function(x){
+      x.classList.toggle('active', x.dataset.c === '1');
+    });
+    renderPick(); renderVendCount(); renderRuleScreen();
     show('scrStock');
     startTimer();
     toast('⏱ 90 seconds to stock your machine — go!');

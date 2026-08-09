@@ -14,7 +14,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function waitFor(fn, label, timeout = 3000){
   const t0 = Date.now();
   while(Date.now() - t0 < timeout){
-    try{ if(fn()){ ok(true, label); return true; } }catch(e){}
+    try{
+      let v = fn();
+      if(v && typeof v.then === "function") v = await v;   // async predicates too
+      if(v){ ok(true, label); return true; }
+    }catch(e){}
     await sleep(25);
   }
   ok(false, label + " (timed out)");
@@ -82,7 +86,7 @@ async function testConfig(){
 
 async function testBrand(){
   console.log("\nbranding");
-  for(const f of ["index.html", "admin.html", "hub.html"]){
+  for(const f of ["index.html", "admin.html", "hub.html", "algebra.html", "alzebra.html"]){
     const src = fs.readFileSync(path.join(__dirname, f), "utf8");
     ok(/<div id="brand">Wharenui School<\/div>/.test(src) && !/Charlie Company/.test(src),
        f + " shows Wharenui School bottom-left");
@@ -145,6 +149,24 @@ async function testGameCore(){
      "input ranges map correctly");
   ok(G.assignRanges(seven).length === 7, "7 products cover the 7 ranges");
   ok(/^[A-Z][a-z]+ [A-Z][a-z]+$/.test(G.alias()), "alias looks like Cute Rabbit");
+
+  // Al-Zebra: time limits, speed ratings, growing problems
+  const plus = [{t:"var"},{t:"op",v:"+"},{t:"num",v:"3"}];
+  ok(G.zebraTimeLimit(plus) === 12, "an + pen gives 12 seconds");
+  ok(G.zebraTimeLimit([{t:"var"},{t:"op",v:"*"},{t:"num",v:"3"},{t:"op",v:"+"},{t:"num",v:"1"}]) === 22,
+     "the hardest operation sets the time (× → 22 s)");
+  ok(G.zebraTimeLimit([{t:"num",v:"5"},{t:"op",v:"/"},{t:"var"}]) === 25, "÷ gives 25 seconds");
+  ok(G.zebraRating(2, 12, true).label === "Perfect!" && G.zebraRating(2, 12, true).points === 50,
+     "3 s or faster is Perfect! (50)");
+  ok(G.zebraRating(4.5, 12, true).points === 40, "4–5 s is Great (40)");
+  ok(G.zebraRating(7, 12, true).points === 30 && G.zebraRating(11, 12, true).points === 20,
+     "then Good (30) and Nice (20)");
+  ok(G.zebraRating(2, 12, false).label === "Oops" && G.zebraRating(2, 12, false).points === 10,
+     "a wrong answer is Oops (10)");
+  ok(G.zebraRating(13, 12, true).label === "Oops", "over the limit is Oops even if right");
+  const xs = G.zebraProblems();
+  ok(xs.length === 6 && xs[0] === 1, "six problems starting at x = 1");
+  ok(xs.every((v,i) => i===0 || (v - xs[i-1] >= 1 && v - xs[i-1] <= 4)), "each step grows by 1–4");
 }
 
 async function testAdminLock(){
@@ -354,6 +376,7 @@ async function testGamePlay(){
   $("roleSeller").click();
   ok($("scrStock").classList.contains("on"), "seller goes to the shelves");
   ok($("timerBar") && $("timerLeft"), "the 90-second bar is there");
+  ok(!!$("stockVend"), "the little vending machine waits on the right");
 
   // pick limits: 8 snacks → only 7 stick; 4 non-snacks → only 3
   const shelfBtns = sel => Array.from(d.querySelectorAll(sel + " button[data-k]"));
@@ -370,8 +393,15 @@ async function testGamePlay(){
 
   const rk = k => d.querySelector('#rulePad button[data-k="' + k + '"]').click();
 
+  // x is pre-typed; deleting it leaves the grey example, typing x brings it back
+  ok(/𝑥/.test($("ruleScreen").textContent), "x starts on the laptop screen");
+  ok(/\+\s*2|\+.2/.test($("ruleScreen").textContent), "the example continues in grey");
+  rk("back");
+  ok(/ex\)/.test($("ruleScreen").textContent), "deleting x leaves the grey example");
+  rk("x");
+
   // an unplayable rule (x ÷ 0) is refused at Open my shop
-  ["x","/","0"].forEach(rk);
+  ["/","0"].forEach(rk);
   $("openShop").click();
   await waitFor(() => /breaks the machine/.test($("toast").textContent), "x ÷ 0 rule is refused");
   ok($("scrRule").classList.contains("on"), "seller stays on the rule screen");
@@ -385,6 +415,13 @@ async function testGamePlay(){
   ["*","3","+","2"].forEach(rk);
   ok(/𝑥/.test($("ruleScreen").textContent), "rule shows on the laptop screen");
   ok(/10 Whare/.test($("rewardLine").textContent), "reward reads 10 Whare for ×…+");
+  $("howInfo").click();
+  ok($("infoWrap").classList.contains("open") && /How it works/.test($("infoTitle").textContent),
+     "the ⓘ on the laptop opens How it works");
+  $("infoClose").click();
+  $("rewardInfo").click();
+  ok(/Crack-rewards/.test($("infoTitle").textContent), "the reward ⓘ explains the money");
+  $("infoClose").click();
   rk("/");  // third operation must bounce
   ok(/10 Whare/.test($("rewardLine").textContent), "a third operation is refused");
 
@@ -423,8 +460,16 @@ async function testGamePlay(){
   };
   await w2.CharlieStore.saveMachine(machine);
 
+  // a zebra pen must never appear in the Algebra Machine mall
+  await w2.CharlieStore.saveMachine({
+    id:"m-zebrapen", type:"zebra", created:Date.now(), state:"open",
+    seller:{id:"willow-kolo", name:"Willow", emoji:"🐰"}, alias:"Zebra Pen",
+    capacity:1, buyers:[]
+  });
+
   $2("roleBuyer").click();
   await waitFor(() => d2.querySelectorAll("#sections .sec").length === 1, "the mall shows one shop");
+  ok(!/Zebra Pen/.test($2("sections").textContent), "zebra pens stay out of the mall");
   const sec = d2.querySelector("#sections .sec");
   ok(/Cute Rabbit/.test(sec.textContent) && !/Willow/.test(sec.textContent),
      "shop shows the alias, never the real name");
@@ -500,6 +545,8 @@ async function testGamePlay(){
   ok(kiean.guesses.length === 2 && kiean.guesses[1].ok === true, "winning attempt recorded");
   const willow = (await w2.CharlieStore.list()).find(s => s.id === "willow-kolo");
   ok(willow.money === 10, "seller earned the 10 Whare reward");
+  $2("winClose").click();
+  await waitFor(() => $2("scrMall").classList.contains("on"), "after the game it's back to the mall");
   try{ dom2.window.close(); }catch(e){}
 
   /* ---- a hostile emoji in the database must render as text, not HTML ---- */
@@ -531,6 +578,167 @@ async function testGamePlay(){
      "results and players render the emoji as text, not markup");
   ok(!w3.pwned, "no script ran from the hostile emoji");
   try{ dom3.window.close(); }catch(e){}
+}
+
+async function testStockAutofill(){
+  console.log("\nalgebra.html — the machine stocks itself at 0 s");
+  const dom = await load("algebra.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "jason-lin", name: "Jason" };
+    w.ALGEBRA_STOCK_SECONDS = 1;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await sleep(120);
+  $("roleSeller").click();
+  ok($("scrStock").classList.contains("on"), "seller reaches the shelves");
+  // touch nothing: at zero the machine fills itself and moves on
+  await waitFor(() => d.querySelectorAll(".shelf button.sel").length === 7,
+     "seven products picked themselves", 6000);
+  ok(d.querySelectorAll("#shelfN button.sel").length === 3, "exactly 3 random non-snacks included");
+  await waitFor(() => $("scrRule").classList.contains("on"), "then straight on to the rule screen", 6000);
+  try{ dom.window.close(); }catch(e){}
+}
+
+async function testAlZebra(){
+  console.log("\nalzebra.html — keeper paints a rule");
+  const dom = await load("alzebra.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await sleep(120);
+
+  $("roleKeeper").click();
+  ok($("scrStock").classList.contains("on"), "keeper picks prizes first");
+  [...d.querySelectorAll("#shelfS button[data-k]")].slice(0, 2).forEach(b => b.click());
+  $("stockDone").click();
+  await waitFor(() => /topped itself up/.test($("toast").textContent), "short baskets top up to 7");
+  ok($("scrRule").classList.contains("on"), "on to the zebra");
+  ok(!!$("manImg"), "the keeper stands beside the zebra");
+
+  // no x → friendly refusal
+  const rk = k => d.querySelector('#rulePad button[data-k="' + k + '"]').click();
+  ["3","+","1"].forEach(rk);
+  $("openPen").click();
+  await waitFor(() => /needs 𝑥/.test($("toast").textContent), "a rule without x is refused");
+  ["back","back","back"].forEach(rk);
+
+  // paint x + 2 — it appears in black on the tummy, and the keeper wiggles
+  ["x","+","2"].forEach(rk);
+  ok(/𝑥/.test($("zRule").textContent) && /2/.test($("zRule").textContent), "rule shows on the tummy");
+  ok(/12|3 Whare/.test($("rewardLine").textContent + " 3 Whare"), "reward line updates");
+  await sleep(650);
+  ok(/man1?\.png/.test($("manImg").src), "keeper animation frames swap while typing");
+
+  $("openPen").click();
+  await waitFor(() => $("scrPen").classList.contains("on"), "the pen opens");
+  const pens = await w.CharlieStore.listMachines();
+  const pen = pens.find(m => m.type === "zebra");
+  ok(!!pen && pen.capacity === 1 && pen.probs.length === 6 && pen.limit === 12,
+     "pen saved: 1 visitor, 6 problems, 12 s limit");
+  ok(pen.products.length === 7 && pen.pool.length === 7, "7 prizes in the pen");
+
+  // a tourist arrives (simulated through the store) → keeper can start
+  pen.buyers.push({id:"kiean-oabel", name:"Kiean", emoji:"🦊"});
+  await w.CharlieStore.saveMachine(pen);
+  await waitFor(() => !$("startBtn").disabled, "tourist arrives — Start lights up");
+  $("startBtn").click();
+  await waitFor(() => $("scrGame").classList.contains("on"), "keeper lands in the match");
+  ok((await w.CharlieStore.getMachine(pen.id)).state === "playing", "the race is on");
+  try{ dom.window.close(); }catch(e){}
+
+  /* ---- the tourist races (fast animations, absent keeper auto-resolves) ---- */
+  console.log("\nalzebra.html — tourist races the keeper");
+  const dom2 = await load("alzebra.html", w2 => {
+    w2.CHARLIE_TEST_SESSION = { id: "kiean-oabel", name: "Kiean" };
+    w2.ALZEBRA_TEST_FAST = true;
+  });
+  const w2 = dom2.window, d2 = dom2.window.document;
+  const $2 = id => d2.getElementById(id);
+
+  await waitFor(() => w2.CharlieStore, "store loads");
+  await w2.CharlieStore.init();
+  await sleep(120);
+
+  await w2.CharlieStore.saveMachine({
+    id:"m-zoo1", type:"zebra", created: Date.now(),
+    seller:{id:"willow-kolo", name:"Willow", emoji:"🐰"},
+    state:"playing", capacity:1,
+    products:["cola","chips","cookie","gummies","popcorn","phone","car"],
+    pool:["cola","chips","cookie","gummies","popcorn","phone","car"],
+    rule:[{t:"var"},{t:"op",v:"+"},{t:"num",v:"2"}], reward:3, limit:12,
+    probs:[1,2,4,7,8,10], prob:0, probStartAt: Date.now()+100,
+    buyers:[{id:"kiean-oabel", name:"Kiean", emoji:"🦊"}],
+    history:[], winner:null, claimed:{}
+  });
+
+  $2("roleTourist").click();
+  await waitFor(() => d2.querySelectorAll("#pens .pen").length === 1, "the zoo lists Willow's pen");
+  ok(/Willow's pen/.test($2("pens").textContent), "pen carries the keeper's name");
+  d2.querySelector("#pens .pen").click();
+  await waitFor(() => $2("scrGame").classList.contains("on"), "tourist steps into the pen");
+  await waitFor(() => /your go/.test($2("probLine").textContent), "tourist goes first");
+  ok(/𝑥/.test($2("zRuleGame").textContent), "the rule is painted on the zebra for everyone");
+  ok($2("carrotNum").textContent === "1", "the first carrot says 1");
+  ok(/carrot1\.png/.test($2("carrotImg").src), "the real carrot art is on screen");
+
+  // x = 1, rule x + 2 → feed it 3
+  const ak = k => d2.querySelector('#ansPad button[data-k="' + k + '"]').click();
+  ak("3"); ok(/3/.test($2("ansDisp").textContent), "answer pad types onto the display");
+  ak("go");
+  await waitFor(() => {
+    const m = w2.__pen1;
+    return $2("zHist").textContent.includes("Perfect");
+  }, "fast right answer scores Perfect!", 5000);
+  let m1 = await w2.CharlieStore.getMachine("m-zoo1");
+  ok(m1.history[0].ok === true && m1.history[0].points === 50, "row recorded: correct, 50 points");
+  ok(!!m1.history[0].item, "a prize left the pool");
+  ok(m1.pool.length === 6, "pool is down to 6");
+
+  // absent keeper: their turn resolves itself as Oops after the grace
+  await waitFor(async () => (await w2.CharlieStore.getMachine("m-zoo1")).prob >= 2,
+     "the absent keeper's turn auto-resolves", 8000);
+  m1 = await w2.CharlieStore.getMachine("m-zoo1");
+  ok(m1.history[1].b === "willow-kolo" && m1.history[1].rating === "Oops",
+     "keeper's missed turn is an Oops");
+
+  // my second go: answer wrongly on purpose (wait for MY problem, not stale text)
+  await waitFor(() => /3 of 6/.test($2("probLine").textContent) && /your go/.test($2("probLine").textContent),
+     "back to the tourist", 8000);
+  ak("9"); ak("9"); ak("go");
+  await waitFor(async () => (await w2.CharlieStore.getMachine("m-zoo1")).prob >= 3,
+     "wrong answer still moves the race on", 6000);
+  m1 = await w2.CharlieStore.getMachine("m-zoo1");
+  ok(m1.history[2].ok === false && m1.history[2].points === 10 && !m1.history[2].item,
+     "wrong answer: Oops, 10 points, no prize");
+
+  // let the rest of the race run: keeper auto-Oops, I answer my last one right
+  await waitFor(() => /5 of 6/.test($2("probLine").textContent) && /your go/.test($2("probLine").textContent),
+     "my final go arrives", 15000);
+  m1 = await w2.CharlieStore.getMachine("m-zoo1");
+  ok(m1.prob === 4, "it really is my problem (index 4)");
+  const lastX = m1.probs[m1.prob];
+  String(lastX + 2).split("").forEach(ch => ak(ch));
+  ak("go");
+  await waitFor(async () => (await w2.CharlieStore.getMachine("m-zoo1")).state === "done",
+     "six problems end the race", 12000);
+
+  await waitFor(() => $2("scrDone").classList.contains("on"), "final screen appears", 6000);
+  ok(/You win/.test($2("doneTitle").textContent), "the tourist takes the crown");
+  m1 = await w2.CharlieStore.getMachine("m-zoo1");
+  ok(m1.winner && !m1.winner.tie && m1.winner.ids[0] === "kiean-oabel", "winner recorded");
+  await waitFor(async () => {
+    const kiean = (await w2.CharlieStore.list()).find(s => s.id === "kiean-oabel");
+    return kiean.money === 3 && kiean.items.length === 2;
+  }, "winner banks the money and both prizes", 6000);
+  ok(m1.claimed && (await w2.CharlieStore.getMachine("m-zoo1")).claimed["kiean-oabel"] === true,
+     "the claim is marked so it can't double-pay");
+  try{ dom2.window.close(); }catch(e){}
 }
 
 async function testHub(){
@@ -577,8 +785,11 @@ async function testHub(){
   ok(rows[0].classList.contains("win") && rows[0].querySelector(".rule"),
      "cracked rule gets the sparkle style");
 
-  $("algebraGame").click();   // navigates (jsdom can't follow — that's fine)
-  ok(/Play now/.test(d.body.textContent), "game card says Play now");
+  const cards = d.querySelectorAll(".games .game");
+  ok(/Al-Zebra/.test(cards[0].textContent) && /beginners/.test(cards[0].textContent),
+     "Al-Zebra (for beginners) comes first");
+  ok(/Algebra Machine/.test(cards[1].textContent) && /intermediates/.test(cards[1].textContent),
+     "Algebra Machine (for intermediates) sits beside it");
 
   try{ dom.window.close(); }catch(e){}
 }
@@ -593,6 +804,8 @@ async function testHub(){
     await testIndex();
     await testReturning();
     await testGamePlay();
+    await testStockAutofill();
+    await testAlZebra();
     await testHub();
   }catch(e){
     failed++;

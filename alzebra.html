@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Al-Zebra — Charlie's Class</title>
+<style>
+  :root{
+    --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
+    --ink:#22333b; --card:#ffffff; --accent:#e63946; --good:#2a9d34;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,#f2f8ec 0%,#e2f0d9 45%,#d4e8c8 100%);
+    min-height:100vh;
+  }
+  button{font-family:inherit; cursor:pointer;}
+  header{display:flex; align-items:center; gap:12px; padding:12px 20px;}
+  header h1{font-size:clamp(17px,2.4vw,24px); color:var(--teal-dark);}
+  #backBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:7px 14px; font-size:14px; font-weight:700;
+  }
+  #backBtn:hover{background:#eef7f5;}
+  #meChip{
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+    border:2px solid #cfe3df; background:#fff; border-radius:30px;
+    padding:5px 14px 5px 9px; font-size:14.5px; font-weight:800; color:var(--teal-dark);
+  }
+  #meChip:hover{background:var(--cream);}
+  #meChip .em{font-size:20px;}
+  #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
+
+  main{max-width:1080px; margin:0 auto; padding:6px 18px 60px;}
+  .screen{display:none;}
+  .screen.on{display:block;}
+  h2{font-size:clamp(20px,3vw,30px); color:var(--teal-dark); text-align:center; margin:2.5vh 0 1vh;}
+  .sub{font-size:15px; color:#4c6b66; text-align:center; margin-bottom:2.5vh;}
+  .card{
+    background:var(--card); border-radius:16px; padding:14px 16px;
+    box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:14px;
+  }
+  .card h4{font-size:12.5px; text-transform:uppercase; letter-spacing:1px; color:#7a8f8b; margin-bottom:8px;}
+
+  .sprite{
+    background-image:url(assets/snacks.jpg);
+    background-size:500% 400%; background-repeat:no-repeat;
+    border-radius:10px; aspect-ratio:1/1;
+  }
+  .sprite.n{background-image:url(assets/non-snacks.jpg);}
+
+  /* ---------- role choice ---------- */
+  .role-btns{display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin-top:3vh;}
+  .role-btns button{
+    width:min(40vw,300px); border:0; border-radius:22px; padding:34px 16px;
+    background:var(--card); box-shadow:0 6px 18px rgba(31,90,84,.2); transition:.15s;
+  }
+  .role-btns button:hover{transform:translateY(-4px);}
+  .role-btns .big{font-size:54px; display:block; margin-bottom:8px;}
+  .role-btns .t{font-size:21px; font-weight:800; color:var(--teal-dark);}
+  .role-btns .d{font-size:13.5px; color:#6b8480; margin-top:6px; line-height:1.45;}
+
+  /* ---------- keeper: pick prizes ---------- */
+  #pickCount{font-weight:800; color:var(--teal-dark); font-size:15px; margin-bottom:8px; display:inline-block;}
+  .shelf-tabs{display:flex; gap:8px; margin-bottom:10px;}
+  .shelf-tabs button{
+    border:2px solid #d7e5e2; background:#f6fbfa; border-radius:20px;
+    padding:6px 16px; font-size:14px; font-weight:700; color:#5c7671;
+  }
+  .shelf-tabs button.active{border-color:var(--teal); background:#e3f4f0; color:var(--teal-dark);}
+  .shelf{display:none; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px;}
+  .shelf.on{display:grid;}
+  .shelf button{
+    border:3px solid transparent; border-radius:14px; background:#fbfdfc; padding:6px;
+    box-shadow:0 2px 6px rgba(31,90,84,.12); transition:.12s;
+  }
+  .shelf button:hover{transform:scale(1.05);}
+  .shelf button.sel{border-color:var(--good); background:#eaf7ec;}
+  .shelf button .nm{font-size:11px; font-weight:700; color:#5c7671; margin-top:4px; display:block;}
+  #stockDone{
+    display:block; margin:14px auto 0; border:0; border-radius:12px;
+    background:var(--good); color:#fff; font-size:16px; font-weight:800; padding:12px 30px;
+  }
+  #stockDone:hover{background:#217a29;}
+
+  /* ---------- the zebra stage (rule writing + the match) ---------- */
+  .zoo-stage{
+    position:relative; border-radius:18px; overflow:hidden;
+    background:url(assets/zebra.jpg) center/cover no-repeat;
+    aspect-ratio:3/2; max-width:840px; margin:0 auto;
+    box-shadow:0 8px 22px rgba(31,90,84,.3);
+  }
+  .zoo-stage img.face{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .2s;}
+  .zoo-stage img.face.on{opacity:1;}
+  /* the rule, written in black on the stripe-free tummy */
+  #zRule{
+    position:absolute; left:39.5%; top:44%; width:27.5%; height:16%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; color:#111; white-space:nowrap; overflow:hidden;
+    font-size:clamp(10px,2.9vw,34px); z-index:4;
+  }
+  .zoo-stage.small-rule #zRule{font-size:clamp(9px,2.1vw,24px);}
+  #zRule i{font-family:Georgia,serif; padding:0 1px;}
+  #zRule .caret{display:inline-block; width:2.5px; height:1.05em; background:#111; margin-left:2px; animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0}}
+  /* the keeper, painting the rule (rule screen only) */
+  /* the keeper is a big foreground figure whose pen follows the writing:
+     three stops (start / middle / end of the rule), sliding as you type */
+  #manImg{position:absolute; left:35%; top:36%; width:42%; z-index:5; pointer-events:none;
+          filter:drop-shadow(0 6px 10px rgba(0,0,0,.3));
+          transition:left .45s ease;}
+  #manImg.pos2{left:44%;}
+  #manImg.pos3{left:53%;}
+  /* the carrot in front of the mouth (tip points at the zebra) */
+  #carrot{
+    position:absolute; left:1.5%; top:27%; width:19%; z-index:4;
+    transition:left .7s ease-in, top .7s ease-in, transform .7s ease-in, opacity .6s;
+  }
+  #carrot.eaten{left:16%; top:29%; transform:scale(.22) rotate(18deg); opacity:0;}
+  #carrot.notrans{transition:none !important;}
+  #carrot img{width:100%; height:auto; display:block; filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));}
+  #carrotNum{
+    position:absolute; left:55%; top:47%; transform:translate(-50%,-50%);
+    color:#fff; font-weight:800; font-size:clamp(18px,3.6vw,44px);
+    text-shadow:0 2px 3px rgba(140,60,0,.95), 0 0 10px rgba(0,0,0,.45);
+  }
+  /* golden glow on the face after a correct answer */
+  #zGlow{
+    position:absolute; left:16%; top:4%; width:26%; height:44%; z-index:3;
+    border-radius:50%; opacity:0; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,230,90,.95) 0%, rgba(255,230,90,0) 70%);
+    mix-blend-mode:screen;
+  }
+  #zGlow.on{animation:glowPulse 1s ease-in-out;}
+  @keyframes glowPulse{0%{opacity:0} 30%{opacity:1} 70%{opacity:.95} 100%{opacity:0}}
+  /* rating splash */
+  #splash{
+    position:absolute; left:50%; top:14%; transform:translateX(-50%);
+    z-index:6; font-weight:900; font-size:clamp(26px,5.5vw,64px); letter-spacing:1px;
+    opacity:0; pointer-events:none; white-space:nowrap;
+    text-shadow:0 3px 0 rgba(0,0,0,.18), 0 6px 18px rgba(0,0,0,.35);
+  }
+  #splash.pop{animation:splashPop 1.4s cubic-bezier(.2,1.4,.4,1);}
+  @keyframes splashPop{
+    0%{opacity:0; transform:translateX(-50%) scale(.2) rotate(-8deg);}
+    25%{opacity:1; transform:translateX(-50%) scale(1.25) rotate(3deg);}
+    45%{transform:translateX(-50%) scale(1) rotate(0);}
+    80%{opacity:1;}
+    100%{opacity:0; transform:translateX(-50%) scale(1.05) translateY(-14px);}
+  }
+  #splash.r-perfect{color:#ffd83d;} #splash.r-great{color:#7ac943;}
+  #splash.r-good{color:#4fd6c2;} #splash.r-nice{color:#7db9ff;} #splash.r-oops{color:#ff6b6b;}
+  /* the prize popping out of the zebra's behind */
+  #prizeFly{position:absolute; left:71%; top:42%; width:12%; z-index:5; opacity:0; pointer-events:none;}
+  #prizeFly.show{opacity:1; transition:opacity .35s;}
+  #prizeFly.gone{opacity:0;}
+
+  /* timer bar */
+  #timerWrap2{max-width:840px; margin:8px auto 0; height:14px; background:#dfe9e6; border-radius:8px; overflow:hidden;}
+  #timerBar2{height:100%; width:100%; background:linear-gradient(90deg,#2a9d34,#7ac943);}
+  #timerBar2.low{background:linear-gradient(90deg,#e63946,#f4a261);}
+
+  /* rule keypad (keeper) */
+  .rulepad{display:grid; grid-template-columns:repeat(4,64px); gap:8px;}
+  .rulepad button{
+    height:52px; border:0; border-radius:12px; background:var(--card);
+    font-size:21px; font-weight:800; color:var(--ink); box-shadow:0 2px 6px rgba(31,90,84,.16);
+  }
+  .rulepad button:hover{background:var(--cream);}
+  .rulepad button:active, .rulepad button.press{transform:translateY(2px) scale(.94); background:var(--cream);}
+  .rulepad button.op{background:#f4f0fd; color:#5b3fa8;}
+  .rulepad button.xkey{background:var(--yellow); color:#6b5c00;}
+  .rule-side{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin-top:14px;}
+  .rule-help{max-width:330px; font-size:13.5px; color:#4c6b66; line-height:1.55; text-align:left;}
+  .rule-help b{color:var(--teal-dark);}
+  #rewardLine{
+    margin-top:8px; font-size:15px; font-weight:800; color:#8a6d00;
+    background:var(--yellow); border-radius:10px; padding:7px 12px; display:inline-block;
+  }
+  #openPen{
+    display:block; margin:16px auto 0; border:0; border-radius:12px;
+    background:var(--accent); color:#fff; font-size:16px; font-weight:800; padding:12px 28px;
+  }
+  #openPen:hover{filter:brightness(1.1);}
+
+  /* zoo (tourist's pen list) */
+  #pens{display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(230px,1fr));}
+  .pen{
+    border:0; border-radius:16px; text-align:center; background:var(--card);
+    box-shadow:0 5px 14px rgba(31,90,84,.18); padding:18px 12px; transition:.15s;
+  }
+  .pen:hover{transform:translateY(-3px);}
+  .pen .em{font-size:38px; display:block;}
+  .pen .al{font-size:17px; font-weight:800; color:var(--teal-dark);}
+  .pen .oc{font-size:13.5px; font-weight:700; color:#4c6b66;}
+  .pen[disabled]{opacity:.6; cursor:default;}
+  .empty-zoo{text-align:center; color:#7a8f8b; padding:30px 10px; font-size:15px;}
+
+  /* players / lobby */
+  .players{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0;}
+  .pl{
+    background:#f6fbfa; border:2px solid #d7e5e2; border-radius:14px;
+    padding:8px 14px; font-weight:700; font-size:14.5px; color:#4c6b66;
+    display:flex; align-items:center; gap:7px;
+  }
+  .pl .em{font-size:20px;}
+  .pl.now{border-color:var(--good); background:#eaf7ec; color:#1c5c22;}
+  .pl.empty{opacity:.5; border-style:dashed;}
+  .pl .sc{background:var(--yellow); color:#8a6d00; border-radius:12px; padding:0 8px; font-size:12.5px;}
+  .bigbtn{
+    display:block; margin:12px auto 0; border:0; border-radius:12px;
+    background:var(--good); color:#fff; font-size:16px; font-weight:800; padding:12px 30px;
+  }
+  .bigbtn[disabled]{background:#c6d6d2; cursor:default;}
+  .quietbtn{
+    display:block; margin:10px auto 0; border:0; border-radius:10px;
+    background:#eef1f0; color:#5c7671; font-size:14px; font-weight:700; padding:9px 20px;
+  }
+
+  /* answer calculator */
+  #probLine{text-align:center; font-size:16.5px; font-weight:800; color:var(--teal-dark); margin:10px 0 6px; min-height:22px;}
+  .calc{max-width:340px; margin:0 auto;}
+  .calc-disp{
+    background:#12241f; color:#7CFC98; border-radius:14px 14px 0 0;
+    font-family:"Menlo","Consolas",monospace; font-size:clamp(22px,4.5vw,30px); font-weight:700;
+    padding:12px 16px; text-align:right; min-height:56px; letter-spacing:1px;
+    overflow-x:auto; white-space:nowrap; box-shadow:inset 0 3px 10px rgba(0,0,0,.5);
+  }
+  .calc-disp .ph{color:#3f6b52; font-size:14px; letter-spacing:0;}
+  .calc-keys{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:7px;
+    background:#dfe9e6; border-radius:0 0 16px 16px; padding:10px;
+    box-shadow:0 6px 16px rgba(31,90,84,.25);
+  }
+  .calc-keys button{
+    height:52px; border:0; border-radius:12px; background:#fff;
+    font-size:22px; font-weight:800; color:var(--ink);
+    box-shadow:0 3px 0 #b9cac5; transition:transform .06s, box-shadow .06s;
+  }
+  .calc-keys button:active, .calc-keys button.press{
+    transform:translateY(3px) scale(.97); box-shadow:0 0 0 #b9cac5; background:var(--cream);
+  }
+  .calc-keys button.fn{background:#eef3f1; color:#7a8f8b; font-size:18px;}
+  .calc-keys button.go{background:var(--good); color:#fff; font-size:16px; box-shadow:0 3px 0 #1c5c22;}
+  .calc-keys button.go:active, .calc-keys button.go.press{box-shadow:0 0 0 #1c5c22;}
+
+  /* results */
+  .tbl-wrap{overflow-y:auto; border:1.5px solid #e2edeb; border-radius:10px; max-height:34vh;}
+  .tbl-wrap table{width:100%; border-collapse:collapse; font-size:15px;}
+  .tbl-wrap thead th{position:sticky; top:0; background:var(--teal); color:#fff; padding:6px 5px; font-size:13.5px;}
+  .tbl-wrap thead th i{font-family:Georgia,serif;}
+  .tbl-wrap tbody td{padding:5px; text-align:center; border-top:1px solid #edf4f3; font-weight:600;}
+  .tbl-wrap tbody tr:nth-child(even){background:#f6fbfa;}
+  .tbl-wrap td .mini{width:30px; display:inline-block; vertical-align:middle;}
+  .tbl-wrap td .who{font-size:13px; white-space:nowrap;}
+  .rate{font-weight:800;}
+  .rate.r-perfect{color:#c9a100;} .rate.r-great{color:#2a9d34;}
+  .rate.r-good{color:#1f8f7d;} .rate.r-nice{color:#3a6ea5;} .rate.r-oops{color:#e63946;}
+  .empty-msg{color:#a5b8b4; font-size:13px; text-align:center; padding:14px 6px !important; font-weight:500 !important;}
+
+  /* final screen */
+  #doneCard{max-width:560px; margin:0 auto; text-align:center;}
+  #doneTitle{font-size:clamp(22px,4vw,34px); font-weight:800; color:var(--teal-dark); margin-bottom:6px;}
+  #doneMoney{font-size:16px; font-weight:800; color:#8a6d00; background:var(--yellow); border-radius:12px; padding:8px 14px; display:inline-block; margin:8px 0;}
+  .haul{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:6px 0 12px;}
+  .haul .mini{width:44px;}
+
+  #toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-90px);
+    z-index:70; background:#22333b; color:#fff; font-size:15px; font-weight:600;
+    padding:10px 20px; border-radius:30px; box-shadow:0 6px 18px rgba(0,0,0,.3);
+    transition:transform .3s ease; pointer-events:none; max-width:82vw; text-align:center;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0);}
+  #confetti{position:fixed; inset:0; z-index:60; pointer-events:none;}
+  #brand{
+    position:fixed; left:14px; bottom:10px; z-index:5;
+    font-size:12.5px; font-weight:700; letter-spacing:.4px; color:#4c6b66;
+    background:#ffffffcc; padding:4px 13px; border-radius:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<canvas id="confetti"></canvas>
+
+<header>
+  <button id="backBtn">← Back</button>
+  <h1>🦓 Al-Zebra</h1>
+  <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
+</header>
+
+<main>
+  <!-- role -->
+  <section class="screen on" id="scrRole">
+    <h2>Welcome to the algebra zoo!</h2>
+    <div class="role-btns">
+      <button id="roleKeeper">
+        <span class="big">🧑‍🌾</span><span class="t">Zookeeper</span>
+        <span class="d">Paint a rule on your zebra, pick 7 prizes, and race a visitor at your own puzzle.</span>
+      </button>
+      <button id="roleTourist">
+        <span class="big">📸</span><span class="t">Tourist</span>
+        <span class="d">Visit a pen and race the zookeeper: feed the zebra the right outputs, fast!</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- keeper: prizes -->
+  <section class="screen" id="scrStock">
+    <h2>🥕 Pick 7 prizes for your pen</h2>
+    <p class="sub">Whoever answers a problem correctly wins one of these — at most <b>3</b> non-snacks.</p>
+    <div class="card">
+      <span id="pickCount">0 / 7</span>
+      <div class="shelf-tabs">
+        <button data-shelf="s" class="active">🍪 Snacks</button>
+        <button data-shelf="n">🧸 Non-snacks <span id="nsCount"></span></button>
+      </div>
+      <div class="shelf on" id="shelfS"></div>
+      <div class="shelf" id="shelfN"></div>
+      <button id="stockDone">✓ Done — paint my rule</button>
+    </div>
+  </section>
+
+  <!-- keeper: rule on the zebra -->
+  <section class="screen" id="scrRule">
+    <h2>🖌️ Paint the rule on your zebra</h2>
+    <p class="sub">It goes right on the stripe-free tummy. 𝑥 is the carrot number.</p>
+    <div class="zoo-stage" id="stageRule">
+      <div id="zRule"></div>
+      <img id="manImg" src="assets/man.png" alt="zookeeper painting">
+    </div>
+    <div class="rule-side">
+      <div>
+        <div class="rulepad" id="rulePad">
+          <button class="xkey" data-k="x">𝑥</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+          <button class="op" data-k="+">+</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+          <button class="op" data-k="-">−</button><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+          <button class="op" data-k="*">×</button><button class="op" data-k="/">÷</button><button data-k="0">0</button><button data-k="back">⌫</button>
+        </div>
+        <div id="rewardLine">Winner's prize money: 0 Whare</div>
+      </div>
+      <div class="rule-help">
+        <b>How it works</b><br>
+        Example rule: <b>𝑥 + 3</b> — when the carrot says 2, the zebra wants <b>5</b>.<br><br>
+        Harder rules mean <b>more prize money</b> (÷ beats ×, × beats −, − beats +,
+        two operations pay extra) and <b>more thinking time</b> for each problem.
+        You and your tourist race the same 6 problems — fastest answers score
+        <b>Perfect! 50</b> · Great 40 · Good 30 · Nice 20 · Oops 10.
+      </div>
+    </div>
+    <button id="openPen">🦓 Open my pen!</button>
+  </section>
+
+  <!-- keeper lobby -->
+  <section class="screen" id="scrPen">
+    <h2>🦓 Your pen is open!</h2>
+    <p class="sub" id="penSub">Waiting for a tourist to visit…</p>
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <div class="players" id="penPlayers"></div>
+      <button class="bigbtn" id="startBtn" disabled>▶ Start the race</button>
+      <button class="quietbtn" id="closePen">Close my pen</button>
+    </div>
+  </section>
+
+  <!-- tourist: the zoo -->
+  <section class="screen" id="scrZoo">
+    <h2>🏞️ Wharenui Zoo</h2>
+    <p class="sub">Pick a pen to visit!</p>
+    <div id="pens"></div>
+  </section>
+
+  <!-- the match -->
+  <section class="screen" id="scrGame">
+    <div class="players" id="gamePlayers"></div>
+    <div class="zoo-stage" id="stageGame">
+      <img class="face" id="faceHappy" src="assets/zebra1.jpg" alt="">
+      <img class="face" id="faceSad" src="assets/zebra2.jpg" alt="">
+      <div id="zGlow"></div>
+      <div id="zRuleGame" style="position:absolute;left:39.5%;top:44%;width:27.5%;height:16%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#111;white-space:nowrap;overflow:hidden;font-size:clamp(10px,2.9vw,34px);z-index:2"></div>
+      <div id="carrot">
+        <img id="carrotImg" src="assets/carrot1.png" alt="carrot">
+        <span id="carrotNum">1</span>
+      </div>
+      <div id="prizeFly"></div>
+      <div id="splash"></div>
+    </div>
+    <div id="timerWrap2"><div id="timerBar2"></div></div>
+    <div id="probLine"></div>
+    <div class="calc" id="ansCalc">
+      <div class="calc-disp" id="ansDisp"><span class="ph">your answer…</span></div>
+      <div class="calc-keys" id="ansPad">
+        <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="back" class="fn">⌫</button>
+        <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="clear" class="fn">C</button>
+        <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="neg" class="fn">±</button>
+        <button data-k="0">0</button><button data-k="." class="fn">.</button><button data-k="go" class="go" style="grid-column:span 2">🥕 Feed!</button>
+      </div>
+    </div>
+    <div class="card" style="max-width:640px;margin:14px auto 0">
+      <h4>Results</h4>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>who</th><th>🥕 <i>x</i></th><th>answer</th><th>rating</th><th>prize</th></tr></thead>
+          <tbody id="zHist"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- final -->
+  <section class="screen" id="scrDone">
+    <div class="card" id="doneCard">
+      <div id="doneTitle"></div>
+      <div id="doneScores" class="players" style="justify-content:center"></div>
+      <div id="doneMoney"></div>
+      <div id="doneHauls"></div>
+      <button class="bigbtn" id="doneBack">🏠 Back to games</button>
+    </div>
+  </section>
+</main>
+
+<div id="brand">Wharenui School</div>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script src="js/game-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var store = window.CharlieStore, G = window.GameCore;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* test hook: shrink every animation/wait so jsdom can play a whole match */
+  var FAST = !!window.ALZEBRA_TEST_FAST;
+  var DUR = FAST
+    ? {carrot:25, glow:40, prizeIn:25, prizeFly:30, sad:60, nextDelay:150, grace:400, tick:100}
+    : {carrot:700, glow:1000, prizeIn:400, prizeFly:900, sad:1300, nextDelay:3400, grace:8000, tick:250};
+
+  /* ---------------- session ---------------- */
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem('charlie-session')); }catch(e){}
+  if(!sess && window.CHARLIE_TEST_SESSION) sess = window.CHARLIE_TEST_SESSION;
+  if(!sess || !sess.id){ window.location.replace('index.html'); }
+
+  var me = null;
+  var penId = null;
+  var pen = null;            // latest machine copy (type 'zebra')
+  var role = null;           // 'keeper' | 'tourist'
+  var animBusy = false;
+  var answering = false;     // synchronous latch on the answer save
+  var lastPlayed = -1;       // history rows already animated
+  var localStart = null;     // when my current problem appeared for me
+  var claimedLocal = false;
+  var doneShown = false;
+
+  var sndPop = null, sndMoney = null;
+  try{ sndPop = new Audio('assets/pop.mp3'); sndMoney = new Audio('assets/money.mp3'); }catch(e){}
+  function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
+
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  }
+  function show(id){
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
+      s.classList.toggle('on', s.id === id);
+    });
+  }
+  function current(){
+    var on = document.querySelector('.screen.on');
+    return on ? on.id : '';
+  }
+  function fmt(n){
+    if(!isFinite(n)) return '?';
+    var r = Math.round(n*100)/100;
+    return (Object.is(r,-0)?0:r).toString();
+  }
+  function spriteStyle(key){
+    var p = G.PRODUCTS[key];
+    return p ? 'background-position:' + (p.col*25) + '% ' + (p.row*100/3) + '%' : '';
+  }
+  function spriteDiv(key, cls){
+    var p = G.PRODUCTS[key];
+    if(!p) return '';
+    return '<div class="sprite ' + (p.sheet==='n'?'n ':'') + (cls||'') + '" style="' + spriteStyle(key) + '" title="' + esc(p.name) + '"></div>';
+  }
+  function prettyRule(tokens){
+    return tokens.map(function(t){
+      if(t.t==='var') return '<i>𝑥</i>';
+      if(t.t==='num') return esc(t.v);
+      return ' ' + G.opGlyph(t.v) + ' ';
+    }).join('');
+  }
+  function flash(padEl, k){
+    var b = padEl.querySelector('button[data-k="' + k + '"]');
+    if(!b) return;
+    b.classList.remove('press');
+    void b.offsetWidth;
+    b.classList.add('press');
+    setTimeout(function(){ b.classList.remove('press'); }, 180);
+  }
+  function renderChip(){
+    if(!me) return;
+    $('meEmoji').textContent = me.emoji || '🙂';
+    $('meName').textContent = me.name;
+    $('meMoney').textContent = (me.money||0) + ' W';
+  }
+  $('meChip').addEventListener('click', function(){ window.location.href = 'hub.html#me'; });
+
+  /* ================= KEEPER : prizes ================= */
+  var picked = [];
+  function buildShelves(){
+    var s = [], n = [];
+    Object.keys(G.PRODUCTS).forEach(function(k){
+      (G.PRODUCTS[k].sheet === 's' ? s : n).push(k);
+    });
+    $('shelfS').innerHTML = s.map(function(k){
+      return '<button data-k="'+k+'">' + spriteDiv(k) + '<span class="nm">'+esc(G.PRODUCTS[k].name)+'</span></button>';
+    }).join('');
+    $('shelfN').innerHTML = n.map(function(k){
+      return '<button data-k="'+k+'">' + spriteDiv(k) + '<span class="nm">'+esc(G.PRODUCTS[k].name)+'</span></button>';
+    }).join('');
+  }
+  function nonSnackCount(){
+    return picked.filter(function(k){ return G.PRODUCTS[k].sheet === 'n'; }).length;
+  }
+  function renderPick(){
+    $('pickCount').textContent = picked.length + ' / ' + G.MAX_PICK;
+    $('nsCount').textContent = '(' + nonSnackCount() + '/' + G.MAX_NONSNACK + ')';
+    Array.prototype.forEach.call(document.querySelectorAll('.shelf button'), function(b){
+      b.classList.toggle('sel', picked.indexOf(b.dataset.k) !== -1);
+    });
+  }
+  document.querySelector('.shelf-tabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-shelf]'); if(!b) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
+      x.classList.toggle('active', x === b);
+    });
+    $('shelfS').classList.toggle('on', b.dataset.shelf==='s');
+    $('shelfN').classList.toggle('on', b.dataset.shelf==='n');
+  });
+  function shelfClick(e){
+    var b = e.target.closest('button[data-k]'); if(!b) return;
+    var k = b.dataset.k;
+    var i = picked.indexOf(k);
+    if(i !== -1){ picked.splice(i,1); renderPick(); return; }
+    if(picked.length >= G.MAX_PICK){ toast('7 prizes fit in the pen — take one out first!'); return; }
+    if(G.PRODUCTS[k].sheet==='n' && nonSnackCount() >= G.MAX_NONSNACK){
+      toast('Only 3 non-snacks allowed!'); return;
+    }
+    picked.push(k); renderPick();
+  }
+  $('shelfS').addEventListener('click', shelfClick);
+  $('shelfN').addEventListener('click', shelfClick);
+  $('stockDone').addEventListener('click', function(){
+    if(picked.length < G.MAX_PICK){
+      var snacks = Object.keys(G.PRODUCTS).filter(function(k){
+        return G.PRODUCTS[k].sheet==='s' && picked.indexOf(k)===-1;
+      });
+      G.shuffle(snacks);
+      while(picked.length < G.MAX_PICK && snacks.length) picked.push(snacks.pop());
+      toast('The pen topped itself up to 7 prizes!');
+    }
+    renderZRule();
+    show('scrRule');
+  });
+
+  /* ================= KEEPER : rule on the zebra ================= */
+  var tokens = [];
+  var manTimer = null, manFrame = 0, lastKeyAt = 0;
+  function renderZRule(){
+    var html = tokens.map(function(t){
+      if(t.t==='var') return '<i>𝑥</i>';
+      if(t.t==='num') return esc(t.v);
+      return '&nbsp;' + G.opGlyph(t.v) + '&nbsp;';
+    }).join('');
+    $('zRule').innerHTML = '<span>' + html + '<span class="caret"></span></span>';
+    $('stageRule').classList.toggle('small-rule', tokens.length > 6);
+    $('rewardLine').textContent = 'Winner\'s prize money: ' + G.reward(tokens) + ' Whare';
+    /* the keeper's pen roughly tracks the caret: three stops across the rule */
+    var manCls = tokens.length <= 2 ? '' : tokens.length <= 5 ? 'pos2' : 'pos3';
+    $('manImg').classList.toggle('pos2', manCls === 'pos2');
+    $('manImg').classList.toggle('pos3', manCls === 'pos3');
+  }
+  /* every keystroke makes the keeper wiggle: man.png ↔ man1.png each 0.5 s */
+  function pokeMan(){
+    lastKeyAt = Date.now();
+    if(manTimer) return;
+    manTimer = setInterval(function(){
+      if(Date.now() - lastKeyAt > 1000){
+        clearInterval(manTimer); manTimer = null;
+        manFrame = 0; $('manImg').src = 'assets/man.png';
+        return;
+      }
+      manFrame = 1 - manFrame;
+      $('manImg').src = manFrame ? 'assets/man1.png' : 'assets/man.png';
+    }, 500);
+  }
+  function addTok(k){
+    pokeMan();
+    var last = tokens[tokens.length-1];
+    if(k === 'back'){
+      if(!last) return;
+      if(last.t==='num' && last.v.length>1) last.v = last.v.slice(0,-1);
+      else tokens.pop();
+    } else if(k === 'x'){
+      if(last && (last.t==='num' || last.t==='var')){
+        if(G.ruleOps(tokens).length >= 2){ toast('Two operations max!'); return; }
+        tokens.push({t:'op',v:'*'});
+      }
+      tokens.push({t:'var'});
+    } else if(/^[0-9]$/.test(k)){
+      if(last && last.t==='num'){
+        if(last.v === '0'){ last.v = k; renderZRule(); return; }
+        if(last.v.length >= 3){ toast('Keep numbers small!'); return; }
+        last.v += k;
+      } else if(last && last.t==='var'){
+        if(G.ruleOps(tokens).length >= 2){ toast('Two operations max!'); return; }
+        tokens.push({t:'op',v:'*'}); tokens.push({t:'num',v:k});
+      } else tokens.push({t:'num',v:k});
+    } else {
+      if(!last){ toast('Start with 𝑥 or a number!'); return; }
+      if(last.t==='op'){ last.v = k; }
+      else {
+        if(G.ruleOps(tokens).length >= 2){ toast('Two operations max — beginners, remember!'); return; }
+        tokens.push({t:'op',v:k});
+      }
+    }
+    renderZRule();
+  }
+  $('rulePad').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-k]'); if(b) addTok(b.dataset.k);
+  });
+  document.addEventListener('keydown', function(e){
+    if(current() !== 'scrRule') return;
+    var k = e.key, pad = null;
+    if(/^[0-9]$/.test(k) || '+-*/'.indexOf(k) !== -1){ pad = k; }
+    else if(k==='x' || k==='X'){ pad = 'x'; }
+    else if(k==='Backspace'){ pad = 'back'; }
+    else if(k===' '){ e.preventDefault(); return; }
+    if(pad !== null){
+      e.preventDefault();
+      flash($('rulePad'), pad);
+      addTok(pad);
+    }
+  });
+  $('openPen').addEventListener('click', function(){
+    if(!tokens.some(function(t){ return t.t==='var'; })){
+      toast('Your rule needs 𝑥 — press the yellow 𝑥 key!'); return;
+    }
+    if(!G.validRule(tokens)){ toast('The rule can\'t end on + − × ÷'); return; }
+    if(G.ruleOps(tokens).length < 1){ toast('Add at least one operation — 𝑥 alone is too easy!'); return; }
+    if(!G.evaluableRule(tokens)){ toast('That rule breaks the zebra\'s tummy maths (dividing by zero?)'); return; }
+    var m = {
+      id: G.machineId(),
+      type: 'zebra',
+      created: Date.now(),
+      seller: {id:me.id, name:me.name, emoji:me.emoji || '🙂'},
+      state: 'open',
+      capacity: 1,
+      products: picked.slice(),
+      pool: picked.slice(),
+      rule: tokens.slice(),
+      reward: G.reward(tokens),
+      limit: G.zebraTimeLimit(tokens),
+      probs: G.zebraProblems(),
+      prob: 0, probStartAt: 0,
+      buyers: [], history: [], winner: null, claimed: {}
+    };
+    store.saveMachine(m).then(function(){
+      penId = m.id; role = 'keeper';
+      resetMatchState();
+      refresh();
+      show('scrPen');
+    }).catch(function(){ toast('Could not open the pen — check the connection.'); });
+  });
+
+  /* ================= KEEPER : lobby ================= */
+  function renderPen(){
+    var m = pen; if(!m) return;
+    var ph = [
+      '<span class="pl"><span class="em">'+esc(m.seller.emoji||'🙂')+'</span>'+esc(m.seller.name)+' (keeper)</span>',
+      m.buyers[0]
+        ? '<span class="pl"><span class="em">'+esc(m.buyers[0].emoji||'🙂')+'</span>'+esc(m.buyers[0].name)+' (tourist)</span>'
+        : '<span class="pl empty">📸 waiting for a tourist…</span>'
+    ];
+    $('penPlayers').innerHTML = ph.join('');
+    $('penSub').textContent = m.buyers.length
+      ? 'Your tourist is here — start when you\'re ready!'
+      : 'Waiting for a tourist to visit…';
+    $('startBtn').disabled = !(m.state==='open' && m.buyers.length === 1);
+    if(m.state === 'playing'){ show('scrGame'); renderGame(); }
+  }
+  $('startBtn').addEventListener('click', function(){
+    withPen(function(m){
+      if(m.state!=='open' || m.buyers.length !== 1) return null;
+      m.state = 'playing';
+      m.prob = 0;
+      m.probStartAt = Date.now() + (FAST ? 100 : 1200);
+      return m;
+    }).then(function(m){
+      if(m){ show('scrGame'); renderGame(); }
+    }).catch(function(){ toast('Could not reach the zoo — try again!'); });
+  });
+  $('closePen').addEventListener('click', function(){
+    withPen(function(m){
+      if(m.state==='done') return null;
+      m.state = 'done';
+      return m;
+    }).then(function(){
+      penId = null; role = null;
+      show('scrRole');
+    }).catch(function(){ toast('Could not reach the zoo — try again!'); });
+  });
+
+  /* ================= TOURIST : the zoo ================= */
+  function renderZoo(machines){
+    var pens = machines.filter(function(m){
+      return m.type==='zebra' && (m.state==='open' || m.state==='playing');
+    });
+    if(!pens.length){
+      $('pens').innerHTML = '<div class="empty-zoo">No pens are open… ask someone to be a zookeeper! 🧑‍🌾</div>';
+      return;
+    }
+    $('pens').innerHTML = pens.map(function(m){
+      var mine = (m.buyers[0] && m.buyers[0].id===me.id) || m.seller.id===me.id;
+      var full = m.buyers.length >= 1 || m.state!=='open';
+      var oc = m.state==='playing' ? '🎮 Racing…' : full ? 'full' : 'open — come in!';
+      return '<button class="pen" data-id="'+m.id+'"'+((full && !mine)?' disabled':'')+'>'
+        + '<span class="em">'+esc(m.seller.emoji||'🙂')+'</span>'
+        + '<span class="al">'+esc(m.seller.name)+'\'s pen</span>'
+        + '<span class="oc">'+oc+'</span>'
+        + '</button>';
+    }).join('');
+  }
+  $('pens').addEventListener('click', function(e){
+    var b = e.target.closest('.pen[data-id]'); if(!b || b.disabled) return;
+    joinPen(b.dataset.id, 0);
+  });
+  function joinPen(id, attempt){
+    store.getMachine(id).then(function(m){
+      if(!m || m.state==='done'){ toast('That pen just closed!'); refresh(); return; }
+      var already = (m.buyers[0] && m.buyers[0].id===me.id) || m.seller.id===me.id;
+      if(!already){
+        if(m.state!=='open' || m.buyers.length >= 1){ toast('That pen already has a visitor!'); refresh(); return; }
+        m.buyers.push({id:me.id, name:me.name, emoji:me.emoji || '🙂'});
+        return store.saveMachine(m).then(function(){
+          return store.getMachine(id).then(function(m2){
+            var isMe = m2.buyers[0] && m2.buyers[0].id === me.id;
+            if(!isMe){
+              if(attempt < 2){ joinPen(id, attempt+1); return; }
+              toast('Just missed it — another tourist got in!'); refresh(); return;
+            }
+            enterPen(id, 'tourist');
+          });
+        });
+      }
+      enterPen(id, m.seller.id===me.id ? 'keeper' : 'tourist');
+    }).catch(function(){ toast('Could not reach the zoo — try again!'); });
+  }
+  function enterPen(id, r){
+    penId = id; role = r;
+    resetMatchState();
+    show(r==='keeper' ? 'scrPen' : 'scrGame');
+    refresh();
+  }
+  function resetMatchState(){
+    animBusy = false; answering = false;
+    lastPlayed = -1; playbackPrimed = false;
+    localStart = null; lastProbSeen = -1;
+    claimedLocal = false; payoutOwed = false; claimBusy = false;
+    doneShown = false;
+    ansVal = ''; renderAnsDisp();
+    $('zHist').innerHTML = '';
+  }
+  var playbackPrimed = false, lastProbSeen = -1;
+
+  /* ================= THE MATCH ================= */
+  function players(m){ return [m.buyers[0], m.seller]; }          // tourist first
+  function playerFor(m, i){ return players(m)[i % 2]; }
+  function myGo(m){
+    return m && m.state==='playing' && m.prob < 6 &&
+           playerFor(m, m.prob) && playerFor(m, m.prob).id === me.id;
+  }
+  function scoresOf(m){
+    var sc = {};
+    players(m).forEach(function(p){ if(p) sc[p.id] = 0; });
+    m.history.forEach(function(h){ sc[h.b] = (sc[h.b]||0) + h.points; });
+    return sc;
+  }
+
+  function renderGame(){
+    var m = pen; if(!m) return;
+    var sc = scoresOf(m);
+    $('gamePlayers').innerHTML = players(m).map(function(p, i){
+      if(!p) return '';
+      var now = m.state==='playing' && m.prob < 6 && (m.prob % 2) === i;
+      var label = i===0 ? '📸' : '🧑‍🌾';
+      return '<span class="pl'+(now?' now':'')+'" data-pid="'+esc(p.id)+'">'
+        + '<span class="em">'+esc(p.emoji||'🙂')+'</span>'+label+' '+esc(p.name)
+        + ' <span class="sc">'+(sc[p.id]||0)+' pts</span></span>';
+    }).join('');
+    $('zRuleGame').innerHTML = '<span>' + prettyRule(m.rule) + '</span>';
+
+    if(m.state==='open'){
+      $('probLine').textContent = '⏳ Waiting for ' + m.seller.name + ' to start the race…';
+      $('carrot').style.visibility = 'hidden';
+      $('ansCalc').style.visibility = 'hidden';
+      return;
+    }
+    if(m.state==='done'){ showDone(m); return; }
+
+    /* a new problem started (whoever resolved the last one): fresh clock */
+    if(m.prob !== lastProbSeen){
+      lastProbSeen = m.prob;
+      localStart = null;
+    }
+
+    if(!animBusy && m.prob < 6){
+      var x = m.probs[m.prob];
+      var p = playerFor(m, m.prob);
+      $('carrot').style.visibility = '';
+      $('carrot').classList.remove('eaten');
+      $('carrotImg').src = 'assets/carrot' + ((m.prob % 4) + 1) + '.png';   // a fresh carrot each time
+      $('carrotNum').textContent = fmt(x);
+      var mine = myGo(m);
+      $('probLine').innerHTML = 'Problem <b>' + (m.prob+1) + ' of 6</b> · 🥕 𝑥 = <b>' + fmt(x) + '</b> · '
+        + (mine ? '⭐ your go, ' + esc(me.name) + '!' : '⏳ ' + esc(p.name) + '\'s go…');
+      $('ansCalc').style.visibility = mine ? '' : 'hidden';
+      if(mine && localStart === null) localStart = Date.now();
+    }
+    renderZHist(m);
+  }
+  function renderZHist(m){
+    if(!m.history.length){
+      $('zHist').innerHTML = '<tr><td colspan="5" class="empty-msg">The race just started — carrots at the ready!</td></tr>';
+      return;
+    }
+    $('zHist').innerHTML = m.history.map(function(h){
+      var p = players(m).filter(function(x){ return x && x.id===h.b; })[0];
+      var cls = 'r-' + h.rating.toLowerCase().replace('!','');
+      return '<tr>'
+        + '<td><span class="who">'+(p?esc(p.emoji||'🙂')+' '+esc(p.name):'?')+'</span></td>'
+        + '<td>'+esc(fmt(h.x))+'</td>'
+        + '<td>'+(h.ans===null?'—':esc(fmt(h.ans)))+'</td>'
+        + '<td><span class="rate '+cls+'">'+esc(h.rating)+'</span> +'+h.points+'</td>'
+        + '<td>'+(h.item ? '<span class="mini">'+spriteDiv(h.item)+'</span>' : '—')+'</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  /* ---------------- answering ---------------- */
+  var ansVal = '';
+  function renderAnsDisp(){
+    $('ansDisp').innerHTML = ansVal === '' ? '<span class="ph">your answer…</span>' : esc(ansVal);
+  }
+  function ansKey(k){
+    if(k === 'go'){ submitAnswer(false); return; }
+    if(k === 'back') ansVal = ansVal.slice(0,-1);
+    else if(k === 'clear') ansVal = '';
+    else if(k === 'neg') ansVal = ansVal.charAt(0)==='-' ? ansVal.slice(1) : '-'+ansVal;
+    else if(k === '.'){ if(ansVal.indexOf('.')===-1) ansVal += (ansVal===''||ansVal==='-') ? '0.' : '.'; }
+    else if(/^[0-9]$/.test(k)){ if(ansVal.replace(/[-.]/g,'').length < 6) ansVal += k; }
+    else return;
+    renderAnsDisp();
+  }
+  $('ansPad').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-k]'); if(b) ansKey(b.dataset.k);
+  });
+  document.addEventListener('keydown', function(e){
+    if(current() !== 'scrGame' || !myGo(pen) || animBusy) return;
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key === 'Enter' ? 'go' : e.key === 'Backspace' ? 'back' : e.key === '-' ? 'neg' : e.key;
+    if(k==='go' || k==='back' || k==='neg' || k==='.' || /^[0-9]$/.test(k)){
+      e.preventDefault();
+      flash($('ansPad'), k);
+      ansKey(k);
+    }
+  });
+
+  function submitAnswer(isTimeout){
+    if(answering || animBusy) return;
+    var m = pen;
+    if(!m || !myGo(m)) return;
+    var ans = isTimeout ? null : parseFloat(ansVal);
+    if(!isTimeout && (ansVal.trim()==='' || isNaN(ans))){ toast('Type your answer first!'); return; }
+    var secs = localStart ? (Date.now() - localStart)/1000 : 999;
+    answering = true;
+    store.getMachine(penId).then(function(mm){
+      if(!mm || !myGo(mm) || mm.prob !== m.prob){
+        answering = false;
+        if(mm){ pen = mm; } rerender();
+        return;
+      }
+      var expected = mm.prob;
+      resolveProblem(mm, ans, secs);
+      /* compare-and-swap on prob: if the opponent's client resolved this
+         problem first, our write loses cleanly and we just re-read */
+      return store.saveMachineIf(mm, expected).then(function(won){
+        answering = false;
+        if(!won){ refresh(); return; }
+        pen = mm; rerender();
+        ansVal = ''; renderAnsDisp();
+        localStart = null;
+      });
+    }).catch(function(){
+      answering = false;
+      toast('Could not reach the zoo — try again!');
+    });
+  }
+  /* shared resolution: score it, hand out a prize, move the race along */
+  function resolveProblem(mm, ans, secs){
+    var x = mm.probs[mm.prob];
+    var out = G.evalRule(mm.rule, x);
+    var rounded = out === null ? null : Math.round(out*100)/100;
+    /* accept the 2-dp answer AND more precise ones (1.67 or 1.6667 for 5÷3) */
+    var ok = ans !== null && out !== null &&
+             (Math.abs(ans - out) < 0.005 || Math.abs(ans - rounded) < 1e-6);
+    var r = G.zebraRating(secs, mm.limit, ok);
+    var item = null;
+    if(ok && r.points > 10 && mm.pool.length){   // no prize for an over-time answer
+      item = mm.pool.splice(Math.floor(Math.random()*mm.pool.length), 1)[0];
+    }
+    mm.history.push({
+      b: playerFor(mm, mm.prob).id,
+      x: x, ans: ans, out: rounded, ok: ok,
+      secs: Math.round(secs*10)/10,
+      rating: r.label, points: r.points, item: item
+    });
+    mm.prob++;
+    mm.probStartAt = Date.now() + DUR.nextDelay;
+    if(mm.prob >= 6) finalise(mm);
+  }
+  function finalise(mm){
+    mm.state = 'done';
+    var sc = scoresOf(mm);
+    var t = mm.buyers[0], k = mm.seller;
+    var ts = sc[t.id]||0, ks = sc[k.id]||0;
+    mm.winner = ts === ks ? {tie:true, ids:[t.id, k.id]}
+              : {tie:false, ids:[ts > ks ? t.id : k.id]};
+  }
+  /* what this player is owed — ties split without minting extra Whare */
+  function shareFor(m, id){
+    if(!m.winner || m.winner.ids.indexOf(id) === -1) return 0;
+    if(!m.winner.tie) return m.reward;
+    return m.winner.ids[0] === id ? Math.ceil(m.reward/2) : Math.floor(m.reward/2);
+  }
+
+  /* a stuck opponent (closed tab): after the limit + grace, resolve for them */
+  function limitMs(m){ return FAST ? 900 : m.limit*1000; }
+  setInterval(function(){
+    var m = pen;
+    if(!m || m.state!=='playing' || animBusy || current()!=='scrGame') return;
+    if(m.prob >= 6 || !m.probStartAt) return;
+    var deadline = m.probStartAt + limitMs(m);
+    /* my own countdown → auto-Oops at zero */
+    if(myGo(m) && localStart !== null){
+      var left = (localStart + limitMs(m)) - Date.now();
+      renderTimer(Math.max(0, left) / limitMs(m));
+      if(left <= 0 && !answering){ submitAnswer(true); }
+      return;
+    }
+    renderTimer(Math.max(0, deadline - Date.now()) / limitMs(m));
+    /* opponent way overdue → free the race (compare-and-swap like any resolve) */
+    if(Date.now() > deadline + DUR.grace && !answering){
+      answering = true;
+      store.getMachine(penId).then(function(mm){
+        if(!mm || mm.state!=='playing' || mm.prob !== m.prob){
+          answering = false;
+          if(mm){ pen = mm; rerender(); }
+          return;
+        }
+        var expected = mm.prob;
+        resolveProblem(mm, null, mm.limit + 1);
+        return store.saveMachineIf(mm, expected).then(function(won){
+          answering = false;
+          if(won){ pen = mm; rerender(); }
+          else refresh();
+        });
+      }).catch(function(){ answering = false; });
+    }
+  }, DUR.tick);
+  function renderTimer(frac){
+    $('timerBar2').style.width = (frac*100) + '%';
+    $('timerBar2').classList.toggle('low', frac < .28);
+  }
+
+  /* ---------------- animation playback (both screens see it) ------------- */
+  function maybePlayback(){
+    var m = pen;
+    if(!m || current()!=='scrGame') return;
+    if(!playbackPrimed){
+      playbackPrimed = true;
+      lastPlayed = m.history.length - 1;   // joined mid-game: skip old rows
+    }
+    if(animBusy) return;
+    if(m.history.length - 1 <= lastPlayed) { renderGame(); return; }
+    lastPlayed++;
+    playRow(m, m.history[lastPlayed], lastPlayed);
+  }
+  function playRow(m, h, idx){
+    animBusy = true;
+    $('ansCalc').style.visibility = 'hidden';
+    var stage = $('stageGame');
+    $('carrotImg').src = 'assets/carrot' + ((idx % 4) + 1) + '.png';   // the carrot being eaten
+    $('carrotNum').textContent = fmt(h.x);
+    $('carrot').style.visibility = '';
+    if(h.ok){
+      /* carrot → mouth → happy glowing zebra → prize from the behind → done */
+      $('carrot').classList.add('eaten');
+      setTimeout(function(){
+        $('carrot').style.visibility = 'hidden';
+        $('faceHappy').classList.add('on');
+        $('zGlow').classList.remove('on'); void $('zGlow').offsetWidth; $('zGlow').classList.add('on');
+        splash(h.rating);
+        play(sndPop);
+        setTimeout(function(){
+          if(h.item){
+            $('prizeFly').innerHTML = spriteDiv(h.item);
+            $('prizeFly').className = ''; $('prizeFly').id = 'prizeFly';
+            $('prizeFly').classList.add('show');
+            setTimeout(function(){ flyPrizeTo(h); }, DUR.prizeIn);
+          } else {
+            wrapUp();
+          }
+        }, DUR.glow);
+      }, DUR.carrot);
+    } else {
+      /* sad zebra */
+      $('faceSad').classList.add('on');
+      splash(h.rating);
+      setTimeout(wrapUp, DUR.sad);
+    }
+    function flyPrizeTo(hh){
+      var plate = document.querySelector('#gamePlayers .pl[data-pid="'+hh.b+'"]');
+      var pf = $('prizeFly');
+      if(plate && pf.getBoundingClientRect().width > 0){
+        var a = pf.getBoundingClientRect(), b = plate.getBoundingClientRect();
+        try{
+          pf.animate([
+            { transform:'translate(0,0) scale(1)' },
+            { transform:'translate('+(b.left+b.width/2-(a.left+a.width/2))+'px,'
+                        +(b.top+b.height/2-(a.top+a.height/2))+'px) scale(.25)' }
+          ], {duration:DUR.prizeFly, easing:'cubic-bezier(.4,.1,.4,1)'});
+        }catch(e){}
+      }
+      setTimeout(function(){
+        pf.classList.add('gone'); pf.classList.remove('show');
+        wrapUp();
+      }, DUR.prizeFly);
+    }
+    function wrapUp(){
+      $('faceHappy').classList.remove('on');
+      $('faceSad').classList.remove('on');
+      /* snap the carrot back without the reverse glide */
+      var c = $('carrot');
+      c.classList.add('notrans');
+      c.classList.remove('eaten');
+      void c.offsetWidth;
+      c.classList.remove('notrans');
+      animBusy = false;
+      renderGame();
+      maybePlayback();          // catch up if more rows arrived meanwhile
+    }
+  }
+  function splash(rating){
+    var s = $('splash');
+    s.textContent = rating;
+    s.className = 'r-' + rating.toLowerCase().replace('!','');
+    void s.offsetWidth;
+    s.classList.add('pop');
+  }
+
+  /* ---------------- final screen + self-payout ---------------- */
+  function showDone(m){
+    if(doneShown) { claimIfMine(m); return; }
+    doneShown = true;
+    var sc = scoresOf(m);
+    var t = m.buyers[0], k = m.seller;
+    var iWon = m.winner && m.winner.ids.indexOf(me.id) !== -1;
+    var isPlayer = (t && t.id===me.id) || k.id===me.id;
+    $('doneTitle').textContent = m.winner && m.winner.tie ? '🤝 It\'s a tie!'
+      : iWon ? '🏆 You win, ' + me.name + '!'
+      : '🎉 Race over!';
+    $('doneScores').innerHTML = players(m).map(function(p, i){
+      if(!p) return '';
+      var win = m.winner && m.winner.ids.indexOf(p.id) !== -1;
+      return '<span class="pl'+(win?' now':'')+'"><span class="em">'+esc(p.emoji||'🙂')+'</span>'
+        + (i===0?'📸':'🧑‍🌾') + ' ' + esc(p.name) + ' <span class="sc">'+(sc[p.id]||0)+' pts</span>'
+        + (win?' 🏆':'') + '</span>';
+    }).join('');
+    if(m.winner){
+      $('doneMoney').textContent = m.winner.tie
+        ? '🤝 A tie — you split the ' + m.reward + ' Whare!'
+        : '💰 Winner takes ' + m.reward + ' Whare!';
+    } else {
+      $('doneMoney').textContent = 'The pen closed before the race finished.';
+    }
+    $('doneHauls').innerHTML = players(m).map(function(p){
+      if(!p) return '';
+      var haul = m.history.filter(function(h){ return h.b===p.id && h.item; }).map(function(h){ return h.item; });
+      return '<div style="margin-top:6px"><b style="color:var(--teal-dark)">'+esc(p.name)+'\'s haul:</b>'
+        + (haul.length ? '<div class="haul">' + haul.map(function(it){ return '<span class="mini">'+spriteDiv(it)+'</span>'; }).join('') + '</div>'
+                       : ' <span style="color:#8aa19c">nothing this time!</span>')
+        + '</div>';
+    }).join('');
+    show('scrDone');
+    if(isPlayer){ confetti(); play(sndMoney); }
+    claimIfMine(m);
+  }
+  /* each player banks their OWN loot exactly once.
+     Two legs: (1) mark claimed[me] on the pen, (2) pay my student row.
+     If (2) fails after (1) landed, payoutOwed keeps the debt alive so the
+     next refresh retries JUST the payment — the mark can't strand the loot. */
+  var payoutOwed = false, claimBusy = false;
+  function claimIfMine(m){
+    if(claimBusy) return;
+    if(claimedLocal && !payoutOwed) return;
+    var isPlayer = (m.buyers[0] && m.buyers[0].id===me.id) || m.seller.id===me.id;
+    if(!isPlayer) return;
+    claimBusy = true;
+    claimedLocal = true;
+    var step = payoutOwed
+      ? Promise.resolve(m)                      // mark already ours; retry the payment
+      : withPen(function(mm){
+          if(!mm.claimed) mm.claimed = {};
+          if(mm.claimed[me.id]) return null;
+          mm.claimed[me.id] = true;
+          return mm;
+        });
+    step.then(function(mm){
+      if(!mm && !payoutOwed){ claimBusy = false; return; }   // claimed in an earlier session
+      var src = mm || m;                        // authoritative copy where possible
+      payoutOwed = true;
+      var myItems = src.history.filter(function(h){ return h.b===me.id && h.item; }).map(function(h){ return h.item; });
+      var myMoney = shareFor(src, me.id);
+      if(!myItems.length && !myMoney){ payoutOwed = false; claimBusy = false; return; }
+      return store.list().then(function(all){
+        var mine = all.filter(function(s){ return s.id===me.id; })[0];
+        if(!mine) return;
+        return store.update(me.id, {
+          items: (mine.items||[]).concat(myItems),
+          money: (mine.money||0) + myMoney
+        });
+      }).then(function(){
+        payoutOwed = false;
+        refreshMe();
+        /* if the other player's claim write clobbered our flag, re-assert it
+           so a later reload can never pay us twice */
+        return withPen(function(mm2){
+          if(!mm2.claimed) mm2.claimed = {};
+          if(mm2.claimed[me.id]) return null;
+          mm2.claimed[me.id] = true;
+          return mm2;
+        });
+      }).then(function(){ claimBusy = false; });
+    }).catch(function(err){
+      claimBusy = false;       // payoutOwed stays true → next refresh retries the payment
+      if(FAST) window.__claimErr = String(err && (err.stack || err.message || err));
+    });
+  }
+  $('doneBack').addEventListener('click', function(){
+    penId = null; role = null;
+    window.location.href = 'hub.html';
+  });
+
+  function confetti(){
+    var cv = $('confetti'), ctx = null;
+    try{ ctx = cv.getContext && cv.getContext('2d'); }catch(e){}
+    if(!ctx || !window.requestAnimationFrame) return;
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var bits = [], colors = ['#e63946','#ffee32','#2a9d34','#4a82bd','#c2547d','#f4a261'];
+    for(var i=0;i<160;i++){
+      bits.push({x:Math.random()*cv.width, y:-20-Math.random()*cv.height*0.5,
+                 w:6+Math.random()*7, h:9+Math.random()*8,
+                 vy:2+Math.random()*3.5, vx:Math.random()*2-1,
+                 rot:Math.random()*Math.PI, vr:Math.random()*0.2-0.1,
+                 c:colors[i%colors.length]});
+    }
+    var t0 = Date.now();
+    (function tick(){
+      ctx.clearRect(0,0,cv.width,cv.height);
+      bits.forEach(function(b){
+        b.y += b.vy; b.x += b.vx; b.rot += b.vr;
+        ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.rot);
+        ctx.fillStyle = b.c; ctx.fillRect(-b.w/2,-b.h/2,b.w,b.h);
+        ctx.restore();
+      });
+      if(Date.now()-t0 < 4200) requestAnimationFrame(tick);
+      else ctx.clearRect(0,0,cv.width,cv.height);
+    })();
+  }
+
+  /* ---------------- shared plumbing ---------------- */
+  function withPen(fn){
+    return store.getMachine(penId).then(function(m){
+      if(!m) return null;
+      var out = fn(m);
+      if(!out){ pen = m; rerender(); return null; }
+      return store.saveMachine(out).then(function(){
+        pen = out; rerender();
+        return out;
+      });
+    });
+  }
+  function rerender(){
+    var scr = current();
+    if(scr === 'scrPen') renderPen();
+    else if(scr === 'scrGame' || scr === 'scrDone'){ maybePlayback(); if(!animBusy) renderGame(); }
+  }
+  function refresh(){
+    var scr = current();
+    if(scr === 'scrZoo'){
+      return store.listMachines().then(renderZoo);
+    }
+    if(penId && (scr === 'scrPen' || scr === 'scrGame' || scr === 'scrDone')){
+      return store.getMachine(penId).then(function(m){
+        if(m){ pen = m; rerender(); }
+      });
+    }
+    return Promise.resolve();
+  }
+  function refreshMe(){
+    return store.list().then(function(all){
+      me = all.filter(function(s){ return s.id === sess.id; })[0] || me;
+      renderChip();
+    });
+  }
+
+  /* ---------------- navigation ---------------- */
+  $('roleKeeper').addEventListener('click', function(){
+    picked = []; tokens = [];
+    renderPick(); renderZRule();
+    show('scrStock');
+  });
+  $('roleTourist').addEventListener('click', function(){
+    show('scrZoo'); refresh();
+  });
+  $('backBtn').addEventListener('click', function(){
+    var scr = current();
+    if(scr === 'scrRole'){ window.location.href = 'hub.html'; return; }
+    if(scr === 'scrStock' || scr === 'scrRule'){ show('scrRole'); return; }
+    if(scr === 'scrZoo'){ show('scrRole'); return; }
+    if(scr === 'scrGame' || scr === 'scrDone'){
+      if(pen && pen.state==='playing'){ toast('The race is on — finish it first!'); return; }
+      var wasTourist = role === 'tourist';
+      var pid = penId, leftOpenPen = wasTourist && pen && pen.state === 'open';
+      penId = null; role = null;
+      if(leftOpenPen){
+        /* free the seat so the keeper isn't stuck racing a ghost */
+        store.getMachine(pid).then(function(mm){
+          if(!mm || mm.state !== 'open') return;
+          var i = -1;
+          mm.buyers.forEach(function(b, bi){ if(b.id === me.id) i = bi; });
+          if(i !== -1){ mm.buyers.splice(i, 1); return store.saveMachine(mm); }
+        }).catch(function(){});
+      }
+      show(wasTourist ? 'scrZoo' : 'scrRole'); refresh(); return;
+    }
+    if(scr === 'scrPen'){ toast('Close your pen first (button below) or leave it open!'); return; }
+    show('scrRole');
+  });
+
+  /* ---------------- init ---------------- */
+  store.init().then(function(){
+    store.onChange(function(){ refresh(); refreshMe(); });
+    setInterval(refresh, FAST ? 500 : 4000);
+    return refreshMe();
+  }).then(function(){
+    buildShelves();
+  }).catch(function(){
+    toast('Hmm, the zoo can\'t reach the class database. Ask your teacher!');
+  });
+})();
+</script>
+</body>
+</html>

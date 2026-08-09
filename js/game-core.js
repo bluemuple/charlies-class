@@ -166,6 +166,42 @@
     return out;
   }
 
+  /* ---------------- Al-Zebra (beginners): answer the outputs fast -------- */
+  /* time to answer one problem, set by the hardest operation in the rule */
+  var ZEBRA_LIMITS = {'+':12, '-':16, '*':22, '/':25};
+  function zebraTimeLimit(tokens){
+    var lim = 12;
+    ruleOps(tokens).forEach(function(o){
+      if((ZEBRA_LIMITS[o]||12) > lim) lim = ZEBRA_LIMITS[o];
+    });
+    return lim;
+  }
+  /* speed → rating; a wrong answer or timeout is always Oops */
+  var ZEBRA_RATINGS = [
+    {label:'Perfect!', points:50, max:3},
+    {label:'Great',    points:40, max:5},
+    {label:'Good',     points:30, max:8},
+    {label:'Nice',     points:20, max:Infinity}
+  ];
+  function zebraRating(secs, limit, correct){
+    if(!correct || secs > limit) return {label:'Oops', points:10};
+    for(var i=0;i<ZEBRA_RATINGS.length;i++){
+      if(secs <= Math.min(ZEBRA_RATINGS[i].max, limit))
+        return {label:ZEBRA_RATINGS[i].label, points:ZEBRA_RATINGS[i].points};
+    }
+    return {label:'Nice', points:20};
+  }
+  /* six inputs: start at 1, grow by 1–4 each time */
+  function zebraProblems(rnd){
+    rnd = rnd || Math.random;
+    var xs = [], x = 1;
+    for(var i=0;i<6;i++){
+      xs.push(x);
+      x += 1 + Math.floor(rnd()*4);
+    }
+    return xs;
+  }
+
   /* ---------------- seller aliases ---------------- */
   var ADJ = ['Cute','Happy','Brave','Sunny','Clever','Lucky','Fluffy','Speedy',
              'Shiny','Jolly','Gentle','Mighty','Bouncy','Cheeky','Sparkly','Zippy'];
@@ -200,6 +236,7 @@
     normaliseGuess:normaliseGuess, checkGuess:checkGuess,
     rangeIndexFor:rangeIndexFor, assignRanges:assignRanges,
     prizeCount:prizeCount, pickPrizes:pickPrizes,
+    zebraTimeLimit:zebraTimeLimit, zebraRating:zebraRating, zebraProblems:zebraProblems,
     alias:alias, shuffle:shuffle, machineId:machineId
   };
 

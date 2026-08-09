@@ -159,10 +159,16 @@
 <main>
   <h2>Choose a game</h2>
   <div class="games">
+    <button class="game" id="alzebraGame">
+      <span class="art">🦓</span>
+      <span class="t">Al-Zebra</span>
+      <span class="d">For beginners — feed the zebra the right outputs, fast! Race a friend over 6 carrots.</span>
+      <span class="badge">▶ Play now</span>
+    </button>
     <button class="game" id="algebraGame">
       <span class="art">🥤</span>
       <span class="t">Algebra Machine</span>
-      <span class="d">Sell snacks with a secret rule — or crack another seller's rule and win the lot!</span>
+      <span class="d">For intermediates — sell snacks with a secret rule, or crack another seller's rule and win the lot!</span>
       <span class="badge">▶ Play now</span>
     </button>
     <button class="game soon" disabled>
@@ -367,6 +373,9 @@
   });
 
   /* ---------------- games ---------------- */
+  $('alzebraGame').addEventListener('click', function(){
+    window.location.href = 'alzebra.html';
+  });
   $('algebraGame').addEventListener('click', function(){
     window.location.href = 'algebra.html';
   });

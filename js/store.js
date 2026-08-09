@@ -268,7 +268,7 @@ window.CharlieStore = (function(){
       Object.keys(byId).forEach(function(k){ all.push(byId[k]); });
       all = all.filter(function(m){ return (m.created || 0) > maxAge; });
       all.sort(function(a,b){ return (b.created||0) - (a.created||0); });
-      return Promise.resolve(all);
+      return Promise.resolve(JSON.parse(JSON.stringify(all)));
     },
 
     getMachine: function(id){
@@ -279,7 +279,9 @@ window.CharlieStore = (function(){
             return r.data ? r.data.data : null;
           });
       }
-      return Promise.resolve(machRead()[id] || null);
+      /* hand out a COPY — callers mutate then save, like the network mode */
+      var m = machRead()[id];
+      return Promise.resolve(m ? JSON.parse(JSON.stringify(m)) : null);
     },
 
     saveMachine: function(machine){
@@ -295,6 +297,31 @@ window.CharlieStore = (function(){
       byId[machine.id] = machine;
       machWrite(byId);
       return Promise.resolve();
+    },
+
+    /* contested game writes: save ONLY if the stored game is still on
+       `expectedProb` — resolves true if this client won the write, false if
+       someone else resolved the problem first (then just re-read). */
+    saveMachineIf: function(machine, expectedProb){
+      if(mode === 'supabase'){
+        return client.from('machines')
+          .update({data:machine})
+          .eq('id', machine.id)
+          .eq('data->>prob', String(expectedProb))
+          .select('id')
+          .then(function(r){
+            if(r.error) throw r.error;
+            var won = !!(r.data && r.data.length);
+            if(won) emit();
+            return won;
+          });
+      }
+      var byId = machRead();
+      var cur = byId[machine.id];
+      if(!cur || cur.prob !== expectedProb) return Promise.resolve(false);
+      byId[machine.id] = machine;
+      machWrite(byId);
+      return Promise.resolve(true);
     },
 
     onChange: function(fn){
