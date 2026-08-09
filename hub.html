@@ -361,8 +361,12 @@
     var p = k && G.PRODUCTS[k];
     if(!p) return;
     if(!p.sell){
-      if(me.pet) feedPet(i, k, b);
-      else toast('🐾 ' + p.name + ' is pet food — buy a pet in the Pet Shop below!');
+      if(!me.pet){
+        toast('🐾 ' + p.name + ' is pet food — buy a pet in the Pet Shop below!');
+        return;
+      }
+      if(!window.confirm('Give the ' + p.name + ' to ' + petCallName(me.pet) + '? 😋')) return;
+      feedPet(i, k, b);
       return;
     }
     if(!window.confirm('Sell your ' + p.name + ' for ' + p.sell + ' Whare?')) return;

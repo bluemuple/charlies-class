@@ -83,6 +83,11 @@
     font-size:13.5px; font-weight:700; color:var(--teal-dark);
     background:#e3f4f0; border-radius:8px; padding:4px 9px; white-space:nowrap;
   }
+  .row .petb{
+    font-size:12.5px; font-weight:700; color:#a8515f;
+    background:#fdf0f2; border:1.5px solid #f4ccd3; border-radius:8px;
+    padding:3px 8px; white-space:nowrap;
+  }
   .row .acts{display:flex; gap:4px;}
   .row .acts button{
     border:0; background:none; font-size:15px; padding:4px 5px; border-radius:7px;
@@ -292,6 +297,15 @@
   function avatar(s){ return s.emoji || (s.gender === 'boy' ? '👦' : '👧'); }
 
   /* ---------------- roster rendering ---------------- */
+  /* which animal lives in each student's room (read-only, for the teacher) */
+  var PET_EMOJI = {1:'🐟', 2:'🦎', 3:'🐱', 4:'🐶', 5:'🦜', 6:'🦖'};
+  function petBadge(s){
+    if(!s.pet) return '';
+    var em = PET_EMOJI[parseInt(s.pet.type, 10)] || '🐾';
+    var aff = parseInt(s.pet.affection, 10) || 0;
+    var nm = s.pet.name ? s.pet.name : 'unnamed pet';
+    return '<span class="petb" title="'+esc(nm)+' — '+aff+' affection">'+em+' '+aff+'❤</span>';
+  }
   function rowHtml(s){
     var code = s.codeSet
       ? '<span class="code" title="This student has set their own secret code">🔒 Code set</span>'
@@ -300,6 +314,7 @@
       + '<span class="avatar">'+avatar(s)+'</span>'
       + '<span class="name">'+esc(s.name)+'</span>'
       + code
+      + petBadge(s)
       + '<span class="money" title="Money">💰 '+esc(money(s))+'</span>'
       + '<span class="acts">'
       +   '<button data-act="edit" title="Edit name, group or money">✏️</button>'

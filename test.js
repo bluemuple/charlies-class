@@ -207,6 +207,12 @@ async function testAdmin(){
   ok(list.every(s => !("code" in s)), "student objects never carry the code itself");
   ok(list.every(s => s.codeSet === false), "nobody has a code until they choose one");
   ok(d.querySelectorAll(".row .money").length === 25, "money shown on every row");
+
+  // the teacher can see who has a pet and how loved it is
+  await w.CharlieStore.update("cj-rapata", { pet: {type:3, name:"Mochi", affection:15, powers:[]} });
+  await waitFor(() => /🐱 15❤/.test((d.querySelector('.row[data-id="cj-rapata"]')||{}).textContent || ""),
+     "pet badge shows in the roster");
+  ok(/Mochi/.test(d.querySelector('.row[data-id="cj-rapata"] .petb').title), "badge tooltip names the pet");
   ok(/No code yet/.test($("boyList").textContent), "roster shows 'No code yet'");
   ok(!/Show codes/.test(d.body.textContent), "no 'show codes' button — codes are private now");
 
@@ -814,8 +820,18 @@ async function testHub(){
   d.querySelector("#petNameBtn").click();
   await waitFor(() => /Bubbles/.test($("petBox").textContent), "the goldfish is now Bubbles");
 
-  // feeding: the leftover cookie becomes +5 hearts
+  // feeding: the leftover cookie becomes +5 hearts — but only after a yes
   await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 1, "one snack left to feed");
+  w.confirm = () => false;                       // "Give the Cookie to Bubbles?" → no
+  d.querySelector('#stuffBox button[data-i="0"]').click();
+  await sleep(250);
+  await waitFor(() => {
+    return w.CharlieStore.list().then(l => {
+      const s = l.find(x => x.id === "willow-kolo");
+      return s.pet.affection === 0 && s.items.length === 1;
+    });
+  }, "saying no keeps the snack and the hearts unchanged");
+  w.confirm = () => true;
   d.querySelector('#stuffBox button[data-i="0"]').click();
   await waitFor(() => {
     return w.CharlieStore.list().then(l => {
