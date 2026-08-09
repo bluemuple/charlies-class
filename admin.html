@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charlie's Class — Teacher Admin</title>
+<style>
+  :root{
+    --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
+    --ink:#22333b; --card:#ffffff; --accent:#e63946; --good:#2a9d34;
+    --boy:#3a6ea5; --girl:#c2547d;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,#eef7f5 0%,#dcefe9 45%,#cfe8df 100%);
+    min-height:100vh;
+  }
+  button{font-family:inherit; cursor:pointer;}
+
+  header{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:16px 26px 10px;
+  }
+  header h1{font-size:clamp(20px,3vw,28px); color:var(--teal-dark);}
+  #modeBadge{
+    font-size:12.5px; font-weight:700; padding:4px 12px; border-radius:20px;
+    background:#fff3cd; color:#8a6d00; border:1.5px solid #ffe08a;
+  }
+  #modeBadge.cloud{background:#e3f4f0; color:var(--teal-dark); border-color:#9fd3c9;}
+  .head-actions{margin-left:auto; display:flex; gap:10px; flex-wrap:wrap;}
+  .head-actions button{
+    border:0; border-radius:10px; padding:9px 16px; font-size:14.5px; font-weight:700;
+    background:var(--teal); color:#fff; transition:.15s;
+  }
+  .head-actions button:hover{background:var(--teal-dark);}
+  .head-actions button.plain{background:#fff; color:var(--teal-dark); border:2px solid #cfe3df;}
+  .head-actions button.plain:hover{background:#eef7f5;}
+
+  main{padding:8px 26px 40px; max-width:1200px; margin:0 auto;}
+  .card{
+    background:var(--card); border-radius:14px; padding:14px 16px;
+    box-shadow:0 2px 10px rgba(31,90,84,.12); margin-bottom:16px;
+  }
+  .card h2{font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#7a8f8b; margin-bottom:10px;}
+
+  /* add-student form */
+  #addForm{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  #addName{
+    flex:1; min-width:200px; padding:10px 12px; font-size:16px;
+    border:2px solid #d7e5e2; border-radius:10px;
+  }
+  #addName:focus{outline:none; border-color:var(--teal);}
+  .seg{display:flex; border:2px solid #d7e5e2; border-radius:10px; overflow:hidden;}
+  .seg button{border:0; background:#f6fbfa; padding:9px 16px; font-size:15px; font-weight:600; color:#5c7671;}
+  .seg button.active[data-g="boy"]{background:var(--boy); color:#fff;}
+  .seg button.active[data-g="girl"]{background:var(--girl); color:#fff;}
+  #addBtn{
+    border:0; border-radius:10px; padding:10px 20px; font-size:15px; font-weight:700;
+    background:var(--good); color:#fff;
+  }
+  #addBtn:hover{background:#217a29;}
+
+  /* roster columns */
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+  @media (max-width:820px){ .cols{grid-template-columns:1fr;} }
+  .group h2 b{color:var(--ink); font-size:14px; letter-spacing:0;}
+  .group[data-g="boy"] h2{color:var(--boy);}
+  .group[data-g="girl"] h2{color:var(--girl);}
+  .row{
+    display:flex; align-items:center; gap:10px;
+    padding:8px 6px; border-top:1px solid #edf4f3;
+  }
+  .row:first-child{border-top:0;}
+  .row .avatar{font-size:24px; width:32px; text-align:center;}
+  .row .name{flex:1; font-weight:600; font-size:15.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .row .code{
+    font-family:"Menlo","Consolas",monospace; font-weight:700; font-size:15px;
+    background:var(--cream); border:1.5px solid #ead9a8; border-radius:8px;
+    padding:3px 9px; letter-spacing:2px; color:#6b5c00; min-width:74px; text-align:center;
+  }
+  .row .money{
+    font-size:13.5px; font-weight:700; color:var(--teal-dark);
+    background:#e3f4f0; border-radius:8px; padding:4px 9px; white-space:nowrap;
+  }
+  .row .acts{display:flex; gap:4px;}
+  .row .acts button{
+    border:0; background:none; font-size:15px; padding:4px 5px; border-radius:7px;
+    opacity:.65; transition:.12s;
+  }
+  .row .acts button:hover{opacity:1; background:#eef7f5; transform:scale(1.12);}
+  .empty{color:#a5b8b4; font-size:13.5px; padding:14px 6px;}
+
+  .note{font-size:12px; color:#8aa19c; margin-top:4px; line-height:1.5;}
+
+  /* edit dialog */
+  #dlgWrap{
+    position:fixed; inset:0; z-index:40; display:none;
+    background:rgba(10,30,28,.55); align-items:center; justify-content:center;
+  }
+  #dlgWrap.open{display:flex;}
+  #dlg{
+    background:#fff; border-radius:16px; padding:20px 22px; width:min(92vw,380px);
+    box-shadow:0 12px 40px rgba(0,0,0,.35);
+  }
+  #dlg h3{color:var(--teal-dark); font-size:18px; margin-bottom:14px;}
+  #dlg label{display:block; font-size:12.5px; font-weight:700; color:#7a8f8b; margin:10px 0 4px; text-transform:uppercase; letter-spacing:.5px;}
+  #dlg input[type=text], #dlg input[type=number]{
+    width:100%; padding:9px 11px; font-size:16px; border:2px solid #d7e5e2; border-radius:10px;
+  }
+  #dlg input:focus{outline:none; border-color:var(--teal);}
+  .dlg-btns{display:flex; gap:10px; margin-top:18px;}
+  .dlg-btns button{flex:1; border:0; border-radius:10px; padding:10px 0; font-size:15px; font-weight:700;}
+  #dlgSave{background:var(--good); color:#fff;}
+  #dlgSave:hover{background:#217a29;}
+  #dlgCancel{background:#eef1f0; color:#5c7671;}
+  #dlgCancel:hover{background:#e2e8e6;}
+
+  /* toast */
+  #toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-90px);
+    z-index:60; background:#22333b; color:#fff; font-size:15px; font-weight:600;
+    padding:10px 20px; border-radius:30px; box-shadow:0 6px 18px rgba(0,0,0,.3);
+    transition:transform .3s ease; pointer-events:none; max-width:82vw; text-align:center;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0);}
+
+  #brand{
+    position:fixed; left:14px; bottom:10px; z-index:5;
+    font-size:12.5px; font-weight:700; letter-spacing:.4px; color:#4c6b66;
+    background:#ffffffcc; padding:4px 13px; border-radius:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
+  }
+
+  /* ---------- print: A4 login cards, 10 per page ---------- */
+  #printSheet{display:none;}
+  @media print{
+    @page{size:A4 portrait; margin:10mm;}
+    body{background:#fff;}
+    header, main, #brand, #toast, #dlgWrap{display:none !important;}
+    #printSheet{display:grid; grid-template-columns:1fr 1fr; gap:5mm;}
+    .pcard{
+      border:1.5px dashed #9bb5b0; border-radius:4mm; height:49mm;
+      padding:5mm 6mm; display:flex; flex-direction:column; justify-content:space-between;
+      break-inside:avoid; page-break-inside:avoid; overflow:hidden;
+    }
+    .pcard .tag{font-size:9pt; font-weight:700; color:#2e7d74; letter-spacing:.5px;}
+    .pcard .pname{font-size:17pt; font-weight:800; color:#22333b; line-height:1.15;}
+    .pcard .plabel{font-size:8.5pt; color:#7a8f8b; text-transform:uppercase; letter-spacing:1px;}
+    .pcard .pcode{
+      font-family:"Menlo","Consolas",monospace; font-size:23pt; font-weight:800;
+      letter-spacing:.35em; color:#1f5a54;
+    }
+    .pcard .prow{display:flex; align-items:flex-end; justify-content:space-between;}
+    .pcard .scissors{font-size:9pt; color:#9bb5b0;}
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<header>
+  <h1>🏫 Charlie's Class — Teacher Admin</h1>
+  <span id="modeBadge">💾 Local demo</span>
+  <div class="head-actions">
+    <button id="codesBtn" class="plain">👁 Show codes</button>
+    <button id="printBtn">🖨 Print login cards</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Add a student</h2>
+    <div id="addForm">
+      <input id="addName" placeholder="First name, e.g. Alex" autocomplete="off">
+      <div class="seg" id="addSeg">
+        <button data-g="boy" class="active">👦 Boy</button>
+        <button data-g="girl">👧 Girl</button>
+      </div>
+      <button id="addBtn">＋ Add student</button>
+    </div>
+    <p class="note">Students go by first name only. Every student gets a unique
+    4-digit secret code automatically. Use ✏️ to fix a name or move someone to
+    the other group, ↻ for a fresh code, and 🖨 to print the login cards.</p>
+  </section>
+
+  <div class="cols">
+    <section class="card group" data-g="boy">
+      <h2>👦 Boys · <b id="boyCount">0</b></h2>
+      <div id="boyList"></div>
+    </section>
+    <section class="card group" data-g="girl">
+      <h2>👧 Girls · <b id="girlCount">0</b></h2>
+      <div id="girlList"></div>
+    </section>
+  </div>
+</main>
+
+<!-- edit dialog -->
+<div id="dlgWrap">
+  <div id="dlg">
+    <h3>✏️ Edit student</h3>
+    <label for="dlgName">Name</label>
+    <input type="text" id="dlgName" autocomplete="off">
+    <label>Group</label>
+    <div class="seg" id="dlgSeg">
+      <button data-g="boy">👦 Boy</button>
+      <button data-g="girl">👧 Girl</button>
+    </div>
+    <label for="dlgMoney">Money (Whare)</label>
+    <input type="number" id="dlgMoney" step="1">
+    <div class="dlg-btns">
+      <button id="dlgCancel">Cancel</button>
+      <button id="dlgSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="printSheet"></div>
+<div id="brand">Charlie Company</div>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script>
+(function(){
+  "use strict";
+  var store = window.CharlieStore;
+  function $(id){ return document.getElementById(id); }
+
+  var students = [];
+  var codesShown = false;
+  var addGender = 'boy';
+  var editingId = null;
+
+  /* ---------------- toast ---------------- */
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function money(s){ return (s.money || 0) + ' Whare'; }
+  function avatar(s){ return s.emoji || (s.gender === 'boy' ? '👦' : '👧'); }
+
+  /* ---------------- roster rendering ---------------- */
+  function rowHtml(s){
+    var code = codesShown ? esc(s.code) : '••••';
+    return '<div class="row" data-id="'+esc(s.id)+'">'
+      + '<span class="avatar">'+avatar(s)+'</span>'
+      + '<span class="name">'+esc(s.name)+'</span>'
+      + '<span class="code" title="Secret code">'+code+'</span>'
+      + '<span class="money" title="Money">💰 '+esc(money(s))+'</span>'
+      + '<span class="acts">'
+      +   '<button data-act="edit" title="Edit name, group or money">✏️</button>'
+      +   '<button data-act="code" title="Give a new secret code">↻</button>'
+      +   '<button data-act="del" title="Remove this student">🗑</button>'
+      + '</span>'
+      + '</div>';
+  }
+  function render(){
+    var boys = students.filter(function(s){ return s.gender === 'boy'; });
+    var girls = students.filter(function(s){ return s.gender === 'girl'; });
+    $('boyCount').textContent = boys.length;
+    $('girlCount').textContent = girls.length;
+    $('boyList').innerHTML = boys.length ? boys.map(rowHtml).join('') : '<p class="empty">No boys yet.</p>';
+    $('girlList').innerHTML = girls.length ? girls.map(rowHtml).join('') : '<p class="empty">No girls yet.</p>';
+  }
+  function refresh(){
+    return store.list().then(function(list){
+      students = list;
+      render();
+    });
+  }
+
+  /* ---------------- add student ---------------- */
+  $('addSeg').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    addGender = b.dataset.g;
+    Array.prototype.forEach.call($('addSeg').children, function(x){
+      x.classList.toggle('active', x === b);
+    });
+  });
+  function addStudent(){
+    var name = $('addName').value.trim();
+    if(!name){ toast('Type the student\'s name first!'); $('addName').focus(); return; }
+    var dup = students.some(function(s){ return s.name.toLowerCase() === name.toLowerCase(); });
+    if(dup){ toast('There is already a student called '+name+'.'); return; }
+    store.add(name, addGender).then(function(s){
+      $('addName').value = '';
+      refresh();
+      toast('✅ '+s.name+' added — secret code '+s.code);
+    }).catch(function(){ toast('Hmm, that didn\'t save — check the connection.'); });
+  }
+  $('addBtn').addEventListener('click', addStudent);
+  $('addName').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') addStudent();
+  });
+
+  /* ---------------- row actions ---------------- */
+  document.querySelector('main').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-act]'); if(!b) return;
+    var row = b.closest('.row');
+    var id = row && row.dataset.id;
+    var s = students.filter(function(x){ return x.id === id; })[0];
+    if(!s) return;
+
+    if(b.dataset.act === 'edit') openDlg(s);
+    else if(b.dataset.act === 'code'){
+      store.regenerateCode(id).then(function(code){
+        refresh();
+        toast('↻ '+s.name+'\'s new secret code is '+code+' — reprint their card!');
+      });
+    }
+    else if(b.dataset.act === 'del'){
+      if(!window.confirm('Remove '+s.name+' from the class? Their money and code are deleted too.')) return;
+      store.remove(id).then(function(){
+        refresh();
+        toast(s.name+' was removed.');
+      });
+    }
+  });
+
+  /* ---------------- edit dialog ---------------- */
+  var dlgGender = 'boy';
+  function setDlgGender(g){
+    dlgGender = g;
+    Array.prototype.forEach.call($('dlgSeg').children, function(x){
+      x.classList.toggle('active', x.dataset.g === g);
+    });
+  }
+  function openDlg(s){
+    editingId = s.id;
+    $('dlgName').value = s.name;
+    $('dlgMoney').value = s.money || 0;
+    setDlgGender(s.gender);
+    $('dlgWrap').classList.add('open');
+    $('dlgName').focus();
+  }
+  function closeDlg(){ $('dlgWrap').classList.remove('open'); editingId = null; }
+  $('dlgSeg').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(b) setDlgGender(b.dataset.g);
+  });
+  $('dlgCancel').addEventListener('click', closeDlg);
+  $('dlgWrap').addEventListener('click', function(e){ if(e.target === $('dlgWrap')) closeDlg(); });
+  $('dlgSave').addEventListener('click', function(){
+    var name = $('dlgName').value.trim();
+    if(!name){ toast('The name can\'t be empty!'); return; }
+    var m = parseFloat($('dlgMoney').value);
+    store.update(editingId, {name:name, gender:dlgGender, money:isNaN(m) ? 0 : m}).then(function(){
+      closeDlg();
+      refresh();
+      toast('✅ Saved.');
+    });
+  });
+
+  /* ---------------- show / hide codes ---------------- */
+  $('codesBtn').addEventListener('click', function(){
+    codesShown = !codesShown;
+    $('codesBtn').textContent = codesShown ? '🙈 Hide codes' : '👁 Show codes';
+    render();
+  });
+
+  /* ---------------- print login cards ---------------- */
+  function cardHtml(s){
+    return '<div class="pcard">'
+      + '<div class="tag">🏫 Charlie\'s Class</div>'
+      + '<div class="pname">'+esc(s.name)+'</div>'
+      + '<div class="prow">'
+      +   '<div><div class="plabel">My secret code</div>'
+      +   '<div class="pcode">'+esc(s.code)+'</div></div>'
+      +   '<div class="scissors">✂️ keep me secret!</div>'
+      + '</div>'
+      + '</div>';
+  }
+  $('printBtn').addEventListener('click', function(){
+    var boys = students.filter(function(s){ return s.gender === 'boy'; });
+    var girls = students.filter(function(s){ return s.gender === 'girl'; });
+    $('printSheet').innerHTML = boys.concat(girls).map(cardHtml).join('');
+    window.print();
+  });
+
+  /* ---------------- init ---------------- */
+  store.init().then(function(mode){
+    var badge = $('modeBadge');
+    if(mode === 'supabase'){
+      badge.textContent = '☁️ Live — Supabase';
+      badge.classList.add('cloud');
+    } else {
+      badge.textContent = '💾 Local demo — add Supabase keys in js/config.js to go live';
+    }
+    store.onChange(refresh);       // money changes from games appear live
+    return refresh();
+  });
+})();
+</script>
+</body>
+</html>

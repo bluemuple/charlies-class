@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charlie's Class — Games</title>
+<style>
+  :root{
+    --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
+    --ink:#22333b; --card:#ffffff; --accent:#e63946; --good:#2a9d34;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,#eef7f5 0%,#dcefe9 45%,#cfe8df 100%);
+    min-height:100vh;
+  }
+  button{font-family:inherit; cursor:pointer;}
+
+  header{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 22px;
+  }
+  header h1{font-size:clamp(19px,2.6vw,26px); color:var(--teal-dark);}
+  #meBtn{
+    margin-left:auto; display:flex; align-items:center; gap:10px;
+    border:2px solid #cfe3df; background:#fff; border-radius:30px;
+    padding:7px 16px 7px 10px; font-size:16px; font-weight:800; color:var(--teal-dark);
+    box-shadow:0 2px 8px rgba(31,90,84,.15); transition:.15s;
+  }
+  #meBtn:hover{transform:scale(1.05); background:var(--cream);}
+  #meBtn .em{font-size:24px;}
+
+  main{max-width:980px; margin:0 auto; padding:2vh 22px 70px;}
+  main h2{font-size:clamp(22px,3.4vw,32px); color:var(--teal-dark); margin:3vh 0 2vh; text-align:center;}
+  .games{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px;}
+  .game{
+    border:0; border-radius:20px; background:var(--card); padding:26px 18px;
+    box-shadow:0 4px 14px rgba(31,90,84,.16); text-align:center; transition:.15s;
+  }
+  .game:hover{transform:translateY(-4px); box-shadow:0 10px 22px rgba(31,90,84,.26);}
+  .game .art{font-size:56px; display:block; margin-bottom:10px;}
+  .game .t{font-size:20px; font-weight:800; color:var(--teal-dark);}
+  .game .d{font-size:14px; color:#6b8480; margin-top:6px; line-height:1.4;}
+  .game.soon{opacity:.75;}
+  .game .badge{
+    display:inline-block; margin-top:10px; font-size:12px; font-weight:800;
+    background:var(--yellow); color:#6b5c00; border-radius:20px; padding:3px 12px;
+  }
+
+  /* profile drawer */
+  #profWrap{
+    position:fixed; inset:0; z-index:40; display:none;
+    background:rgba(10,30,28,.55); align-items:flex-start; justify-content:flex-end;
+  }
+  #profWrap.open{display:flex;}
+  #prof{
+    background:#fff; width:min(94vw,380px); min-height:100%;
+    padding:22px; box-shadow:-8px 0 30px rgba(0,0,0,.3);
+    overflow-y:auto;
+  }
+  #profClose{
+    border:0; background:#eef1f0; color:#5c7671; border-radius:10px;
+    padding:7px 14px; font-size:14px; font-weight:700;
+  }
+  .prof-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .prof-me{text-align:center; margin:10px 0 18px;}
+  .prof-me .em{font-size:74px; line-height:1.1;}
+  .prof-me .nm{font-size:24px; font-weight:800; color:var(--teal-dark); margin-top:4px;}
+  .prof-money{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:#e3f4f0; border-radius:14px; padding:12px; margin-bottom:16px;
+    font-size:20px; font-weight:800; color:var(--teal-dark);
+  }
+  .prof-sec{margin-bottom:16px;}
+  .prof-sec h3{font-size:12.5px; text-transform:uppercase; letter-spacing:1px; color:#7a8f8b; margin-bottom:8px;}
+  .prof-empty{
+    background:#f6fbfa; border:1.5px dashed #cfe3df; border-radius:12px;
+    padding:16px 12px; font-size:14px; color:#8aa19c; text-align:center; line-height:1.5;
+  }
+  .prof-btn{
+    width:100%; border:0; border-radius:12px; padding:11px 0; font-size:15px;
+    font-weight:700; margin-top:8px; background:var(--teal); color:#fff;
+  }
+  .prof-btn:hover{background:var(--teal-dark);}
+  .prof-btn.quiet{background:#eef1f0; color:#5c7671;}
+  .prof-btn.quiet:hover{background:#e2e8e6;}
+  #profPicker{margin-top:10px;}
+
+  #toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-90px);
+    z-index:60; background:#22333b; color:#fff; font-size:15px; font-weight:600;
+    padding:10px 20px; border-radius:30px; box-shadow:0 6px 18px rgba(0,0,0,.3);
+    transition:transform .3s ease; pointer-events:none; max-width:82vw; text-align:center;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0);}
+
+  #brand{
+    position:fixed; left:14px; bottom:10px; z-index:5;
+    font-size:12.5px; font-weight:700; letter-spacing:.4px; color:#4c6b66;
+    background:#ffffffcc; padding:4px 13px; border-radius:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<header>
+  <h1>🏫 Charlie's Class</h1>
+  <button id="meBtn"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span></button>
+</header>
+
+<main>
+  <h2>Choose a game</h2>
+  <div class="games">
+    <button class="game" id="algebraGame">
+      <span class="art">🥤</span>
+      <span class="t">Algebra Machine</span>
+      <span class="d">Sell snacks with a secret rule — or crack another seller's rule and win the lot!</span>
+      <span class="badge">Coming very soon</span>
+    </button>
+    <button class="game soon" disabled>
+      <span class="art">🎁</span>
+      <span class="t">More games</span>
+      <span class="d">New games will appear here during the year.</span>
+    </button>
+  </div>
+</main>
+
+<!-- profile drawer -->
+<div id="profWrap">
+  <div id="prof">
+    <div class="prof-head">
+      <h3 style="font-size:16px;color:var(--teal-dark)">My room</h3>
+      <button id="profClose">✕ Close</button>
+    </div>
+    <div id="profMain">
+      <div class="prof-me">
+        <div class="em" id="profEmoji">🙂</div>
+        <div class="nm" id="profName">…</div>
+      </div>
+      <div class="prof-money">💰 <span id="profMoney">0</span> Whare</div>
+      <div class="prof-sec">
+        <h3>My stuff</h3>
+        <div class="prof-empty">Snacks and prizes you win in the games will show up here. 🍪🧸</div>
+      </div>
+      <div class="prof-sec">
+        <h3>Pet Shop</h3>
+        <div class="prof-empty">The Pet Shop opens soon — save your Whare! 🐾</div>
+      </div>
+      <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
+      <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
+    </div>
+    <div id="profPicker" style="display:none">
+      <div id="profPickerBox"></div>
+      <button class="prof-btn quiet" id="pickerBack">← Never mind</button>
+    </div>
+  </div>
+</div>
+
+<div id="brand">Charlie Company</div>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script src="js/emoji.js"></script>
+<script>
+(function(){
+  "use strict";
+  var store = window.CharlieStore;
+  function $(id){ return document.getElementById(id); }
+
+  /* ---------------- session ---------------- */
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem('charlie-session')); }catch(e){}
+  if(!sess && window.CHARLIE_TEST_SESSION) sess = window.CHARLIE_TEST_SESSION;
+  if(!sess || !sess.id){ window.location.replace('index.html'); }
+
+  var me = null;   // live student row
+
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+
+  function render(){
+    if(!me) return;
+    var em = me.emoji || '🙂';
+    $('meEmoji').textContent = em;
+    $('meName').textContent = me.name;
+    $('profEmoji').textContent = em;
+    $('profName').textContent = me.name;
+    $('profMoney').textContent = me.money || 0;
+  }
+  function refresh(){
+    if(!sess) return Promise.resolve();
+    return store.list().then(function(list){
+      me = list.filter(function(s){ return s.id === sess.id; })[0] || null;
+      if(!me){ window.location.replace('index.html'); return; }
+      render();
+    });
+  }
+
+  /* ---------------- profile drawer ---------------- */
+  function openProf(){ $('profWrap').classList.add('open'); showPicker(false); }
+  function closeProf(){ $('profWrap').classList.remove('open'); }
+  $('meBtn').addEventListener('click', openProf);
+  $('profClose').addEventListener('click', closeProf);
+  $('profWrap').addEventListener('click', function(e){ if(e.target === $('profWrap')) closeProf(); });
+
+  function showPicker(on){
+    $('profMain').style.display = on ? 'none' : '';
+    $('profPicker').style.display = on ? '' : 'none';
+  }
+  $('editEmojiBtn').addEventListener('click', function(){
+    window.CharlieEmoji.mount($('profPickerBox'), {
+      initial: me && me.emoji,
+      saveLabel: 'Save my emoji',
+      onSave: function(emoji){
+        store.update(me.id, {emoji:emoji}).then(function(){
+          me.emoji = emoji;
+          try{
+            sess.emoji = emoji;
+            sessionStorage.setItem('charlie-session', JSON.stringify(sess));
+          }catch(e){}
+          render();
+          showPicker(false);
+          toast('✨ Looking good!');
+        });
+      }
+    });
+    showPicker(true);
+  });
+  $('pickerBack').addEventListener('click', function(){ showPicker(false); });
+
+  $('logoutBtn').addEventListener('click', function(){
+    try{ sessionStorage.removeItem('charlie-session'); }catch(e){}
+    window.location.href = 'index.html';
+  });
+
+  /* ---------------- games ---------------- */
+  $('algebraGame').addEventListener('click', function(){
+    toast('🥤 The Algebra Machine is almost ready — your teacher will open it soon!');
+  });
+
+  /* ---------------- init ---------------- */
+  store.init().then(function(){
+    store.onChange(refresh);     // money won in games appears live
+    return refresh();
+  });
+})();
+</script>
+</body>
+</html>
