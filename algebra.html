@@ -628,9 +628,10 @@
     var html = tokens.map(function(t){
       if(t.t==='var') return '<i>𝑥</i>';
       if(t.t==='num') return esc(t.v);
-      return ' ' + G.opGlyph(t.v) + ' ';
+      return '&nbsp;' + G.opGlyph(t.v) + '&nbsp;';
     }).join('');
-    $('ruleScreen').innerHTML = (html || '') + '<span class="caret"></span>';
+    /* one single flex item, so the spaces inside survive the flex layout */
+    $('ruleScreen').innerHTML = '<span>' + html + '<span class="caret"></span></span>';
     $('rewardLine').textContent = 'Crack-reward: ' + G.reward(tokens) + ' Whare';
   }
   function addTok(k){
