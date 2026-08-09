@@ -106,13 +106,14 @@
   #zRule .caret{display:inline-block; width:2.5px; height:1.05em; background:#111; margin-left:2px; animation:blink 1s steps(1) infinite;}
   @keyframes blink{50%{opacity:0}}
   /* the keeper, painting the rule (rule screen only) */
-  /* the keeper is a big foreground figure whose pen follows the writing:
-     three stops (start / middle / end of the rule), sliding as you type */
-  #manImg{position:absolute; left:35%; top:36%; width:42%; z-index:5; pointer-events:none;
+  /* the keeper is a big foreground figure on the RIGHT, boots on the grass,
+     whose pen follows the writing: three stops sliding right as you type,
+     ending at the right edge of the zebra's tummy */
+  #manImg{position:absolute; left:40%; top:37%; width:48%; z-index:5; pointer-events:none;
           filter:drop-shadow(0 6px 10px rgba(0,0,0,.3));
           transition:left .45s ease;}
-  #manImg.pos2{left:44%;}
-  #manImg.pos3{left:53%;}
+  #manImg.pos2{left:47%;}
+  #manImg.pos3{left:55%;}
   /* the carrot in front of the mouth (tip points at the zebra) */
   #carrot{
     position:absolute; left:1.5%; top:27%; width:19%; z-index:4;
