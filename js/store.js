@@ -8,7 +8,15 @@ window.CharlieStore = (function(){
 
   var cfg = window.CHARLIE_CONFIG || {};
   var LS_KEY = 'charlies-class-v2';   // v2: roster switched to first names
-  var CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+  /* Pinned on purpose: a floating @2 could ship a breaking change on a school
+     morning. Verified working with the sb_publishable_… key format. */
+  var CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js';
+
+  /* Supabase shows several URLs on its dashboard; accept any of them and
+     reduce to the project origin the client actually wants. */
+  function baseUrl(u){
+    return String(u || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
+  }
 
   var mode = 'local';          // 'local' | 'supabase'
   var client = null;
@@ -88,7 +96,7 @@ window.CharlieStore = (function(){
       if(readyPromise) return readyPromise;
       if(cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY){
         readyPromise = loadSdk().then(function(){
-          client = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+          client = window.supabase.createClient(baseUrl(cfg.SUPABASE_URL), cfg.SUPABASE_ANON_KEY);
           mode = 'supabase';
           client.channel('students-live')
             .on('postgres_changes', {event:'*', schema:'public', table:'students'}, emit)

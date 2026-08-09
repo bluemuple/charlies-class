@@ -33,6 +33,14 @@ function load(file, extra){
     resources: "usable",
     virtualConsole: vc,
     beforeParse(window){
+      /* Force local demo mode: these tests must never touch the real class
+         database, and must not depend on the network. js/config.js still
+         assigns to CHARLIE_CONFIG — the no-op setter swallows it. */
+      Object.defineProperty(window, "CHARLIE_CONFIG", {
+        configurable: false,
+        get(){ return { SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }; },
+        set(){}
+      });
       window.Audio = function(){ return { play(){}, pause(){}, currentTime: 0 }; };
       window.Element.prototype.animate = function(){
         const a = {}; setTimeout(() => a.onfinish && a.onfinish(), 5); return a;
@@ -224,8 +232,30 @@ async function testHub(){
   dom.window.close();
 }
 
+async function testConfig(){
+  console.log("\njs/config.js (live Supabase settings)");
+  const fs = require("fs");
+  const src = fs.readFileSync(path.join(__dirname, "js/config.js"), "utf8");
+  const url = (src.match(/SUPABASE_URL:\s*"([^"]*)"/) || [])[1];
+  const key = (src.match(/SUPABASE_ANON_KEY:\s*"([^"]*)"/) || [])[1];
+  ok(/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(url), "project URL is the bare origin (no /rest/v1)");
+  ok(/^sb_publishable_/.test(key) || /^eyJ/.test(key), "key is a publishable/anon key");
+  // a real secret key, not the word in a warning comment
+  ok(!/sb_secret_[A-Za-z0-9_-]{5,}/.test(src), "no secret key committed to the site");
+
+  /* the shipped normaliser should tolerate the other URLs Supabase shows */
+  const storeSrc = fs.readFileSync(path.join(__dirname, "js/store.js"), "utf8");
+  const fn = storeSrc.match(/function baseUrl\(u\)\{[\s\S]*?\n  \}/);
+  ok(!!fn, "store.js exports a URL normaliser");
+  const norm = new Function(fn[0] + "; return baseUrl;")();
+  ok(norm("https://x.supabase.co/rest/v1/") === "https://x.supabase.co", "REST URL normalises to the origin");
+  ok(norm("https://x.supabase.co/") === "https://x.supabase.co", "trailing slash normalises away");
+  ok(norm("  https://x.supabase.co  ") === "https://x.supabase.co", "stray spaces are trimmed");
+}
+
 (async () => {
   try{
+    await testConfig();
     await testAdmin();
     await testIndex();
     await testHub();
