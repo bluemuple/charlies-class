@@ -175,7 +175,7 @@
     }
     .pcard .tag{font-size:9pt; font-weight:700; color:#2e7d74; letter-spacing:.5px;}
     .pcard .pname{font-size:19pt; font-weight:800; color:#22333b; line-height:1.15;}
-    .pcard .psite{font-size:12pt; font-weight:800; color:#1f5a54; letter-spacing:.3px;}
+    .pcard .psite{font-size:10.5pt; font-weight:800; color:#1f5a54; letter-spacing:.2px;}
     .pcard .psteps{font-size:8.5pt; color:#4c6b66; line-height:1.45;}
     .pcard .pbox{
       border:1px solid #cfe3df; border-radius:2mm; padding:1.5mm 3mm;
@@ -410,7 +410,9 @@
     return '<div class="pcard">'
       + '<div class="tag">🏫 Charlie\'s Class</div>'
       + '<div class="pname">'+esc(s.name)+'</div>'
-      + '<div class="psite">harufocus.com</div>'
+      /* the school firewall blocks harufocus.com for now — print the address
+         that works in class; swap back once IT whitelists the domain */
+      + '<div class="psite">bluemuple.github.io/charlies-class</div>'
       + '<div class="psteps">1. Tap <b>Boys</b> or <b>Girls</b> &nbsp;2. Tap your name<br>'
       +   '3. Make up your own <b>4-digit secret code</b></div>'
       + '<div class="pbox">My code is a secret — I will remember it! ✂️</div>'

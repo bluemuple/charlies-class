@@ -250,7 +250,8 @@ async function testAdmin(){
   const cards = d.querySelectorAll("#printSheet .pcard");
   ok(cards.length === 26, "print sheet has one card per student");
   ok(w.printed === 1, "print dialog requested");
-  ok(/harufocus\.com/.test(cards[0].textContent), "card tells them where to go");
+  ok(/bluemuple\.github\.io\/charlies-class/.test(cards[0].textContent),
+     "card prints the school-safe address");
   ok(/4-digit secret code/.test(cards[0].textContent), "card explains making their own code");
   ok(!/[0-9]{4}\b/.test(cards[0].querySelector(".psteps").textContent.replace(/4-digit/g, "")),
      "card prints no code");

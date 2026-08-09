@@ -32,10 +32,18 @@ printed cards.
 
 | | |
 | --- | --- |
-| Students | **https://harufocus.com** |
-| Teacher admin | **https://harufocus.com/admin.html** |
+| Students | **https://bluemuple.github.io/charlies-class/** |
+| Teacher admin | **https://bluemuple.github.io/charlies-class/admin.html** |
 | Repo | `bluemuple/charlies-class` (GitHub Pages, `main` branch, root) |
 | Database | Supabase project `charlies-class`, table `public.students` |
+
+> **Why not harufocus.com?** The school's Palo Alto firewall DNS-sinkholes
+> that domain (to 198.135.184.22), so it is unreachable on the school
+> network — the GoDaddy DNS itself is correct and untouched. The custom
+> domain is deliberately detached so the github.io address serves directly.
+> Once school IT whitelists harufocus.com: restore the `CNAME` file
+> (single line: `harufocus.com`), push, and swap the welcome-card address
+> in `admin.html` back.
 
 Publishing a change:
 
@@ -43,8 +51,8 @@ Publishing a change:
 git add -A && git commit -m "..." && git push
 ```
 
-GitHub Pages rebuilds in under a minute. The `CNAME` file in this folder is
-what claims `harufocus.com` — don't delete it.
+GitHub Pages rebuilds in under a minute. (There is currently no `CNAME`
+file — that is intentional while the school blocks harufocus.com.)
 
 ## Local demo mode
 
@@ -56,7 +64,7 @@ always says which mode you are in: *Live — Supabase* or *Local demo*.
 
 *Print welcome cards* lays out one card per student (boys first, then girls)
 on A4, two columns × five rows = 10 per page, with dashed cut lines. Each card
-carries the student's name, `harufocus.com`, and the three steps for making
+carries the student's name, the site address, and the three steps for making
 their own code. **No codes are printed** — there are none to print.
 
 ## Things to check in the roster
