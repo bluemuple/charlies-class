@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algebra Machine — Charlie's Class</title>
+<style>
+  :root{
+    --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
+    --ink:#22333b; --card:#ffffff; --accent:#e63946; --good:#2a9d34;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,#eef7f5 0%,#dcefe9 45%,#cfe8df 100%);
+    min-height:100vh;
+  }
+  button{font-family:inherit; cursor:pointer;}
+  header{display:flex; align-items:center; gap:12px; padding:12px 20px;}
+  header h1{font-size:clamp(17px,2.4vw,24px); color:var(--teal-dark);}
+  #backBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:7px 14px; font-size:14px; font-weight:700;
+  }
+  #backBtn:hover{background:#eef7f5;}
+  #meChip{
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+    border:2px solid #cfe3df; background:#fff; border-radius:30px;
+    padding:5px 14px 5px 9px; font-size:14.5px; font-weight:800; color:var(--teal-dark);
+  }
+  #meChip:hover{background:var(--cream);}
+  #meChip .em{font-size:20px;}
+  #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
+
+  main{max-width:1040px; margin:0 auto; padding:6px 18px 60px;}
+  .screen{display:none;}
+  .screen.on{display:block;}
+  h2{font-size:clamp(20px,3vw,30px); color:var(--teal-dark); text-align:center; margin:2.5vh 0 1vh;}
+  .sub{font-size:15px; color:#4c6b66; text-align:center; margin-bottom:2.5vh;}
+  .card{
+    background:var(--card); border-radius:16px; padding:16px;
+    box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:14px;
+  }
+
+  /* ---------- product sprites (5×4 sheets) ---------- */
+  .sprite{
+    background-image:url(assets/snacks.jpg);
+    background-size:500% 400%; background-repeat:no-repeat;
+    border-radius:10px; aspect-ratio:1/1;
+  }
+  .sprite.n{background-image:url(assets/non-snacks.jpg); aspect-ratio:1.5/1;}
+
+  /* ---------- role choice ---------- */
+  .role-btns{display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin-top:3vh;}
+  .role-btns button{
+    width:min(40vw,300px); border:0; border-radius:22px; padding:34px 16px;
+    background:var(--card); box-shadow:0 6px 18px rgba(31,90,84,.2); transition:.15s;
+  }
+  .role-btns button:hover{transform:translateY(-4px);}
+  .role-btns .big{font-size:54px; display:block; margin-bottom:8px;}
+  .role-btns .t{font-size:21px; font-weight:800; color:var(--teal-dark);}
+  .role-btns .d{font-size:13.5px; color:#6b8480; margin-top:6px; line-height:1.45;}
+
+  /* ---------- seller: stock the machine ---------- */
+  #pickBar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;}
+  #pickCount{font-weight:800; color:var(--teal-dark); font-size:15px;}
+  #timerWrap{flex:1; min-width:160px; height:14px; background:#e2edeb; border-radius:8px; overflow:hidden;}
+  #timerBar{height:100%; width:100%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .25s linear;}
+  #timerBar.low{background:linear-gradient(90deg,#e63946,#f4a261);}
+  #timerLeft{font-weight:800; font-size:14px; color:#4c6b66; min-width:36px; text-align:right;}
+  .shelf-tabs{display:flex; gap:8px; margin-bottom:10px;}
+  .shelf-tabs button{
+    border:2px solid #d7e5e2; background:#f6fbfa; border-radius:20px;
+    padding:6px 16px; font-size:14px; font-weight:700; color:#5c7671;
+  }
+  .shelf-tabs button.active{border-color:var(--teal); background:#e3f4f0; color:var(--teal-dark);}
+  .shelf{display:none; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px;}
+  .shelf.on{display:grid;}
+  .shelf button{
+    border:3px solid transparent; border-radius:14px; background:#fbfdfc; padding:6px;
+    box-shadow:0 2px 6px rgba(31,90,84,.12); transition:.12s;
+  }
+  .shelf button:hover{transform:scale(1.05);}
+  .shelf button.sel{border-color:var(--good); background:#eaf7ec;}
+  .shelf button .nm{font-size:11px; font-weight:700; color:#5c7671; margin-top:4px; display:block;}
+  #stockDone{
+    display:block; margin:14px auto 0; border:0; border-radius:12px;
+    background:var(--good); color:#fff; font-size:16px; font-weight:800; padding:12px 30px;
+  }
+  #stockDone:hover{background:#217a29;}
+
+  /* ---------- seller: write the rule ---------- */
+  .rule-wrap{position:relative; max-width:760px; margin:0 auto;}
+  .rule-wrap img{width:100%; display:block; border-radius:14px;}
+  #ruleScreen{
+    position:absolute; left:56.2%; top:35%; width:32.6%; height:31%;
+    display:flex; align-items:center; justify-content:center;
+    color:#7CFC98; font-family:"Menlo","Consolas",monospace;
+    font-size:clamp(14px,3.2vw,30px); font-weight:700; letter-spacing:1px;
+    overflow:hidden; white-space:nowrap; text-shadow:0 0 8px rgba(124,252,152,.6);
+  }
+  #ruleScreen .caret{display:inline-block; width:3px; height:1.1em; background:#7CFC98; margin-left:3px; animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0}}
+  .rule-side{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:12px;}
+  .rulepad{display:grid; grid-template-columns:repeat(4,64px); gap:8px;}
+  .rulepad button{
+    height:52px; border:0; border-radius:12px; background:var(--card);
+    font-size:21px; font-weight:800; color:var(--ink); box-shadow:0 2px 6px rgba(31,90,84,.16);
+  }
+  .rulepad button:hover{background:var(--cream);}
+  .rulepad button:active, .rulepad button.press{transform:translateY(2px) scale(.94); background:var(--cream);}
+  .rulepad button.op{background:#f4f0fd; color:#5b3fa8;}
+  .rulepad button.xkey{background:var(--yellow); color:#6b5c00;}
+  .rulepad button.done{background:var(--good); color:#fff; grid-column:span 2; font-size:16px;}
+  .rule-help{max-width:330px; font-size:13.5px; color:#4c6b66; line-height:1.55; text-align:left;}
+  .rule-help b{color:var(--teal-dark);}
+  .rule-help .shortcut{font-family:"Menlo",monospace; background:#eef7f5; border-radius:6px; padding:0 6px;}
+  #rewardLine{
+    margin-top:8px; font-size:15px; font-weight:800; color:#8a6d00;
+    background:var(--yellow); border-radius:10px; padding:7px 12px; display:inline-block;
+  }
+  .cap-row{display:flex; align-items:center; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
+  .cap-row .seg{display:flex; border:2px solid #d7e5e2; border-radius:10px; overflow:hidden;}
+  .cap-row .seg button{border:0; background:#f6fbfa; padding:8px 18px; font-size:15px; font-weight:700; color:#5c7671;}
+  .cap-row .seg button.active{background:var(--teal); color:#fff;}
+  #openShop{
+    border:0; border-radius:12px; background:var(--accent); color:#fff;
+    font-size:16px; font-weight:800; padding:12px 26px;
+  }
+  #openShop:hover{filter:brightness(1.1);}
+
+  /* ---------- mall ---------- */
+  #mallWrap{
+    position:relative; border-radius:18px; overflow:hidden;
+    background:url(assets/mall.jpg) center/cover no-repeat;
+    min-height:64vh; box-shadow:0 8px 24px rgba(0,0,0,.25);
+  }
+  #mallWrap::before{content:''; position:absolute; inset:0; background:rgba(255,255,255,.14);}
+  #mallTitle{
+    position:relative; text-align:center; padding:16px 10px 4px;
+    font-size:clamp(20px,3vw,30px); font-weight:800; color:#fff;
+    text-shadow:0 2px 10px rgba(0,0,0,.65);
+  }
+  #mallSub{position:relative; text-align:center; color:#fff; text-shadow:0 1px 6px rgba(0,0,0,.7); font-size:14px;}
+  #sections{
+    position:relative; display:grid; gap:16px; padding:18px;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  }
+  .sec{
+    aspect-ratio:16/10; border-radius:16px; border:0; text-align:center;
+    background:rgba(253,246,227,.78); backdrop-filter:blur(3px);
+    box-shadow:0 6px 16px rgba(0,0,0,.3); padding:12px; transition:.15s;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  }
+  .sec:hover{transform:translateY(-3px); background:rgba(253,246,227,.92);}
+  .sec .em{font-size:38px;}
+  .sec .al{font-size:17px; font-weight:800; color:var(--teal-dark);}
+  .sec .oc{font-size:13.5px; font-weight:700; color:#4c6b66;}
+  .sec .oc.full{color:var(--accent);}
+  .sec[disabled]{opacity:.65; cursor:default;}
+  .empty-mall{position:relative; color:#fff; text-align:center; font-size:15px; padding:40px 12px; text-shadow:0 1px 6px rgba(0,0,0,.7);}
+
+  /* ---------- lobby / play ---------- */
+  .players{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0;}
+  .players .pl{
+    background:#f6fbfa; border:2px solid #d7e5e2; border-radius:14px;
+    padding:8px 14px; font-weight:700; font-size:14.5px; color:#4c6b66;
+    display:flex; align-items:center; gap:7px;
+  }
+  .players .pl .em{font-size:20px;}
+  .players .pl.now{border-color:var(--good); background:#eaf7ec; color:#1c5c22;}
+  .players .pl.empty{opacity:.5; border-style:dashed;}
+  .bigbtn{
+    display:block; margin:12px auto 0; border:0; border-radius:12px;
+    background:var(--good); color:#fff; font-size:16px; font-weight:800; padding:12px 30px;
+  }
+  .bigbtn:hover{background:#217a29;}
+  .bigbtn[disabled]{background:#c6d6d2; cursor:default;}
+  .bigbtn.red{background:var(--accent);}
+  .bigbtn.red:hover{filter:brightness(1.1);}
+  .quietbtn{
+    display:block; margin:10px auto 0; border:0; border-radius:10px;
+    background:#eef1f0; color:#5c7671; font-size:14px; font-weight:700; padding:9px 20px;
+  }
+
+  /* machine face the buyers see */
+  .mymachine{display:flex; gap:8px; justify-content:center; flex-wrap:wrap;}
+  .mymachine .slot{width:74px;}
+  .mymachine .slot .sprite{box-shadow:0 2px 6px rgba(31,90,84,.2);}
+  .mymachine .slot .nm{font-size:10.5px; text-align:center; font-weight:700; color:#5c7671; margin-top:3px;}
+  .slot.mystery .q{
+    display:flex; align-items:center; justify-content:center; aspect-ratio:1/1;
+    background:#22333b; color:var(--yellow); border-radius:10px; font-size:30px; font-weight:800;
+  }
+
+  #turnLine{text-align:center; font-size:16.5px; font-weight:800; color:var(--teal-dark); margin:8px 0;}
+
+  /* ---------- calculator pads (buyer input + rule guess) ---------- */
+  .calc{max-width:380px; margin:0 auto;}
+  .calc-disp{
+    background:#12241f; color:#7CFC98; border-radius:14px 14px 0 0;
+    font-family:"Menlo","Consolas",monospace; font-size:clamp(22px,4.5vw,30px); font-weight:700;
+    padding:14px 16px; text-align:right; min-height:60px; letter-spacing:1px;
+    overflow-x:auto; white-space:nowrap; box-shadow:inset 0 3px 10px rgba(0,0,0,.5);
+  }
+  .calc-disp .ph{color:#3f6b52; font-size:15px; letter-spacing:0;}
+  .calc-keys{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:7px;
+    background:#dfe9e6; border-radius:0 0 16px 16px; padding:10px;
+    box-shadow:0 6px 16px rgba(31,90,84,.25);
+  }
+  .calc-keys.five{grid-template-columns:repeat(5,1fr);}
+  .calc-keys button{
+    height:58px; border:0; border-radius:12px; background:#fff;
+    font-size:23px; font-weight:800; color:var(--ink);
+    box-shadow:0 3px 0 #b9cac5; transition:transform .06s, box-shadow .06s;
+  }
+  .calc-keys button:active, .calc-keys button.press{
+    transform:translateY(3px) scale(.97); box-shadow:0 0 0 #b9cac5; background:var(--cream);
+  }
+  .calc-keys button.fn{background:#eef3f1; color:#7a8f8b; font-size:19px;}
+  .calc-keys button.op{background:#f4f0fd; color:#5b3fa8;}
+  .calc-keys button.xk{background:var(--yellow); color:#6b5c00; font-family:Georgia,serif;}
+  .calc-keys button.go{
+    background:var(--good); color:#fff; font-size:16px; grid-column:span 2;
+    box-shadow:0 3px 0 #1c5c22;
+  }
+  .calc-keys button.go:active, .calc-keys button.go.press{box-shadow:0 0 0 #1c5c22;}
+  .calc-keys button.wide2{grid-column:span 2;}
+  .kbd-hint{text-align:center; font-size:12.5px; color:#8aa19c; margin-top:8px;}
+  .kbd-hint b{font-family:"Menlo",monospace; background:#eef7f5; border-radius:5px; padding:0 6px;}
+
+  .htable{width:100%; border-collapse:collapse; font-size:14.5px; margin-top:8px;}
+  .htable th{background:var(--teal); color:#fff; padding:6px; font-size:13px;}
+  .htable td{border-top:1px solid #edf4f3; padding:5px 6px; text-align:center; font-weight:600;}
+  .htable td .mini{width:34px; display:inline-block; vertical-align:middle;}
+  .htable td.outv{color:var(--accent); font-weight:800;}
+
+  /* product drop reveal */
+  #revealWrap{
+    position:fixed; inset:0; z-index:45; display:none; align-items:center; justify-content:center;
+    background:rgba(10,30,28,.7); flex-direction:column; gap:14px; cursor:pointer;
+  }
+  #revealWrap.on{display:flex;}
+  #revealCard{background:#fff; border-radius:20px; padding:22px 30px; text-align:center; box-shadow:0 16px 50px rgba(0,0,0,.45);}
+  #revealCard .sprite{width:150px; margin:0 auto;}
+  #revealOut{font-size:30px; font-weight:800; color:var(--accent); margin-top:8px;}
+  #revealName{font-size:15px; font-weight:700; color:#5c7671;}
+  #revealWrap .tap{color:#cfe8df; font-size:13px;}
+
+  /* guess extras */
+  #guessPrompt{font-weight:800; color:var(--teal-dark); text-align:center; margin-bottom:8px; font-size:16px;}
+  .guess-btns{display:flex; gap:10px; justify-content:center; margin-top:12px;}
+  .guess-btns button{border:0; border-radius:12px; font-size:15.5px; font-weight:800; padding:12px 22px;}
+  #guessGo{background:var(--good); color:#fff; box-shadow:0 3px 0 #1c5c22;}
+  #guessGo:active{transform:translateY(3px); box-shadow:none;}
+  #guessPass{background:#eef1f0; color:#5c7671;}
+
+  /* ---------- win overlay: confetti + slot machine ---------- */
+  #winWrap{
+    position:fixed; inset:0; z-index:50; display:none; overflow:auto;
+    background:rgba(10,30,28,.85); text-align:center; padding:5vh 14px;
+  }
+  #winWrap.on{display:block;}
+  #winTitle{color:#fff; font-size:clamp(24px,4.5vw,40px); font-weight:800; text-shadow:0 3px 14px rgba(0,0,0,.6);}
+  #winSub{color:#ffe; font-size:16px; margin:8px 0 20px;}
+  #slotRow{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+  .slotwin{
+    width:96px; background:#fff; border-radius:14px; padding:7px;
+    box-shadow:0 8px 22px rgba(0,0,0,.5); overflow:hidden;
+  }
+  .slotwin .window{height:88px; overflow:hidden; border-radius:9px; background:#f2f2f2; position:relative;}
+  .slotwin .strip{display:flex; flex-direction:column; animation:spin .45s linear infinite;}
+  .slotwin .strip .sprite{width:82px; flex:0 0 auto; margin:3px auto; aspect-ratio:1/1 !important;}
+  @keyframes spin{from{transform:translateY(0)} to{transform:translateY(-50%)}}
+  .slotwin.stopped .strip{animation:none;}
+  .slotwin .nm{font-size:10.5px; font-weight:800; color:#5c7671; margin-top:5px; min-height:13px;}
+  #winClose{
+    margin-top:26px; border:0; border-radius:12px; background:var(--yellow); color:#6b5c00;
+    font-size:16px; font-weight:800; padding:12px 30px;
+  }
+  #confetti{position:fixed; inset:0; z-index:60; pointer-events:none;}
+
+  #toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-90px);
+    z-index:70; background:#22333b; color:#fff; font-size:15px; font-weight:600;
+    padding:10px 20px; border-radius:30px; box-shadow:0 6px 18px rgba(0,0,0,.3);
+    transition:transform .3s ease; pointer-events:none; max-width:82vw; text-align:center;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0);}
+  #brand{
+    position:fixed; left:14px; bottom:10px; z-index:5;
+    font-size:12.5px; font-weight:700; letter-spacing:.4px; color:#4c6b66;
+    background:#ffffffcc; padding:4px 13px; border-radius:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<canvas id="confetti"></canvas>
+
+<header>
+  <button id="backBtn">← Back</button>
+  <h1>🥤 Algebra Machine</h1>
+  <button id="meChip"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
+</header>
+
+<main>
+  <!-- role -->
+  <section class="screen on" id="scrRole">
+    <h2>How do you want to play?</h2>
+    <div class="role-btns">
+      <button id="roleSeller">
+        <span class="big">🏪</span><span class="t">Seller</span>
+        <span class="d">Stock a vending machine, write a secret rule, and earn Whare when someone cracks it.</span>
+      </button>
+      <button id="roleBuyer">
+        <span class="big">🛍️</span><span class="t">Customer</span>
+        <span class="d">Visit the mall, put numbers into a machine, and crack the rule to win the goodies!</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- seller: stock -->
+  <section class="screen" id="scrStock">
+    <h2>🏪 Stock your machine</h2>
+    <p class="sub">Pick up to <b>7 products</b> — at most <b>3</b> from the non-snacks shelf. You have <b>90 seconds!</b></p>
+    <div class="card">
+      <div id="pickBar">
+        <span id="pickCount">0 / 7</span>
+        <div id="timerWrap"><div id="timerBar"></div></div>
+        <span id="timerLeft">90s</span>
+      </div>
+      <div class="shelf-tabs">
+        <button data-shelf="s" class="active">🍪 Snacks</button>
+        <button data-shelf="n">🧸 Non-snacks <span id="nsCount"></span></button>
+      </div>
+      <div class="shelf on" id="shelfS"></div>
+      <div class="shelf" id="shelfN"></div>
+      <button id="stockDone">✓ Done — write my rule</button>
+    </div>
+  </section>
+
+  <!-- seller: rule -->
+  <section class="screen" id="scrRule">
+    <h2>💻 Write your secret rule</h2>
+    <p class="sub">The machine will follow it: <b>input → rule → output</b>.</p>
+    <div class="card">
+      <div class="rule-wrap">
+        <img src="assets/rule.jpg" alt="laptop plugged into the vending machine">
+        <div id="ruleScreen"></div>
+      </div>
+      <div class="rule-side">
+        <div>
+          <div class="rulepad" id="rulePad">
+            <button class="xkey" data-k="x">𝑥</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+            <button class="op" data-k="+">+</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+            <button class="op" data-k="-">−</button><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+            <button class="op" data-k="*">×</button><button class="op" data-k="/">÷</button><button data-k="0">0</button><button data-k="back">⌫</button>
+          </div>
+          <div id="rewardLine">Crack-reward: 0 Whare</div>
+        </div>
+        <div class="rule-help">
+          <b>How it works</b><br>
+          𝑥 is the customer's number. Example rule: <b>𝑥 × 3 + 2</b><br>
+          Shortcut keys: <span class="shortcut">x</span> <span class="shortcut">+</span>
+          <span class="shortcut">-</span> <span class="shortcut">*</span> <span class="shortcut">/</span>
+          <span class="shortcut">⌫</span> — up to <b>two operations</b>.<br><br>
+          💰 When a customer cracks your rule, <b>you earn the reward</b>.
+          Harder rules pay more (÷ beats ×, × beats −, − beats +, and two
+          operations pay extra) — but an easy rule gets cracked fast for less!
+        </div>
+      </div>
+      <div class="cap-row">
+        <span style="font-weight:700;color:#4c6b66">Customers:</span>
+        <div class="seg" id="capSeg">
+          <button data-c="1" class="active">1</button>
+          <button data-c="2">2</button>
+          <button data-c="3">3</button>
+        </div>
+        <button id="openShop">🎪 Open my shop!</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- seller: lobby + live -->
+  <section class="screen" id="scrSell">
+    <h2 id="sellTitle">🎪 Your shop is open!</h2>
+    <p class="sub" id="sellSub"></p>
+    <div class="card">
+      <div class="mymachine" id="sellProducts"></div>
+      <div id="sellRule" style="text-align:center;font-weight:800;color:var(--teal-dark);margin-top:10px"></div>
+      <div class="players" id="sellPlayers"></div>
+      <div id="turnLineSell" style="text-align:center;font-weight:700;color:#4c6b66"></div>
+      <table class="htable" id="sellHist" style="display:none">
+        <thead><tr><th>Customer</th><th>Input</th><th>Output</th><th>Item</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="bigbtn" id="startBtn" disabled>▶ Start the game</button>
+      <button class="quietbtn" id="closeShop">Close my shop</button>
+    </div>
+  </section>
+
+  <!-- buyer: mall -->
+  <section class="screen" id="scrMall">
+    <div id="mallWrap">
+      <div id="mallTitle">🏬 Algebra Machine Mall</div>
+      <div id="mallSub">Tap a shop to go in!</div>
+      <div id="sections"></div>
+    </div>
+  </section>
+
+  <!-- buyer: room (waiting + playing) -->
+  <section class="screen" id="scrPlay">
+    <h2 id="playTitle">🥤 Machine</h2>
+    <p class="sub" id="playSub"></p>
+    <div class="card">
+      <div class="mymachine" id="playSlots"></div>
+      <div class="players" id="playPlayers"></div>
+      <div id="turnLine"></div>
+
+      <!-- my turn, step 1: put a number in (calculator pad) -->
+      <div id="numMode" style="display:none">
+        <div class="calc">
+          <div class="calc-disp" id="numDisp"><span class="ph">type a number…</span></div>
+          <div class="calc-keys" id="numPad">
+            <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="back" class="fn">⌫</button>
+            <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="clear" class="fn">C</button>
+            <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="neg" class="fn">±</button>
+            <button data-k="0">0</button><button data-k="." class="fn">.</button><button data-k="go" class="go">▶ Put it in!</button>
+          </div>
+        </div>
+        <p class="kbd-hint">Keyboard works too: numbers, <b>⌫</b>, <b>Enter</b></p>
+        <button class="quietbtn" id="toGuess">🕵️ I already know the rule!</button>
+      </div>
+
+      <!-- my turn, step 2: guess the rule (full pad, spaces welcome) -->
+      <div id="guessMode" style="display:none">
+        <div id="guessPrompt">🕵️ Do you know the rule? Type it — spaces are fine!</div>
+        <div class="calc">
+          <div class="calc-disp" id="guessDisp"><span class="ph">e.g. 𝑥 × 3 + 2</span></div>
+          <div class="calc-keys five" id="guessPad">
+            <button data-k="x" class="xk">𝑥</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="back" class="fn">⌫</button>
+            <button data-k="+" class="op">+</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="clear" class="fn">C</button>
+            <button data-k="-" class="op">−</button><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k=" " class="fn">␣</button>
+            <button data-k="*" class="op">×</button><button data-k="/" class="op">÷</button><button data-k="0">0</button><button data-k="." class="fn">.</button><button data-k="go" class="go">✓</button>
+          </div>
+        </div>
+        <p class="kbd-hint">Keyboard: <b>x</b> <b>+</b> <b>-</b> <b>*</b> <b>/</b> numbers <b>space</b> <b>Enter</b></p>
+        <div class="guess-btns">
+          <button id="guessGo">✓ I know it!</button>
+          <button id="guessPass">Pass ➡ next player</button>
+        </div>
+      </div>
+      <table class="htable" id="playHist" style="display:none">
+        <thead><tr><th>Customer</th><th>Input</th><th>Output</th><th>Item</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- product drop -->
+<div id="revealWrap">
+  <div id="revealCard">
+    <div class="sprite" id="revealSprite"></div>
+    <div id="revealOut"></div>
+    <div id="revealName"></div>
+  </div>
+  <p class="tap">Click to continue</p>
+</div>
+
+<!-- win -->
+<div id="winWrap">
+  <div id="winTitle"></div>
+  <div id="winSub"></div>
+  <div id="slotRow"></div>
+  <button id="winClose">Awesome!</button>
+</div>
+
+<div id="brand">Wharenui School</div>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script src="js/game-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var store = window.CharlieStore, G = window.GameCore;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* ---------------- session guard ---------------- */
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem('charlie-session')); }catch(e){}
+  if(!sess && window.CHARLIE_TEST_SESSION) sess = window.CHARLIE_TEST_SESSION;
+  if(!sess || !sess.id){ window.location.replace('index.html'); }
+
+  var me = null;              // my live student row
+  var machineId = null;       // machine I'm in (as seller or buyer)
+  var role = null;            // 'seller' | 'buyer'
+  var machine = null;         // latest copy
+  var winShown = false;
+
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  }
+  function show(id){
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
+      s.classList.toggle('on', s.id === id);
+    });
+  }
+  function current(){
+    var on = document.querySelector('.screen.on');
+    return on ? on.id : '';
+  }
+  function spriteStyle(key){
+    var p = G.PRODUCTS[key];
+    if(!p) return '';
+    return 'background-position:' + (p.col*25) + '% ' + (p.row*100/3) + '%';
+  }
+  function spriteDiv(key, cls){
+    var p = G.PRODUCTS[key];
+    return '<div class="sprite ' + (p.sheet==='n'?'n ':'') + (cls||'') + '" style="' + spriteStyle(key) + '" title="' + esc(p.name) + '"></div>';
+  }
+
+  /* ---------------- header chip ---------------- */
+  function renderChip(){
+    if(!me) return;
+    $('meEmoji').textContent = me.emoji || '🙂';
+    $('meName').textContent = me.name;
+    $('meMoney').textContent = (me.money||0) + ' W';
+  }
+  $('meChip').addEventListener('click', function(){ window.location.href='hub.html'; });
+
+  /* ================= SELLER : stock ================= */
+  var picked = [];
+  var timerIv = null, timeLeft = G.PICK_SECONDS;
+
+  function buildShelves(){
+    var s = [], n = [];
+    Object.keys(G.PRODUCTS).forEach(function(k){
+      var p = G.PRODUCTS[k];
+      (p.sheet === 's' ? s : n).push(k);
+    });
+    $('shelfS').innerHTML = s.map(function(k){
+      return '<button data-k="'+k+'">' + spriteDiv(k) + '<span class="nm">'+esc(G.PRODUCTS[k].name)+'</span></button>';
+    }).join('');
+    $('shelfN').innerHTML = n.map(function(k){
+      return '<button data-k="'+k+'">' + spriteDiv(k) + '<span class="nm">'+esc(G.PRODUCTS[k].name)+'</span></button>';
+    }).join('');
+  }
+  function nonSnackCount(){
+    return picked.filter(function(k){ return G.PRODUCTS[k].sheet === 'n'; }).length;
+  }
+  function renderPick(){
+    $('pickCount').textContent = picked.length + ' / ' + G.MAX_PICK;
+    $('nsCount').textContent = '(' + nonSnackCount() + '/' + G.MAX_NONSNACK + ')';
+    Array.prototype.forEach.call(document.querySelectorAll('.shelf button'), function(b){
+      b.classList.toggle('sel', picked.indexOf(b.dataset.k) !== -1);
+    });
+  }
+  function togglePick(k){
+    var i = picked.indexOf(k);
+    if(i !== -1){ picked.splice(i,1); renderPick(); return; }
+    if(picked.length >= G.MAX_PICK){ toast('Your machine holds 7 products — take one out first!'); return; }
+    if(G.PRODUCTS[k].sheet==='n' && nonSnackCount() >= G.MAX_NONSNACK){
+      toast('Only 3 non-snacks allowed — they\'re expensive!'); return;
+    }
+    picked.push(k); renderPick();
+  }
+  document.querySelector('.shelf-tabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-shelf]'); if(!b) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
+      x.classList.toggle('active', x === b);
+    });
+    $('shelfS').classList.toggle('on', b.dataset.shelf==='s');
+    $('shelfN').classList.toggle('on', b.dataset.shelf==='n');
+  });
+  $('shelfS').addEventListener('click', shelfClick);
+  $('shelfN').addEventListener('click', shelfClick);
+  function shelfClick(e){
+    var b = e.target.closest('button[data-k]'); if(b) togglePick(b.dataset.k);
+  }
+  function startTimer(){
+    timeLeft = G.PICK_SECONDS;
+    clearInterval(timerIv);
+    timerIv = setInterval(function(){
+      timeLeft--;
+      var pct = Math.max(0, timeLeft / G.PICK_SECONDS * 100);
+      $('timerBar').style.width = pct + '%';
+      $('timerBar').classList.toggle('low', timeLeft <= 15);
+      $('timerLeft').textContent = Math.max(0,timeLeft) + 's';
+      if(timeLeft <= 0){
+        clearInterval(timerIv);
+        toast('⏰ Time\'s up! The shelves filled themselves.');
+        finishStock();
+      }
+    }, 1000);
+  }
+  function finishStock(){
+    clearInterval(timerIv);
+    // top up to 7 with random snacks
+    if(picked.length < G.MAX_PICK){
+      var snacks = Object.keys(G.PRODUCTS).filter(function(k){
+        return G.PRODUCTS[k].sheet==='s' && picked.indexOf(k)===-1;
+      });
+      G.shuffle(snacks);
+      while(picked.length < G.MAX_PICK && snacks.length) picked.push(snacks.pop());
+    }
+    renderRuleScreen();
+    show('scrRule');
+  }
+  $('stockDone').addEventListener('click', finishStock);
+
+  /* ================= SELLER : rule ================= */
+  var tokens = [], capacity = 1;
+  function renderRuleScreen(){
+    var html = tokens.map(function(t){
+      if(t.t==='var') return '<i>𝑥</i>';
+      if(t.t==='num') return esc(t.v);
+      return ' ' + G.opGlyph(t.v) + ' ';
+    }).join('');
+    $('ruleScreen').innerHTML = (html || '') + '<span class="caret"></span>';
+    $('rewardLine').textContent = 'Crack-reward: ' + G.reward(tokens) + ' Whare';
+  }
+  function addTok(k){
+    var last = tokens[tokens.length-1];
+    if(k === 'back'){
+      if(!last) return;
+      if(last.t==='num' && last.v.length>1) last.v = last.v.slice(0,-1);
+      else tokens.pop();
+    } else if(k === 'x'){
+      if(last && (last.t==='num' || last.t==='var')){
+        if(G.ruleOps(tokens).length >= 2){ toast('Two operations max!'); return; }
+        tokens.push({t:'op',v:'*'});
+      }
+      tokens.push({t:'var'});
+    } else if(/^[0-9]$/.test(k)){
+      if(last && last.t==='num'){
+        if(last.v.length >= 3){ toast('Keep numbers small!'); return; }
+        last.v += k;
+      } else if(last && last.t==='var'){
+        if(G.ruleOps(tokens).length >= 2){ toast('Two operations max!'); return; }
+        tokens.push({t:'op',v:'*'}); tokens.push({t:'num',v:k});
+      } else tokens.push({t:'num',v:k});
+    } else { // op
+      if(!last){ toast('Start with 𝑥 or a number!'); return; }
+      if(last.t==='op'){ last.v = k; }
+      else {
+        if(G.ruleOps(tokens).length >= 2){ toast('Two operations max — that\'s already tricky!'); return; }
+        tokens.push({t:'op',v:k});
+      }
+    }
+    renderRuleScreen();
+  }
+  $('rulePad').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-k]'); if(b) addTok(b.dataset.k);
+  });
+  document.addEventListener('keydown', function(e){
+    if(current() !== 'scrRule') return;
+    var k = e.key, pad = null;
+    if(/^[0-9]$/.test(k) || '+-*/'.indexOf(k) !== -1){ pad = k; }
+    else if(k==='x' || k==='X'){ pad = 'x'; }
+    else if(k==='Backspace'){ pad = 'back'; }
+    else if(k===' '){ e.preventDefault(); return; }   // spaces are fine — just ignored
+    if(pad !== null){
+      e.preventDefault();
+      flash($('rulePad'), pad);
+      addTok(pad);
+    }
+  });
+  $('capSeg').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-c]'); if(!b) return;
+    capacity = parseInt(b.dataset.c, 10);
+    Array.prototype.forEach.call($('capSeg').children, function(x){
+      x.classList.toggle('active', x === b);
+    });
+  });
+  $('openShop').addEventListener('click', function(){
+    if(!G.validRule(tokens)){ toast('Your rule needs 𝑥 in it and can\'t end on + − × ÷'); return; }
+    if(G.ruleOps(tokens).length < 1){ toast('Add at least one operation — 𝑥 alone is too easy!'); return; }
+    var m = {
+      id: G.machineId(),
+      created: Date.now(),
+      seller: {id:me.id, name:me.name, emoji:me.emoji || '🙂'},
+      alias: G.alias(),
+      state: 'open',
+      capacity: capacity,
+      products: picked.slice(),
+      rule: tokens.slice(),
+      reward: G.reward(tokens),
+      ranges: G.assignRanges(picked),
+      buyers: [], history: [], turn: 0, winner: null
+    };
+    store.saveMachine(m).then(function(){
+      machineId = m.id; role = 'seller'; winShown = false;
+      refresh();
+      show('scrSell');
+    }).catch(function(){ toast('Could not open the shop — check the connection.'); });
+  });
+
+  /* ================= SELLER : lobby + live ================= */
+  function renderSell(){
+    var m = machine; if(!m) return;
+    $('sellTitle').textContent = m.state==='open' ? '🎪 Your shop is open!'
+      : m.state==='playing' ? '🎪 Game on!' : '🎪 Shop closed';
+    $('sellSub').innerHTML = 'You are <b>' + esc(m.alias) + '</b> — customers only see that name. '
+      + 'Crack-reward: <b>' + m.reward + ' Whare</b>';
+    $('sellProducts').innerHTML = m.products.map(function(k){
+      return '<div class="slot">' + spriteDiv(k) + '<div class="nm">'+esc(G.PRODUCTS[k].name)+'</div></div>';
+    }).join('');
+    $('sellRule').innerHTML = 'Your rule: 𝑥 → ' + esc(G.ruleText(m.rule)).replace(/x/g,'𝑥');
+    var ph = [];
+    for(var i=0;i<m.capacity;i++){
+      var b = m.buyers[i];
+      if(b) ph.push('<span class="pl'+(m.state==='playing' && i===m.turn%m.buyers.length?' now':'')+'"><span class="em">'+(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>');
+      else ph.push('<span class="pl empty">🪑 waiting…</span>');
+    }
+    $('sellPlayers').innerHTML = ph.join('');
+    $('startBtn').disabled = !(m.state==='open' && m.buyers.length === m.capacity);
+    $('startBtn').style.display = m.state==='open' ? '' : 'none';
+    $('turnLineSell').textContent =
+      m.state==='open' ? (m.buyers.length + '/' + m.capacity + ' customers here — the game starts when it\'s full.') :
+      m.state==='playing' ? ('It\'s ' + (m.buyers[m.turn % m.buyers.length]||{}).name + '\'s turn.') : '';
+    renderHist($('sellHist'), m);
+    if(m.state==='done' && m.winner && !winShown){
+      winShown = true;
+      confetti();
+      toast('🎉 ' + m.winner.name + ' cracked your rule — you earned ' + m.reward + ' Whare!');
+    }
+  }
+  $('startBtn').addEventListener('click', function(){
+    withMachine(function(m){
+      if(m.state!=='open' || m.buyers.length !== m.capacity) return null;
+      m.state = 'playing'; m.turn = 0;
+      return m;
+    });
+  });
+  $('closeShop').addEventListener('click', function(){
+    withMachine(function(m){ m.state = 'done'; return m; }).then(function(){
+      machineId = null; role = null;
+      show('scrRole');
+    });
+  });
+
+  /* ================= BUYER : mall ================= */
+  function renderMall(machines){
+    var open = machines.filter(function(m){ return m.state==='open' || m.state==='playing'; });
+    if(!open.length){
+      $('sections').innerHTML = '<div class="empty-mall">The mall is quiet… ask someone to open a shop! 🏪</div>';
+      return;
+    }
+    $('sections').innerHTML = open.map(function(m){
+      var full = m.buyers.length >= m.capacity;
+      var oc = m.state==='playing' ? '🎮 Playing…'
+             : full ? m.buyers.length + '/' + m.capacity + ' full'
+             : m.buyers.length + '/' + m.capacity;
+      var mine = m.buyers.some(function(b){ return b.id===me.id; });
+      var dis = (m.state!=='open' || full) && !mine;
+      return '<button class="sec" data-id="'+m.id+'"'+(dis?' disabled':'')+'>'
+        + '<span class="em">'+(m.seller.emoji||'🙂')+'</span>'
+        + '<span class="al">'+esc(m.alias)+'</span>'
+        + '<span class="oc'+(full?' full':'')+'">'+oc+'</span>'
+        + '</button>';
+    }).join('');
+  }
+  $('sections').addEventListener('click', function(e){
+    var b = e.target.closest('.sec[data-id]'); if(!b || b.disabled) return;
+    joinMachine(b.dataset.id);
+  });
+  function joinMachine(id){
+    store.getMachine(id).then(function(m){
+      if(!m || m.state!=='open'){ toast('That shop just closed its doors!'); refresh(); return; }
+      var already = m.buyers.some(function(b){ return b.id===me.id; });
+      if(!already){
+        if(m.buyers.length >= m.capacity){ toast('That shop is full!'); refresh(); return; }
+        m.buyers.push({id:me.id, name:me.name, emoji:me.emoji || '🙂'});
+        return store.saveMachine(m).then(function(){
+          // re-read: if two people squeezed in at once, last one steps back out
+          return store.getMachine(id).then(function(m2){
+            var idx = -1;
+            m2.buyers.forEach(function(b,i){ if(b.id===me.id) idx = i; });
+            if(idx >= m2.capacity){
+              m2.buyers.splice(idx,1);
+              return store.saveMachine(m2).then(function(){ toast('Just missed it — that shop is full!'); });
+            }
+            machineId = id; role = 'buyer'; winShown = false;
+            show('scrPlay'); refresh();
+          });
+        });
+      }
+      machineId = id; role = 'buyer'; winShown = false;
+      show('scrPlay'); refresh();
+    });
+  }
+
+  /* ================= BUYER : play ================= */
+  function myTurn(m){
+    return m.state==='playing' && m.buyers.length &&
+           m.buyers[m.turn % m.buyers.length].id === me.id;
+  }
+  function renderPlay(){
+    var m = machine; if(!m) return;
+    $('playTitle').innerHTML = '🥤 ' + esc(m.alias) + '\'s machine';
+    $('playSlots').innerHTML = m.products.map(function(k){
+      return '<div class="slot mystery"><div class="q">?</div></div>';
+    }).join('');
+    $('playPlayers').innerHTML = m.buyers.map(function(b,i){
+      var now = m.state==='playing' && i === m.turn % m.buyers.length;
+      return '<span class="pl'+(now?' now':'')+'"><span class="em">'+(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>';
+    }).join('');
+    if(m.state==='open'){
+      $('playSub').textContent = 'Waiting for ' + m.alias + ' to start… (' + m.buyers.length + '/' + m.capacity + ' customers here)';
+      $('turnLine').textContent = '';
+      setPads(null);
+    } else if(m.state==='playing'){
+      $('playSub').textContent = '7 mystery products inside. Crack the rule to win them!';
+      var now = m.buyers[m.turn % m.buyers.length];
+      if(myTurn(m)){
+        if(!wasMyTurn){ playMode = 'number'; }   // fresh turn starts on the number pad
+        wasMyTurn = true;
+        $('turnLine').textContent = playMode === 'guess'
+          ? '⭐ Your turn, ' + me.name + '! Crack the rule — or pass.'
+          : '⭐ Your turn, ' + me.name + '! Put a number in.';
+        setPads(playMode);
+      } else {
+        wasMyTurn = false;
+        $('turnLine').textContent = '⏳ ' + (now?now.name:'…') + ' is having a turn…';
+        setPads(null);
+      }
+    } else {
+      setPads(null);
+      var w = m.winner;
+      $('playSub').textContent = w ? ('The rule was cracked!') : 'The seller closed this shop.';
+      $('turnLine').textContent = w ? '' : 'Back to the mall for another machine!';
+      if(w && !winShown){
+        winShown = true;
+        if(w.id === me.id) showWin(m);
+        else { confetti(); $('turnLine').innerHTML = '🎉 <b>' + esc(w.name) + '</b> cracked it and took ' + w.prizes.length + ' item' + (w.prizes.length>1?'s':'') + '! The rule was 𝑥 → ' + esc(G.ruleText(m.rule)).replace(/x/g,'𝑥'); }
+      }
+    }
+    renderHist($('playHist'), m);
+  }
+  function renderHist(tbl, m){
+    if(!m.history.length){ tbl.style.display='none'; return; }
+    tbl.style.display = '';
+    tbl.querySelector('tbody').innerHTML = m.history.map(function(h){
+      var b = null;
+      m.buyers.forEach(function(x){ if(x.id===h.b) b = x; });
+      return '<tr><td>'+(b?(b.emoji||'')+' '+esc(b.name):'?')+'</td><td>'+esc(String(h.v))+'</td>'
+        + '<td class="outv">'+esc(String(h.out))+'</td>'
+        + '<td><span class="mini">'+spriteDiv(h.p)+'</span> '+esc(G.PRODUCTS[h.p].name)+'</td></tr>';
+    }).join('');
+  }
+
+  /* -------- calculator pads: state, clicks, keyboard mirroring -------- */
+  var playMode = 'number';        // 'number' | 'guess' (which pad my turn shows)
+  var wasMyTurn = false;
+  var numVal = '', guessVal = '';
+
+  function setPads(mode){
+    $('numMode').style.display = mode === 'number' ? '' : 'none';
+    $('guessMode').style.display = mode === 'guess' ? '' : 'none';
+  }
+  function flash(padEl, k){
+    var b = padEl.querySelector('button[data-k="' + (k === '"' ? '' : k) + '"]');
+    if(!b) return;
+    b.classList.remove('press');
+    void b.offsetWidth;
+    b.classList.add('press');
+    setTimeout(function(){ b.classList.remove('press'); }, 180);
+  }
+  function renderNumDisp(){
+    $('numDisp').innerHTML = numVal === '' ? '<span class="ph">type a number…</span>' : esc(numVal);
+  }
+  function renderGuessDisp(){
+    $('guessDisp').innerHTML = guessVal === ''
+      ? '<span class="ph">e.g. 𝑥 × 3 + 2</span>'
+      : esc(guessVal).replace(/x/g,'𝑥');
+  }
+
+  function numKey(k){
+    if(k === 'go'){ dropNumber(); return; }
+    if(k === 'back'){ numVal = numVal.slice(0,-1); }
+    else if(k === 'clear'){ numVal = ''; }
+    else if(k === 'neg'){ numVal = numVal.charAt(0)==='-' ? numVal.slice(1) : '-' + numVal; }
+    else if(k === '.'){ if(numVal.indexOf('.') === -1) numVal += numVal === '' || numVal === '-' ? '0.' : '.'; }
+    else if(/^[0-9]$/.test(k)){
+      if(numVal.replace(/[-.]/g,'').length >= 4){ toast('Keep it under 1000!'); return; }
+      numVal += k;
+    } else return;
+    renderNumDisp();
+  }
+  $('numPad').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-k]'); if(b) numKey(b.dataset.k);
+  });
+  $('toGuess').addEventListener('click', function(){
+    playMode = 'guess'; setPads('guess');
+    $('turnLine').textContent = '⭐ Your turn, ' + me.name + '! Crack the rule — or pass.';
+  });
+
+  function guessKey(k){
+    if(k === 'go'){ submitGuess(); return; }
+    if(k === 'back'){ guessVal = guessVal.slice(0,-1); }
+    else if(k === 'clear'){ guessVal = ''; }
+    else if(k === ' '){ if(guessVal.length < 24) guessVal += ' '; }
+    else if('+-*/'.indexOf(k) !== -1){
+      if(guessVal.length < 24) guessVal += ({'+':'+','-':'−','*':'×','/':'÷'})[k];
+    }
+    else if(k === 'x' || /^[0-9.]$/.test(k)){
+      if(guessVal.length < 24) guessVal += k;
+    } else return;
+    renderGuessDisp();
+  }
+  $('guessPad').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-k]'); if(b) guessKey(b.dataset.k);
+  });
+
+  /* physical keyboard drives whichever pad is on screen — keys light up */
+  document.addEventListener('keydown', function(e){
+    if(current() !== 'scrPlay' || !machine || !myTurn(machine)) return;
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key;
+    if(playMode === 'number' && $('numMode').style.display !== 'none'){
+      var map = k === 'Enter' ? 'go' : k === 'Backspace' ? 'back' : k === '-' ? 'neg' : k;
+      if(map === 'go' || map === 'back' || map === 'neg' || map === '.' || /^[0-9]$/.test(map)){
+        e.preventDefault(); flash($('numPad'), map); numKey(map);
+      }
+    } else if(playMode === 'guess' && $('guessMode').style.display !== 'none'){
+      var gk = k === 'Enter' ? 'go' : k === 'Backspace' ? 'back' : k === 'X' ? 'x' : k;
+      if(gk === 'go' || gk === 'back' || gk === ' ' || gk === 'x' ||
+         '+-*/'.indexOf(gk) !== -1 || /^[0-9.]$/.test(gk)){
+        e.preventDefault(); flash($('guessPad'), gk); guessKey(gk);
+      }
+    }
+  });
+
+  function dropNumber(){
+    var v = parseFloat(numVal);
+    if(numVal.trim() === '' || isNaN(v)){ toast('Type a number first!'); return; }
+    if(Math.abs(v) > 999){ toast('Keep it under 1000!'); return; }
+    withMachine(function(m){
+      if(!myTurn(m)) return null;
+      var out = G.evalRule(m.rule, v);
+      if(out === null){ toast('💥 The machine jammed on that number — try another!'); return null; }
+      var p = m.ranges[G.rangeIndexFor(v)];
+      m.history.push({b:me.id, v:v, out:Math.round(out*100)/100, p:p});
+      return m;
+    }).then(function(m){
+      if(!m) return;
+      numVal = ''; renderNumDisp();
+      var h = m.history[m.history.length-1];
+      $('revealSprite').className = 'sprite' + (G.PRODUCTS[h.p].sheet==='n'?' n':'');
+      $('revealSprite').style.cssText = spriteStyle(h.p);
+      $('revealOut').textContent = 'output = ' + h.out;
+      $('revealName').textContent = G.PRODUCTS[h.p].name + ' dropped into the tray!';
+      $('revealWrap').classList.add('on');
+    });
+  }
+  $('revealWrap').addEventListener('click', function(){
+    $('revealWrap').classList.remove('on');
+    /* after seeing the result, offer the guess */
+    if(machine && myTurn(machine)){
+      playMode = 'guess';
+      renderPlay();
+    }
+  });
+
+  /* every attempt lands in the student's own history (side panel in the hub) */
+  function recordGuess(mine, m, guessText, ok){
+    var att = {t:Date.now(), mid:m.id, guess:guessText, rule:G.ruleText(m.rule), ok:ok};
+    return (mine.guesses || []).concat([att]).slice(-30);
+  }
+
+  var guessing = false;
+  function submitGuess(){
+    if(guessing) return;
+    var g = guessVal;
+    if(!g.trim()){ toast('Type your guess first — like 𝑥 × 3 + 2'); return; }
+    guessing = true;
+    withMachine(function(m){
+      if(!myTurn(m)) return null;
+      if(G.checkGuess(m.rule, g)){
+        var myTurns = m.history.filter(function(h){ return h.b===me.id; }).length || 1;
+        m.state = 'done';
+        m.winner = {
+          id: me.id, name: me.name, emoji: me.emoji||'🙂',
+          turnNo: myTurns,
+          prizes: G.pickPrizes(m.products, G.prizeCount(myTurns))
+        };
+      } else {
+        m.turn = m.turn + 1;      // wrong → next customer
+        m.wrong = (m.wrong||0) + 1;
+      }
+      return m;
+    }).then(function(m){
+      guessing = false;
+      if(!m) return;
+      var tried = guessVal;
+      guessVal = ''; renderGuessDisp();
+      if(m.state === 'done' && m.winner && m.winner.id === me.id){
+        payOut(m, tried);
+      } else {
+        toast('❌ Not quite — the turn moves on. Watch the table for clues!');
+        playMode = 'number'; wasMyTurn = false;   // next turn starts fresh
+        rerender();
+        store.list().then(function(all){
+          var mine = all.filter(function(s){ return s.id===me.id; })[0];
+          if(mine) store.update(me.id, {guesses: recordGuess(mine, m, tried, false)});
+        });
+      }
+    });
+  }
+  $('guessGo').addEventListener('click', submitGuess);
+  $('guessPass').addEventListener('click', function(){
+    withMachine(function(m){
+      if(!myTurn(m)) return null;
+      m.turn = m.turn + 1;
+      return m;
+    }).then(function(){
+      playMode = 'number'; wasMyTurn = false;
+      rerender();
+    });
+  });
+
+  /* winner: bank the prizes + the attempt, pay the seller, then celebrate */
+  function payOut(m, guessText){
+    var prizes = m.winner.prizes;
+    store.list().then(function(all){
+      var mine = all.filter(function(s){ return s.id===me.id; })[0];
+      var seller = all.filter(function(s){ return s.id===m.seller.id; })[0];
+      var jobs = [];
+      if(mine) jobs.push(store.update(me.id, {
+        items: (mine.items||[]).concat(prizes),
+        guesses: recordGuess(mine, m, guessText, true)
+      }));
+      if(seller && seller.id !== me.id)
+        jobs.push(store.update(seller.id, {money: (seller.money||0) + m.reward}));
+      return Promise.all(jobs);
+    }).then(function(){
+      winShown = true;
+      showWin(m);
+      refreshMe();
+    });
+  }
+
+  /* ---------------- win: confetti + slot machine ---------------- */
+  function showWin(m){
+    var prizes = m.winner.prizes;
+    $('winTitle').textContent = '🎉 You cracked it, ' + me.name + '!';
+    $('winSub').innerHTML = 'The rule was <b>𝑥 → ' + esc(G.ruleText(m.rule)).replace(/x/g,'𝑥')
+      + '</b> — the machine pays out <b>' + prizes.length + '</b> item' + (prizes.length>1?'s':'') + '!';
+    var stripKeys = Object.keys(G.PRODUCTS);
+    $('slotRow').innerHTML = prizes.map(function(){
+      var strip = [];
+      for(var i=0;i<6;i++) strip.push(stripKeys[Math.floor(Math.random()*stripKeys.length)]);
+      strip = strip.concat(strip);   // loop seam
+      return '<div class="slotwin"><div class="window"><div class="strip">'
+        + strip.map(function(k){ return spriteDiv(k); }).join('')
+        + '</div></div><div class="nm"></div></div>';
+    }).join('');
+    $('winWrap').classList.add('on');
+    confetti();
+    var wins = document.querySelectorAll('.slotwin');
+    prizes.forEach(function(k, i){
+      setTimeout(function(){
+        var sw = wins[i];
+        if(!sw) return;
+        sw.classList.add('stopped');
+        sw.querySelector('.window').innerHTML = spriteDiv(k);
+        var sp = sw.querySelector('.sprite');
+        sp.style.width = '82px'; sp.style.margin = '3px auto';
+        sw.querySelector('.nm').textContent = G.PRODUCTS[k].name;
+      }, 900 + i*650);
+    });
+  }
+  $('winClose').addEventListener('click', function(){
+    $('winWrap').classList.remove('on');
+  });
+
+  function confetti(){
+    var cv = $('confetti'), ctx = null;
+    try{ ctx = cv.getContext && cv.getContext('2d'); }catch(e){}
+    if(!ctx || !window.requestAnimationFrame) return;
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var bits = [], colors = ['#e63946','#ffee32','#2a9d34','#4a82bd','#c2547d','#f4a261'];
+    for(var i=0;i<160;i++){
+      bits.push({x:Math.random()*cv.width, y:-20-Math.random()*cv.height*0.5,
+                 w:6+Math.random()*7, h:9+Math.random()*8,
+                 vy:2+Math.random()*3.5, vx:Math.random()*2-1,
+                 rot:Math.random()*Math.PI, vr:Math.random()*0.2-0.1,
+                 c:colors[i%colors.length]});
+    }
+    var t0 = Date.now();
+    (function tick(){
+      ctx.clearRect(0,0,cv.width,cv.height);
+      bits.forEach(function(b){
+        b.y += b.vy; b.x += b.vx; b.rot += b.vr;
+        ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.rot);
+        ctx.fillStyle = b.c; ctx.fillRect(-b.w/2,-b.h/2,b.w,b.h);
+        ctx.restore();
+      });
+      if(Date.now()-t0 < 4200) requestAnimationFrame(tick);
+      else ctx.clearRect(0,0,cv.width,cv.height);
+    })();
+  }
+
+  /* ---------------- shared machinery ---------------- */
+  /* read-modify-write; fn returns the changed machine or null to abort */
+  function withMachine(fn){
+    return store.getMachine(machineId).then(function(m){
+      if(!m) return null;
+      var out = fn(m);
+      if(!out) { machine = m; rerender(); return null; }
+      return store.saveMachine(out).then(function(){
+        machine = out; rerender();
+        return out;
+      });
+    });
+  }
+  function rerender(){
+    var scr = current();
+    if(scr === 'scrSell') renderSell();
+    else if(scr === 'scrPlay') renderPlay();
+  }
+  function refresh(){
+    var scr = current();
+    if(scr === 'scrMall'){
+      return store.listMachines().then(renderMall);
+    }
+    if(machineId && (scr === 'scrSell' || scr === 'scrPlay')){
+      return store.getMachine(machineId).then(function(m){
+        if(m){ machine = m; rerender(); }
+      });
+    }
+    return Promise.resolve();
+  }
+  function refreshMe(){
+    return store.list().then(function(all){
+      me = all.filter(function(s){ return s.id === sess.id; })[0] || me;
+      renderChip();
+    });
+  }
+
+  /* ---------------- navigation ---------------- */
+  $('roleSeller').addEventListener('click', function(){
+    picked = []; tokens = []; capacity = 1;
+    renderPick(); renderRuleScreen();
+    show('scrStock');
+    startTimer();
+    toast('⏱ 90 seconds to stock your machine — go!');
+  });
+  $('roleBuyer').addEventListener('click', function(){
+    show('scrMall'); refresh();
+  });
+  $('backBtn').addEventListener('click', function(){
+    clearInterval(timerIv);
+    var scr = current();
+    if(scr === 'scrRole'){ window.location.href = 'hub.html'; return; }
+    if(scr === 'scrStock' || scr === 'scrRule'){ show('scrRole'); return; }
+    if(scr === 'scrMall'){ show('scrRole'); return; }
+    if(scr === 'scrPlay'){ show('scrMall'); machineId = null; role = null; refresh(); return; }
+    if(scr === 'scrSell'){ toast('Close your shop first (button below) or leave it running!'); return; }
+    show('scrRole');
+  });
+
+  /* ---------------- init ---------------- */
+  store.init().then(function(){
+    store.onChange(function(){ refresh(); refreshMe(); });
+    setInterval(refresh, 4000);          // belt-and-braces beside realtime
+    return refreshMe();
+  }).then(function(){
+    buildShelves();
+  }).catch(function(){
+    toast('Hmm, the game can\'t reach the class database. Ask your teacher!');
+  });
+})();
+</script>
+</body>
+</html>

@@ -117,6 +117,34 @@
   #dlgCancel{background:#eef1f0; color:#5c7671;}
   #dlgCancel:hover{background:#e2e8e6;}
 
+  /* ---------- teacher lock screen ---------- */
+  #lockWrap{
+    position:fixed; inset:0; z-index:80; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:6px;
+    background:linear-gradient(160deg,#eef7f5 0%,#dcefe9 45%,#cfe8df 100%);
+  }
+  #lockWrap.off{display:none;}
+  #lockWrap h2{color:var(--teal-dark); font-size:clamp(22px,4vw,32px);}
+  #lockWrap .sub{color:#4c6b66; font-size:15px; margin-bottom:16px;}
+  .lockdots{display:flex; gap:14px; justify-content:center; margin-bottom:22px;}
+  .lockdots i{width:20px; height:20px; border-radius:50%; border:3px solid var(--teal); background:#fff; transition:.12s;}
+  .lockdots i.full{background:var(--teal);}
+  .lockdots.err i{border-color:var(--accent); animation:wob .4s;}
+  @keyframes wob{
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)}
+    50%{transform:translateX(7px)} 75%{transform:translateX(-4px)}
+  }
+  .lockpad{display:grid; grid-template-columns:repeat(3,82px); gap:11px; justify-content:center;}
+  .lockpad button{
+    height:66px; border:0; border-radius:16px; background:var(--card);
+    font-size:26px; font-weight:800; color:var(--ink);
+    box-shadow:0 3px 8px rgba(31,90,84,.18); transition:.12s;
+  }
+  .lockpad button:hover{background:var(--cream); transform:scale(1.06);}
+  .lockpad button.fn{font-size:19px; color:#7a8f8b;}
+  #lockBtn{border:0; background:none; font-size:17px; opacity:.6; margin-left:4px;}
+  #lockBtn:hover{opacity:1;}
+
   /* toast */
   #toast{
     position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-90px);
@@ -160,8 +188,21 @@
 
 <div id="toast"></div>
 
+<!-- teacher lock -->
+<div id="lockWrap">
+  <h2>🔐 Teacher only</h2>
+  <p class="sub">Type the teacher code to open the admin page.</p>
+  <div class="lockdots" id="lockDots"><i></i><i></i><i></i><i></i></div>
+  <div class="lockpad" id="lockPad">
+    <button>1</button><button>2</button><button>3</button>
+    <button>4</button><button>5</button><button>6</button>
+    <button>7</button><button>8</button><button>9</button>
+    <button class="fn" data-k="clear">C</button><button>0</button><button class="fn" data-k="back">⌫</button>
+  </div>
+</div>
+
 <header>
-  <h1>🏫 Charlie's Class — Teacher Admin</h1>
+  <h1>🏫 Charlie's Class — Teacher Admin <button id="lockBtn" title="Lock this page">🔒</button></h1>
   <span id="modeBadge">💾 Local demo</span>
   <div class="head-actions">
     <button id="printBtn">🖨 Print welcome cards</button>
@@ -382,18 +423,93 @@
     window.print();
   });
 
-  /* ---------------- init ---------------- */
-  store.init().then(function(mode){
-    var badge = $('modeBadge');
-    if(mode === 'supabase'){
-      badge.textContent = '☁️ Live — Supabase';
-      badge.classList.add('cloud');
-    } else {
-      badge.textContent = '💾 Local demo — add Supabase keys in js/config.js to go live';
+  /* ---------------- teacher lock ----------------
+     The code itself is not written anywhere in this page — only a hash of
+     it. That keeps casual view-source visitors out; it is a classroom
+     latch, not bank security (see README). */
+  var LOCK_SHA = '3343427bd8ac1cfc0f8e51fee0f21ad7db5432ac07ac382768f7668bfd1309c9';
+  var LOCK_FNV = 'bdb671fd';
+  var lockPin = '', booted = false;
+
+  function fnv1a(s){
+    var h = 0x811c9dc5;
+    for(var i=0;i<s.length;i++){
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
     }
-    store.onChange(refresh);       // money changes from games appear live
-    return refresh();
+    return (h >>> 0).toString(16);
+  }
+  function checkPin(pin){
+    try{
+      if(window.crypto && crypto.subtle && window.TextEncoder){
+        return crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin)).then(function(buf){
+          var hex = '';
+          new Uint8Array(buf).forEach(function(b){ hex += (b<16?'0':'') + b.toString(16); });
+          return hex === LOCK_SHA;
+        }).catch(function(){ return fnv1a(pin) === LOCK_FNV; });
+      }
+    }catch(e){}
+    return Promise.resolve(fnv1a(pin) === LOCK_FNV);
+  }
+  function renderLockDots(){
+    var dots = $('lockDots').children;
+    for(var i=0;i<4;i++) dots[i].classList.toggle('full', i < lockPin.length);
+  }
+  function lockKey(k){
+    if(k==='clear') lockPin = '';
+    else if(k==='back') lockPin = lockPin.slice(0,-1);
+    else if(/^[0-9]$/.test(k) && lockPin.length < 4) lockPin += k;
+    renderLockDots();
+    if(lockPin.length === 4){
+      checkPin(lockPin).then(function(ok){
+        if(ok){
+          try{ sessionStorage.setItem('charlie-teacher','1'); }catch(e){}
+          $('lockWrap').classList.add('off');
+          boot();
+        } else {
+          var d = $('lockDots');
+          d.classList.add('err');
+          setTimeout(function(){ d.classList.remove('err'); lockPin=''; renderLockDots(); }, 450);
+        }
+      });
+    }
+  }
+  $('lockPad').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    lockKey(b.dataset.k || b.textContent.trim());
   });
+  document.addEventListener('keydown', function(e){
+    if($('lockWrap').classList.contains('off')) return;
+    if(/^[0-9]$/.test(e.key)) lockKey(e.key);
+    else if(e.key === 'Backspace') lockKey('back');
+  });
+  $('lockBtn').addEventListener('click', function(){
+    try{ sessionStorage.removeItem('charlie-teacher'); }catch(e){}
+    window.location.reload();
+  });
+
+  /* ---------------- init (after unlock) ---------------- */
+  function boot(){
+    if(booted) return;
+    booted = true;
+    store.init().then(function(mode){
+      var badge = $('modeBadge');
+      if(mode === 'supabase'){
+        badge.textContent = '☁️ Live — Supabase';
+        badge.classList.add('cloud');
+      } else {
+        badge.textContent = '💾 Local demo — add Supabase keys in js/config.js to go live';
+      }
+      store.onChange(refresh);       // money changes from games appear live
+      return refresh();
+    });
+  }
+  var already = false;
+  try{ already = sessionStorage.getItem('charlie-teacher') === '1'; }catch(e){}
+  if(already || window.CHARLIE_TEST_TEACHER){
+    $('lockWrap').classList.add('off');
+    boot();
+  }
 })();
 </script>
 </body>

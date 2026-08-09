@@ -95,9 +95,77 @@ async function testBrand(){
   }
 }
 
+async function testGameCore(){
+  console.log("\ngame-core (pure logic)");
+  const G = require("./js/game-core.js");
+  const keys = Object.keys(G.PRODUCTS);
+  ok(keys.length === 40, "40 products in the catalogue");
+  ok(keys.filter(k => G.PRODUCTS[k].sheet === "s").length === 20, "20 snacks");
+  ok(G.PRODUCTS.car.weight < G.PRODUCTS.ps5.weight && G.PRODUCTS.ps5.weight < G.PRODUCTS.phone.weight,
+     "the car is the rarest prize");
+  ok(G.PRODUCTS.car.sell > G.PRODUCTS.phone.sell, "rarer items sell for more");
+
+  const rule = [{t:"var"},{t:"op",v:"*"},{t:"num",v:"3"},{t:"op",v:"+"},{t:"num",v:"2"}];
+  ok(G.evalRule(rule, 2) === 8, "x×3+2 at 2 gives 8");
+  ok(G.reward([{t:"var"},{t:"op",v:"+"},{t:"num",v:"3"}]) === 3, "+ rule pays 3");
+  ok(G.reward([{t:"var"},{t:"op",v:"/"},{t:"num",v:"2"}]) === 6, "÷ rule pays 6");
+  ok(G.reward(rule) === 10, "×…+ two-op rule pays 5+3+2=10");
+  ok(!G.validRule([{t:"num",v:"3"}]), "a rule needs x");
+  ok(!G.validRule([{t:"var"},{t:"op",v:"+"}]), "a rule can't end on an operation");
+  const threeOps = [{t:"var"},{t:"op",v:"+"},{t:"num",v:"1"},{t:"op",v:"+"},{t:"num",v:"1"},{t:"op",v:"+"},{t:"num",v:"1"}];
+  ok(!G.validRule(threeOps), "max two operations");
+
+  ok(G.checkGuess(rule, "x*3+2"), "plain guess accepted");
+  ok(G.checkGuess(rule, "  x × 3  +  2 "), "spaces and pretty symbols accepted");
+  ok(G.checkGuess(rule, "2 + 3x"), "reordered but equal guess accepted");
+  ok(!G.checkGuess(rule, "x*3+1"), "wrong guess rejected");
+  ok(!G.checkGuess(rule, "3+2"), "guess without x rejected");
+
+  ok(G.prizeCount(1) === 7 && G.prizeCount(2) === 7, "crack it by your 2nd turn → all 7");
+  ok(G.prizeCount(3) === 6 && G.prizeCount(7) === 2 && G.prizeCount(11) === 1, "prize ladder 6…2…1");
+  const seven = ["cola","chips","cookie","gummies","popcorn","car","phone"];
+  ok(G.pickPrizes(seven, 7).length === 7, "n=7 takes everything");
+  const picked3 = G.pickPrizes(seven, 3);
+  ok(picked3.length === 3 && new Set(picked3).size === 3, "weighted draw picks n distinct items");
+  // statistically: the car must show up far less often than a snack
+  let carWins = 0, colaWins = 0;
+  for(let i=0;i<800;i++){
+    const p = G.pickPrizes(seven, 1);
+    if(p[0] === "car") carWins++;
+    if(p[0] === "cola") colaWins++;
+  }
+  ok(carWins < colaWins, "car is drawn less often than a snack ("+carWins+" vs "+colaWins+")");
+
+  ok(G.rangeIndexFor(-5) === 0 && G.rangeIndexFor(2) === 1 && G.rangeIndexFor(100) === 6,
+     "input ranges map correctly");
+  ok(G.assignRanges(seven).length === 7, "7 products cover the 7 ranges");
+  ok(/^[A-Z][a-z]+ [A-Z][a-z]+$/.test(G.alias()), "alias looks like Cute Rabbit");
+}
+
+async function testAdminLock(){
+  console.log("\nadmin.html — teacher lock");
+  const dom = await load("admin.html");
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+  const press = k => Array.from(d.querySelectorAll("#lockPad button"))
+    .find(b => (b.dataset.k || b.textContent.trim()) === k).click();
+
+  await sleep(150);
+  ok(!$("lockWrap").classList.contains("off"), "admin starts locked");
+  ok(d.querySelectorAll("#boyList .row").length === 0, "roster is not loaded while locked");
+
+  "9999".split("").forEach(press);
+  await waitFor(() => $("lockDots").classList.contains("err"), "wrong teacher code is refused");
+  await sleep(550);
+  "2316".split("").forEach(press);
+  await waitFor(() => $("lockWrap").classList.contains("off"), "code 2316 unlocks the page");
+  await waitFor(() => d.querySelectorAll("#boyList .row").length === 15, "roster loads after unlock");
+  try{ dom.window.close(); }catch(e){}
+}
+
 async function testAdmin(){
   console.log("\nadmin.html");
-  const dom = await load("admin.html");
+  const dom = await load("admin.html", w => { w.CHARLIE_TEST_TEACHER = true; });
   const w = dom.window, d = w.document;
   const $ = id => d.getElementById(id);
   const rows = sel => d.querySelectorAll(sel + " .row");
@@ -163,7 +231,7 @@ async function testAdmin(){
   kidRow().querySelector('[data-act="del"]').click();
   await waitFor(() => d.querySelectorAll(".row").length === 25, "removed student disappears");
 
-  dom.window.close();
+  try{ dom.window.close(); }catch(e){}
 }
 function refreshAdmin(w, d){
   // nudge the page to re-read the store the way its own change hook does
@@ -226,7 +294,7 @@ async function testIndex(){
   ok((await w.CharlieStore.list()).find(s => s.id === "willow-kolo").emoji === "🐰",
      "chosen emoji is saved");
 
-  dom.window.close();
+  try{ dom.window.close(); }catch(e){}
 }
 
 async function testReturning(){
@@ -261,7 +329,133 @@ async function testReturning(){
      "setCode refuses to overwrite an existing code");
   ok((await w.CharlieStore.verifyLogin("kiean-oabel", "7531")) !== null, "the real code still works");
 
-  dom.window.close();
+  try{ dom.window.close(); }catch(e){}
+}
+
+async function testGamePlay(){
+  console.log("\nalgebra.html — seller builds a machine");
+  const dom = await load("algebra.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+  const G = require("./js/game-core.js");
+
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await sleep(120);
+
+  ok($("scrRole").classList.contains("on"), "role choice first");
+  $("roleSeller").click();
+  ok($("scrStock").classList.contains("on"), "seller goes to the shelves");
+  ok($("timerBar") && $("timerLeft"), "the 90-second bar is there");
+
+  // pick limits: 8 snacks → only 7 stick; 4 non-snacks → only 3
+  const shelfBtns = sel => Array.from(d.querySelectorAll(sel + " button[data-k]"));
+  shelfBtns("#shelfS").slice(0, 8).forEach(b => b.click());
+  ok(d.querySelectorAll("#shelfS .sel").length === 7, "8th product is refused (7 max)");
+  // clear and mix: 4 snacks + try 4 non-snacks
+  shelfBtns("#shelfS").forEach(b => { if(b.classList.contains("sel")) b.click(); });
+  shelfBtns("#shelfS").slice(0, 4).forEach(b => b.click());
+  shelfBtns("#shelfN").slice(0, 4).forEach(b => b.click());
+  ok(d.querySelectorAll("#shelfN .sel").length === 3, "4th non-snack is refused (3 max)");
+
+  $("stockDone").click();
+  ok($("scrRule").classList.contains("on"), "on to the rule laptop");
+
+  // build x × 3 + 2 on the pad
+  const rk = k => d.querySelector('#rulePad button[data-k="' + k + '"]').click();
+  ["x","*","3","+","2"].forEach(rk);
+  ok(/𝑥/.test($("ruleScreen").textContent), "rule shows on the laptop screen");
+  ok(/10 Whare/.test($("rewardLine").textContent), "reward reads 10 Whare for ×…+");
+  rk("/");  // third operation must bounce
+  ok(/10 Whare/.test($("rewardLine").textContent), "a third operation is refused");
+
+  d.querySelector('#capSeg button[data-c="1"]').click();
+  $("openShop").click();
+  await waitFor(() => $("scrSell").classList.contains("on"), "shop opens into the lobby");
+  const ms = await w.CharlieStore.listMachines();
+  ok(ms.length === 1 && ms[0].state === "open", "machine saved and open");
+  ok(ms[0].products.length === 7 && ms[0].ranges.length === 7, "7 products on 7 ranges");
+  ok(/^[A-Z][a-z]+ [A-Z][a-z]+$/.test(ms[0].alias), "seller got an animal alias");
+  ok(ms[0].reward === 10, "reward stored");
+  try{ dom.window.close(); }catch(e){}
+
+  /* ---- buyer joins, plays, cracks it ---- */
+  console.log("\nalgebra.html — customer cracks the rule");
+  const dom2 = await load("algebra.html", w2 => {
+    w2.CHARLIE_TEST_SESSION = { id: "kiean-oabel", name: "Kiean" };
+  });
+  const w2 = dom2.window, d2 = dom2.window.document;
+  const $2 = id => d2.getElementById(id);
+
+  await waitFor(() => w2.CharlieStore, "store loads");
+  await w2.CharlieStore.init();
+  await sleep(120);
+
+  // a known machine from "Cute Rabbit": rule x×3+2, cookie on every range
+  const machine = {
+    id:"m-test01", created: Date.now(),
+    seller:{id:"willow-kolo", name:"Willow", emoji:"🐰"},
+    alias:"Cute Rabbit", state:"open", capacity:1,
+    products:["cola","chips","cookie","gummies","popcorn","phone","car"],
+    rule:[{t:"var"},{t:"op",v:"*"},{t:"num",v:"3"},{t:"op",v:"+"},{t:"num",v:"2"}],
+    reward:10,
+    ranges:["cookie","cookie","cookie","cookie","cookie","cookie","cookie"],
+    buyers:[], history:[], turn:0, winner:null
+  };
+  await w2.CharlieStore.saveMachine(machine);
+
+  $2("roleBuyer").click();
+  await waitFor(() => d2.querySelectorAll("#sections .sec").length === 1, "the mall shows one shop");
+  const sec = d2.querySelector("#sections .sec");
+  ok(/Cute Rabbit/.test(sec.textContent) && !/Willow/.test(sec.textContent),
+     "shop shows the alias, never the real name");
+  sec.click();
+  await waitFor(() => $2("scrPlay").classList.contains("on"), "joining enters the machine room");
+  await waitFor(() => /Waiting for/.test($2("playSub").textContent), "waiting for the seller to start");
+
+  // seller presses start (simulated through the store)
+  const m1 = await w2.CharlieStore.getMachine("m-test01");
+  m1.state = "playing"; m1.turn = 0;
+  await w2.CharlieStore.saveMachine(m1);
+  await waitFor(() => $2("numMode").style.display !== "none", "my turn shows the number pad");
+
+  // type 2 on the pad and put it in
+  d2.querySelector('#numPad button[data-k="2"]').click();
+  ok($2("numDisp").textContent === "2", "pad types onto the display");
+  d2.querySelector('#numPad button[data-k="go"]').click();
+  await waitFor(() => $2("revealWrap").classList.contains("on"), "the product drops");
+  ok(/output = 8/.test($2("revealOut").textContent), "2 → 8 through x×3+2");
+  $2("revealWrap").click();
+  await waitFor(() => $2("guessMode").style.display !== "none", "after the drop comes the guess pad");
+
+  // wrong guess first: x+1
+  const gk = k => d2.querySelector('#guessPad button[data-k="' + k + '"]').click();
+  ["x","+","1"].forEach(gk);
+  $2("guessGo").click();
+  await waitFor(() => /Not quite/.test($2("toast").textContent), "wrong guess gets a friendly no");
+  await waitFor(() => $2("numMode").style.display !== "none", "next turn starts back on numbers");
+  let kiean = (await w2.CharlieStore.list()).find(s => s.id === "kiean-oabel");
+  ok(kiean.guesses.length === 1 && kiean.guesses[0].ok === false, "wrong attempt recorded");
+
+  // now the right one, typed with spaces: x × 3 + 2
+  $2("toGuess").click();
+  ["x"," ","*","3"," ","+","2"].forEach(gk);
+  ok(/𝑥 ×3 \+2|𝑥/.test($2("guessDisp").textContent), "guess display shows the typed rule");
+  $2("guessGo").click();
+  await waitFor(() => $2("winWrap").classList.contains("on"), "right guess wins — slot machine time");
+  await waitFor(() => d2.querySelectorAll("#slotRow .slotwin").length === 7, "7 slot windows for 7 prizes");
+
+  const done = await w2.CharlieStore.getMachine("m-test01");
+  ok(done.state === "done" && done.winner.id === "kiean-oabel", "machine records the winner");
+  ok(done.winner.prizes.length === 7, "cracked on 2nd turn → all 7 prizes");
+  kiean = (await w2.CharlieStore.list()).find(s => s.id === "kiean-oabel");
+  ok(kiean.items.length === 7, "prizes landed in my stuff");
+  ok(kiean.guesses.length === 2 && kiean.guesses[1].ok === true, "winning attempt recorded");
+  const willow = (await w2.CharlieStore.list()).find(s => s.id === "willow-kolo");
+  ok(willow.money === 10, "seller earned the 10 Whare reward");
+  try{ dom2.window.close(); }catch(e){}
 }
 
 async function testHub(){
@@ -287,19 +481,43 @@ async function testHub(){
   pk.querySelector(".ep-save").click();
   await waitFor(() => $("meEmoji").textContent === "🌵", "new emoji shows in the top bar");
 
-  $("algebraGame").click();
-  ok(/almost ready/.test($("toast").textContent), "Algebra Machine says it's coming soon");
+  // my stuff: a snack and a phone
+  await w.CharlieStore.update("willow-kolo", { items: ["cookie","phone"] });
+  await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 2, "won items show in My stuff");
+  d.querySelector('#stuffBox button[data-i="0"]').click();   // the cookie
+  await waitFor(() => /pet food/.test($("toast").textContent), "snacks are kept for pets");
+  d.querySelector('#stuffBox button[data-i="1"]').click();   // the phone (confirm = yes)
+  await waitFor(() => $("profMoney").textContent === "13", "selling the phone pays 6 Whare");
+  await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 1, "sold item leaves My stuff");
 
-  dom.window.close();
+  // rule attempts panel: one wrong (finished game) + one cracked → sparkle
+  await w.CharlieStore.update("willow-kolo", { guesses: [
+    {t:1, mid:"m-old", guess:"x+2", rule:"x + 3", ok:false},
+    {t:2, mid:"m-old", guess:"x × 3 + 2", rule:"x × 3 + 2", ok:true}
+  ]});
+  await waitFor(() => d.querySelectorAll("#attemptsBox .att").length === 2, "attempts history shows");
+  const rows = d.querySelectorAll("#attemptsBox .att");
+  ok(/I tried: 𝑥\+2/.test(rows[1].textContent), "shows what I tried");
+  ok(/Rule was/.test(rows[1].textContent), "finished game reveals the real rule");
+  ok(rows[0].classList.contains("win") && rows[0].querySelector(".rule"),
+     "cracked rule gets the sparkle style");
+
+  $("algebraGame").click();   // navigates (jsdom can't follow — that's fine)
+  ok(/Play now/.test(d.body.textContent), "game card says Play now");
+
+  try{ dom.window.close(); }catch(e){}
 }
 
 (async () => {
   try{
     await testConfig();
     await testBrand();
+    await testGameCore();
+    await testAdminLock();
     await testAdmin();
     await testIndex();
     await testReturning();
+    await testGamePlay();
     await testHub();
   }catch(e){
     failed++;

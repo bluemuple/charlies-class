@@ -17,7 +17,8 @@ window.CharlieStore = (function(){
   var CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js';
 
   /* Everything except `code`. code_set is a generated column (code is not null). */
-  var ROSTER_COLS = 'id,name,gender,emoji,money,code_set';
+  var ROSTER_COLS = 'id,name,gender,emoji,money,code_set,items,guesses';
+  var LS_MACHINES = 'charlies-class-machines-v1';
 
   /* Supabase shows several URLs on its dashboard; accept any of them and
      reduce to the project origin the client actually wants. */
@@ -44,6 +45,8 @@ window.CharlieStore = (function(){
       gender: row.gender,
       emoji: row.emoji || '',
       money: row.money || 0,
+      items: row.items || [],
+      guesses: row.guesses || [],
       codeSet: ('code_set' in row) ? !!row.code_set : !!(row.code && String(row.code).length)
     };
   }
@@ -82,6 +85,23 @@ window.CharlieStore = (function(){
     return d;
   }
 
+  /* machines in demo mode — same memory-mirror trick as the roster */
+  var memMachines = null;
+  function machRead(){
+    if(memMachines) return memMachines;
+    try{
+      var raw = localStorage.getItem(LS_MACHINES);
+      if(raw){ memMachines = JSON.parse(raw); return memMachines; }
+    }catch(e){}
+    memMachines = {};
+    return memMachines;
+  }
+  function machWrite(byId){
+    memMachines = byId;
+    try{ localStorage.setItem(LS_MACHINES, JSON.stringify(byId)); }catch(e){}
+    emit();
+  }
+
   /* ---------------- supabase mode ---------------- */
   function loadSdk(){
     return new Promise(function(resolve, reject){
@@ -95,7 +115,9 @@ window.CharlieStore = (function(){
   }
   /* the database may not have had supabase/migrations run against it yet */
   function missingCodeSet(err){
-    return /code_set/.test((err && (err.message||'') + (err.details||'') + (err.hint||'')) || '');
+    if(!err) return false;
+    var blob = (err.message||'') + (err.details||'') + (err.hint||'');
+    return /code_set|items|guesses/.test(blob);
   }
   function cols(){ return legacy ? '*' : ROSTER_COLS; }
 
@@ -120,6 +142,9 @@ window.CharlieStore = (function(){
           mode = 'supabase';
           client.channel('students-live')
             .on('postgres_changes', {event:'*', schema:'public', table:'students'}, emit)
+            .subscribe();
+          client.channel('machines-live')
+            .on('postgres_changes', {event:'*', schema:'public', table:'machines'}, emit)
             .subscribe();
           return mode;
         }).catch(function(){
@@ -223,12 +248,61 @@ window.CharlieStore = (function(){
       return Promise.resolve((s && s.code === code) ? shape(s) : null);
     },
 
+    /* -------- Algebra Machine game sessions --------
+       A machine is one whole game as a plain object (see game-core / algebra
+       page). Stored as a single jsonb blob per row — classroom scale, last
+       write wins, callers re-read after writing anything contested. */
+    listMachines: function(){
+      var maxAge = Date.now() - 3*60*60*1000;   // ignore machines older than 3 h
+      if(mode === 'supabase'){
+        return client.from('machines').select('id,created_at,data')
+          .order('created_at', {ascending:false}).limit(30)
+          .then(function(r){
+            if(r.error) throw r.error;
+            return r.data.map(function(row){ return row.data; }).filter(function(m){
+              return m && (m.created || 0) > maxAge;
+            });
+          });
+      }
+      var byId = machRead(), all = [];
+      Object.keys(byId).forEach(function(k){ all.push(byId[k]); });
+      all = all.filter(function(m){ return (m.created || 0) > maxAge; });
+      all.sort(function(a,b){ return (b.created||0) - (a.created||0); });
+      return Promise.resolve(all);
+    },
+
+    getMachine: function(id){
+      if(mode === 'supabase'){
+        return client.from('machines').select('data').eq('id', id).maybeSingle()
+          .then(function(r){
+            if(r.error) throw r.error;
+            return r.data ? r.data.data : null;
+          });
+      }
+      return Promise.resolve(machRead()[id] || null);
+    },
+
+    saveMachine: function(machine){
+      if(mode === 'supabase'){
+        return client.from('machines')
+          .upsert({id:machine.id, data:machine}, {onConflict:'id'})
+          .then(function(r){
+            if(r.error) throw r.error;
+            emit();
+          });
+      }
+      var byId = machRead();
+      byId[machine.id] = machine;
+      machWrite(byId);
+      return Promise.resolve();
+    },
+
     onChange: function(fn){
       listeners.push(fn);
       /* another tab on the same computer edited the demo store */
       try{
         window.addEventListener('storage', function(e){
-          if(e.key === LS_KEY) fn();
+          if(e.key === LS_KEY || e.key === LS_MACHINES) fn();
         });
       }catch(e){}
     }

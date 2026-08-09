@@ -15,8 +15,31 @@ create table if not exists public.students (
   code_set   boolean generated always as (code is not null) stored,
   emoji      text not null default '',
   money      numeric not null default 0,
+  items      jsonb not null default '[]',
+  guesses    jsonb not null default '[]',
   created_at timestamptz not null default now()
 );
+
+-- Algebra Machine game sessions — one row per machine, whole game in `data`
+create table if not exists public.machines (
+  id         text primary key,
+  data       jsonb not null,
+  created_at timestamptz not null default now()
+);
+alter table public.machines enable row level security;
+drop policy if exists "machines read"   on public.machines;
+drop policy if exists "machines insert" on public.machines;
+drop policy if exists "machines update" on public.machines;
+drop policy if exists "machines delete" on public.machines;
+create policy "machines read"   on public.machines for select using (true);
+create policy "machines insert" on public.machines for insert with check (true);
+create policy "machines update" on public.machines for update using (true);
+create policy "machines delete" on public.machines for delete using (true);
+do $$
+begin
+  alter publication supabase_realtime add table public.machines;
+exception when duplicate_object then null;
+end $$;
 
 -- Classroom-simple access: the publishable key may read and write.
 -- (Fine for a class game with play money; can be tightened later with

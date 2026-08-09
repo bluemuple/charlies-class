@@ -14,8 +14,9 @@ A class website for Year 6/7 maths games, built to run free on **GitHub Pages**
   true/false flag and never the `code` column itself. A forgotten code is
   cleared by the teacher (admin 🔑), not looked up.
 - `hub.html` — game hub: name + emoji top-right opens **My room** (money in
-  Whare, stuff won in games, Pet Shop placeholder, change-emoji, log out).
-  The Algebra Machine card sits here, marked *coming very soon*.
+  Whare, stuff won in games with selling, rule-attempt history with a sparkle
+  on cracked rules, Pet Shop placeholder, change-emoji, log out).
+- `algebra.html` — the **Algebra Machine** game (see below).
 - `admin.html` — **teacher admin**: roster split into boys and girls, add /
   edit / remove students, whether each student has chosen a code yet, their
   money (Whare), a 🔑 button that clears a forgotten code, and a button that
@@ -81,23 +82,38 @@ This is a class game with play money, so the setup is deliberately simple.
 - But the publishable key can still write to the table, and someone determined
   could query `code` directly. So: tell the class to pick a code they use
   **nowhere else**. It guards a snack game, not a bank.
-- `admin.html` is a public URL. Anyone who guesses it can reset codes, edit
-  money, or remove students. Fixing that properly means Supabase teacher
-  login + policies that only let the teacher write — worth doing before the
-  address is widely known.
+- `admin.html` sits behind a 4-digit teacher code (only a hash of it lives
+  in the page source). That keeps students out; a determined adult with the
+  database key could still write directly. The proper upgrade remains
+  Supabase teacher login + teacher-only write policies.
 
-## Roadmap (planned pages)
+## The Algebra Machine (how a game runs)
 
-1. ✅ Teacher admin (roster, codes, money, printed cards)
-2. ✅ Student entry with emoji avatar picker (first login + editable later)
-3. ✅ Game hub (basic): profile room with money; games plug in here
-4. **Algebra Machine** (multiplayer): Seller picks products (snacks +
-   max-3 non-snacks, 7 total, 90-s timer) and writes a rule (up to two
-   operations; harder rule = bigger reward); buyers join live mall sections
-   (mall.jpg background), take turns guessing; slot-machine prize animation,
-   confetti; non-snacks are rarer prizes but sell for more Whare
+- **Seller**: 90 seconds (live bar) to stock 7 products — at most 3 from the
+  non-snacks shelf — then writes a secret rule on the laptop (up to two
+  operations; the crack-reward prices difficulty: + 3 · − 4 · × 5 · ÷ 6,
+  +2 for combining two). Chooses 1–3 customers; the shop appears in the mall
+  under an animal alias (*Cute Rabbit*), never the real name.
+- **Customers**: join a mall section (occupancy 1/3 … full); the seller
+  starts when full. In joining order, each turn a customer drops a number in
+  on a calculator pad (physical keyboard mirrors onto the pad) and sees
+  input → output plus which mystery product falls out (products are shuffled
+  onto 7 input ranges). Then they may guess the rule — spaces and "3x"
+  shorthand both fine — or pass. Wrong guess passes the turn.
+- **Winning**: crack it by your 2nd turn → all 7 products; 3rd → 6 … 7th →
+  2; later → 1. Which ones you get is a weighted draw — snacks are common,
+  non-snacks half as likely, electronics rarer (car rarest) but they sell
+  for more Whare in your room. Confetti + a slot-machine reveal, the seller
+  earns the crack-reward, and the attempt lands in both players' history.
+
+## Roadmap
+
+1. ✅ Teacher admin (roster, self-chosen codes, money, welcome cards, teacher lock)
+2. ✅ Student entry with emoji avatar picker
+3. ✅ Game hub: profile room (money, stuff + selling, rule-attempt history)
+4. ✅ Algebra Machine multiplayer
 5. Pet Shop — six silhouette pets, naming, feeding snacks, affection hearts,
-   superpowers every 10 affection
+   superpowers every 10 affection; prices tuned so ~2 games buys a pet
 
 ## Notes for future work
 

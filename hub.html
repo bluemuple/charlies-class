@@ -79,6 +79,39 @@
     background:#f6fbfa; border:1.5px dashed #cfe3df; border-radius:12px;
     padding:16px 12px; font-size:14px; color:#8aa19c; text-align:center; line-height:1.5;
   }
+
+  /* items won in games (sprites from the two product sheets) */
+  .sprite{
+    background-image:url(assets/snacks.jpg);
+    background-size:500% 400%; background-repeat:no-repeat;
+    border-radius:8px; aspect-ratio:1/1;
+  }
+  .sprite.n{background-image:url(assets/non-snacks.jpg); aspect-ratio:1.5/1;}
+  .stuff-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .stuff-grid button{
+    border:2px solid #e2edeb; border-radius:12px; background:#fbfdfc; padding:6px;
+    transition:.12s; position:relative;
+  }
+  .stuff-grid button:hover{transform:scale(1.06); border-color:var(--teal);}
+  .stuff-grid .nm{font-size:10px; font-weight:700; color:#5c7671; display:block; margin-top:3px;}
+  .stuff-grid .tag{
+    position:absolute; top:4px; right:4px; background:var(--yellow); color:#6b5c00;
+    font-size:9.5px; font-weight:800; border-radius:10px; padding:1px 6px;
+  }
+
+  /* rule attempts history */
+  .att{
+    border:1.5px solid #e2edeb; border-radius:12px; padding:8px 10px; margin-bottom:7px;
+    font-size:13.5px; background:#fbfdfc;
+  }
+  .att .try{color:#4c6b66; font-weight:600;}
+  .att .rule{font-weight:800; color:var(--teal-dark);}
+  .att.win{border-color:#f0d36b; background:#fffdf2;}
+  .att.win .rule{color:#8a6d00; animation:sparkle 1s ease-in-out 3;}
+  @keyframes sparkle{
+    0%,100%{text-shadow:0 0 2px rgba(255,214,64,.3); filter:brightness(1);}
+    50%{text-shadow:0 0 12px rgba(255,196,0,1), 0 0 26px rgba(255,230,120,.8); filter:brightness(1.45);}
+  }
   .prof-btn{
     width:100%; border:0; border-radius:12px; padding:11px 0; font-size:15px;
     font-weight:700; margin-top:8px; background:var(--teal); color:#fff;
@@ -120,7 +153,7 @@
       <span class="art">🥤</span>
       <span class="t">Algebra Machine</span>
       <span class="d">Sell snacks with a secret rule — or crack another seller's rule and win the lot!</span>
-      <span class="badge">Coming very soon</span>
+      <span class="badge">▶ Play now</span>
     </button>
     <button class="game soon" disabled>
       <span class="art">🎁</span>
@@ -145,7 +178,11 @@
       <div class="prof-money">💰 <span id="profMoney">0</span> Whare</div>
       <div class="prof-sec">
         <h3>My stuff</h3>
-        <div class="prof-empty">Snacks and prizes you win in the games will show up here. 🍪🧸</div>
+        <div id="stuffBox"></div>
+      </div>
+      <div class="prof-sec">
+        <h3>🕵️ My rule attempts</h3>
+        <div id="attemptsBox"></div>
       </div>
       <div class="prof-sec">
         <h3>Pet Shop</h3>
@@ -167,6 +204,7 @@
 <script src="js/roster.js"></script>
 <script src="js/store.js"></script>
 <script src="js/emoji.js"></script>
+<script src="js/game-core.js"></script>
 <script>
 (function(){
   "use strict";
@@ -190,6 +228,9 @@
     toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
   }
 
+  var G = window.GameCore;
+  var machineState = {};   // machine id → state, to keep live rules secret
+
   function render(){
     if(!me) return;
     var em = me.emoji || '🙂';
@@ -198,10 +239,80 @@
     $('profEmoji').textContent = em;
     $('profName').textContent = me.name;
     $('profMoney').textContent = me.money || 0;
+    renderStuff();
+    renderAttempts();
+  }
+
+  /* ---------------- my stuff (game prizes) ---------------- */
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function spriteDiv(key){
+    var p = G.PRODUCTS[key];
+    if(!p) return '';
+    return '<div class="sprite'+(p.sheet==='n'?' n':'')+'" style="background-position:'
+      + (p.col*25) + '% ' + (p.row*100/3) + '%"></div>';
+  }
+  function renderStuff(){
+    var items = me.items || [];
+    if(!items.length){
+      $('stuffBox').innerHTML = '<div class="prof-empty">Snacks and prizes you win in the games will show up here. 🍪🧸</div>';
+      return;
+    }
+    $('stuffBox').innerHTML = '<div class="stuff-grid">' + items.map(function(k, i){
+      var p = G.PRODUCTS[k];
+      if(!p) return '';
+      var tag = p.sell ? '<span class="tag">'+p.sell+' W</span>' : '';
+      return '<button data-i="'+i+'" title="'+esc(p.name)+'">'+tag+spriteDiv(k)
+        + '<span class="nm">'+esc(p.name)+'</span></button>';
+    }).join('') + '</div>';
+  }
+  $('stuffBox').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-i]'); if(!b) return;
+    var i = parseInt(b.dataset.i, 10);
+    var k = (me.items||[])[i];
+    var p = k && G.PRODUCTS[k];
+    if(!p) return;
+    if(!p.sell){
+      toast('🐾 ' + p.name + ' is pet food! Buy a pet when the Pet Shop opens.');
+      return;
+    }
+    if(!window.confirm('Sell your ' + p.name + ' for ' + p.sell + ' Whare?')) return;
+    var items = me.items.slice();
+    items.splice(i, 1);
+    store.update(me.id, {items:items, money:(me.money||0) + p.sell}).then(function(){
+      toast('💰 Sold! +' + p.sell + ' Whare');
+      refresh();
+    });
+  });
+
+  /* ------------- my rule attempts (side panel history) -------------
+     Right answers sparkle for 3 s. A wrong try only reveals the real rule
+     once that game is over — no cheating by peeking mid-game! */
+  function renderAttempts(){
+    var atts = (me.guesses || []).slice().reverse().slice(0, 12);
+    if(!atts.length){
+      $('attemptsBox').innerHTML = '<div class="prof-empty">Every rule you try to crack in the Algebra Machine lands here. 🕵️</div>';
+      return;
+    }
+    $('attemptsBox').innerHTML = atts.map(function(a){
+      var pretty = function(s){ return esc(String(s)).replace(/x/g,'𝑥'); };
+      var live = a.mid && machineState[a.mid] && machineState[a.mid] !== 'done';
+      var ruleLine = a.ok
+        ? '✨ Rule: <span class="rule">𝑥 → ' + pretty(a.rule) + '</span> ✨'
+        : (live ? 'Rule: 🤫 still playing — no peeking!'
+                : 'Rule was: <span class="rule">𝑥 → ' + pretty(a.rule) + '</span>');
+      return '<div class="att' + (a.ok ? ' win' : '') + '">'
+        + (a.ok ? '✅' : '❌') + ' <span class="try">I tried: ' + pretty(a.guess || '?') + '</span><br>'
+        + ruleLine + '</div>';
+    }).join('');
   }
   function refresh(){
     if(!sess) return Promise.resolve();
-    return store.list().then(function(list){
+    return store.listMachines().then(function(ms){
+      machineState = {};
+      ms.forEach(function(m){ machineState[m.id] = m.state; });
+    }).catch(function(){}).then(function(){
+      return store.list();
+    }).then(function(list){
       me = list.filter(function(s){ return s.id === sess.id; })[0] || null;
       if(!me){ window.location.replace('index.html'); return; }
       render();
@@ -247,7 +358,7 @@
 
   /* ---------------- games ---------------- */
   $('algebraGame').addEventListener('click', function(){
-    toast('🥤 The Algebra Machine is almost ready — your teacher will open it soon!');
+    window.location.href = 'algebra.html';
   });
 
   /* ---------------- init ---------------- */
