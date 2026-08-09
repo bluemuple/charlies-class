@@ -49,16 +49,26 @@
     background:var(--yellow); color:#6b5c00; border-radius:20px; padding:3px 12px;
   }
 
-  /* profile drawer */
+  /* profile: big centred popup, scrolls vertically */
   #profWrap{
     position:fixed; inset:0; z-index:40; display:none;
-    background:rgba(10,30,28,.55); align-items:flex-start; justify-content:flex-end;
+    background:rgba(10,30,28,.6); align-items:center; justify-content:center;
+    padding:3vh 14px;
   }
   #profWrap.open{display:flex;}
   #prof{
-    background:#fff; width:min(94vw,380px); min-height:100%;
-    padding:22px; box-shadow:-8px 0 30px rgba(0,0,0,.3);
-    overflow-y:auto;
+    background:#fff; width:min(94vw,720px); max-height:94vh;
+    padding:26px 30px; border-radius:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,.45);
+    overflow-y:auto; overscroll-behavior:contain;
+  }
+  @media (max-width:640px){
+    #profWrap{padding:0;}
+    #prof{
+      width:100vw; border-radius:0;
+      height:100vh; max-height:100vh;
+      height:100dvh; max-height:100dvh;   /* tracks the real visible area on phones */
+    }
   }
   #profClose{
     border:0; background:#eef1f0; color:#5c7671; border-radius:10px;
@@ -86,7 +96,7 @@
     background-size:500% 400%; background-repeat:no-repeat;
     border-radius:8px; aspect-ratio:1/1;
   }
-  .sprite.n{background-image:url(assets/non-snacks.jpg); aspect-ratio:1.5/1;}
+  .sprite.n{background-image:url(assets/non-snacks.jpg);}
   .stuff-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
   .stuff-grid button{
     border:2px solid #e2edeb; border-radius:12px; background:#fbfdfc; padding:6px;
@@ -365,6 +375,13 @@
   store.init().then(function(){
     store.onChange(refresh);     // money won in games appears live
     return refresh();
+  }).then(function(){
+    /* game pages link here as hub.html#me to open My room straight away;
+       drop the hash so a later reload doesn't reopen it */
+    if(window.location.hash === '#me'){
+      openProf();
+      try{ history.replaceState(null, '', window.location.pathname + window.location.search); }catch(e){}
+    }
   });
 })();
 </script>

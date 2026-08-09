@@ -178,7 +178,7 @@
     $('nameGrid').innerHTML = kids.map(function(s){
       return '<button data-id="' + esc(s.id) + '">'
         + (s.codeSet ? '' : '<span class="newtag">NEW</span>')
-        + '<span class="em">' + (s.emoji || '🙂') + '</span>' + esc(s.name) + '</button>';
+        + '<span class="em">' + esc(s.emoji || '🙂') + '</span>' + esc(s.name) + '</button>';
     }).join('');
     show('scrNames');
   }

@@ -33,23 +33,25 @@
   #meChip .em{font-size:20px;}
   #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
 
-  main{max-width:1040px; margin:0 auto; padding:6px 18px 60px;}
+  main{max-width:1180px; margin:0 auto; padding:6px 18px 60px;}
   .screen{display:none;}
   .screen.on{display:block;}
   h2{font-size:clamp(20px,3vw,30px); color:var(--teal-dark); text-align:center; margin:2.5vh 0 1vh;}
   .sub{font-size:15px; color:#4c6b66; text-align:center; margin-bottom:2.5vh;}
   .card{
-    background:var(--card); border-radius:16px; padding:16px;
+    background:var(--card); border-radius:16px; padding:14px 16px;
     box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:14px;
   }
+  .card h4{font-size:12.5px; text-transform:uppercase; letter-spacing:1px; color:#7a8f8b; margin-bottom:8px;}
 
   /* ---------- product sprites (5×4 sheets) ---------- */
+  /* both sheets are 5×4 grids of square 260px cells (see scratchpad slicer) */
   .sprite{
     background-image:url(assets/snacks.jpg);
     background-size:500% 400%; background-repeat:no-repeat;
     border-radius:10px; aspect-ratio:1/1;
   }
-  .sprite.n{background-image:url(assets/non-snacks.jpg); aspect-ratio:1.5/1;}
+  .sprite.n{background-image:url(assets/non-snacks.jpg);}
 
   /* ---------- role choice ---------- */
   .role-btns{display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin-top:3vh;}
@@ -112,7 +114,6 @@
   .rulepad button:active, .rulepad button.press{transform:translateY(2px) scale(.94); background:var(--cream);}
   .rulepad button.op{background:#f4f0fd; color:#5b3fa8;}
   .rulepad button.xkey{background:var(--yellow); color:#6b5c00;}
-  .rulepad button.done{background:var(--good); color:#fff; grid-column:span 2; font-size:16px;}
   .rule-help{max-width:330px; font-size:13.5px; color:#4c6b66; line-height:1.55; text-align:left;}
   .rule-help b{color:var(--teal-dark);}
   .rule-help .shortcut{font-family:"Menlo",monospace; background:#eef7f5; border-radius:6px; padding:0 6px;}
@@ -161,14 +162,14 @@
   .sec[disabled]{opacity:.65; cursor:default;}
   .empty-mall{position:relative; color:#fff; text-align:center; font-size:15px; padding:40px 12px; text-shadow:0 1px 6px rgba(0,0,0,.7);}
 
-  /* ---------- lobby / play ---------- */
-  .players{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0;}
+  /* ---------- lobby (seller) ---------- */
+  .players{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:10px 0;}
   .players .pl{
     background:#f6fbfa; border:2px solid #d7e5e2; border-radius:14px;
-    padding:8px 14px; font-weight:700; font-size:14.5px; color:#4c6b66;
+    padding:7px 12px; font-weight:700; font-size:14px; color:#4c6b66;
     display:flex; align-items:center; gap:7px;
   }
-  .players .pl .em{font-size:20px;}
+  .players .pl .em{font-size:19px;}
   .players .pl.now{border-color:var(--good); background:#eaf7ec; color:#1c5c22;}
   .players .pl.empty{opacity:.5; border-style:dashed;}
   .bigbtn{
@@ -177,94 +178,229 @@
   }
   .bigbtn:hover{background:#217a29;}
   .bigbtn[disabled]{background:#c6d6d2; cursor:default;}
-  .bigbtn.red{background:var(--accent);}
-  .bigbtn.red:hover{filter:brightness(1.1);}
   .quietbtn{
     display:block; margin:10px auto 0; border:0; border-radius:10px;
     background:#eef1f0; color:#5c7671; font-size:14px; font-weight:700; padding:9px 20px;
   }
-
-  /* machine face the buyers see */
   .mymachine{display:flex; gap:8px; justify-content:center; flex-wrap:wrap;}
   .mymachine .slot{width:74px;}
   .mymachine .slot .sprite{box-shadow:0 2px 6px rgba(31,90,84,.2);}
   .mymachine .slot .nm{font-size:10.5px; text-align:center; font-weight:700; color:#5c7671; margin-top:3px;}
-  .slot.mystery .q{
-    display:flex; align-items:center; justify-content:center; aspect-ratio:1/1;
-    background:#22333b; color:var(--yellow); border-radius:10px; font-size:30px; font-weight:800;
+  /* the seller's live results table shares renderHist with the buyer view */
+  #sellHist td{padding:5px 6px; text-align:center; border-top:1px solid #edf4f3; font-weight:600;}
+  #sellHist tbody tr:nth-child(even){background:#f6fbfa;}
+  #sellHist td.outv{color:var(--accent); font-weight:800;}
+  #sellHist .who{font-size:13px; white-space:nowrap;}
+  #sellHist .mini{width:30px; display:inline-block; vertical-align:middle;}
+
+  /* ============ THE MACHINE SCREEN (playing) ============
+     ported from the Algebra Vending Machine teaching game */
+  .vm-main{
+    display:grid;
+    grid-template-columns:250px minmax(320px,1fr) 330px;
+    gap:14px; align-items:start;
+  }
+  @media (max-width:1000px){
+    .vm-main{grid-template-columns:1fr; justify-items:center;}
+    .vm-left, .vm-right{width:min(96vw,560px);}
+  }
+  .vm-left, .vm-right{display:flex; flex-direction:column;}
+  .stage{display:flex; justify-content:center; align-items:flex-start;}
+  .machine-wrap{
+    position:relative;
+    height:min(78vh,720px);
+    aspect-ratio:407/797;
+    user-select:none;
+  }
+  @media (max-width:1000px){ .machine-wrap{height:min(62vh,600px);} }
+  .machine-wrap img.machine{
+    position:relative; z-index:2; width:100%; height:100%; display:block;
+    filter:drop-shadow(0 8px 16px rgba(31,90,84,.25));
+    pointer-events:none;
+  }
+  .machine-wrap.shake{animation:shake 1.5s ease-in-out;}
+  @keyframes shake{
+    0%,100%{transform:translate(0,0) rotate(0)}
+    8%{transform:translate(-7px,2px) rotate(-1.1deg)}
+    16%{transform:translate(7px,-2px) rotate(1.2deg)}
+    24%{transform:translate(-6px,3px) rotate(-1deg)}
+    32%{transform:translate(6px,-3px) rotate(1deg)}
+    40%{transform:translate(-5px,2px) rotate(-.8deg)}
+    48%{transform:translate(5px,-2px) rotate(.8deg)}
+    56%{transform:translate(-4px,2px) rotate(-.6deg)}
+    64%{transform:translate(4px,-2px) rotate(.6deg)}
+    72%{transform:translate(-3px,1px) rotate(-.4deg)}
+    80%{transform:translate(3px,-1px) rotate(.4deg)}
+    90%{transform:translate(-1px,1px) rotate(-.2deg)}
+  }
+  .ov{position:absolute; z-index:3;}
+  #ruleBox{
+    left:7.2%; top:2.9%; width:86.5%; height:8.5%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(16px,3.6vh,34px); font-weight:700; color:#4a3b00;
+    border-radius:6px; overflow:hidden; white-space:nowrap;
+  }
+  #ruleBox i{font-family:Georgia,serif; padding:0 1px;}
+  #display{
+    left:80.0%; top:18.1%; width:13.0%; height:4.3%;
+    background:#f6e93a; border-radius:2px;
+    display:flex; align-items:center; justify-content:center;
+    color:#1c5c22; font-family:"Menlo","Consolas",monospace; font-size:clamp(9px,1.7vh,16px); font-weight:700;
+    letter-spacing:1px; box-shadow:inset 0 0 0 1px #b5a80c;
+  }
+  #keypad{
+    left:78.6%; top:34.5%; width:16.6%; height:11.1%;
+    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(4,1fr); gap:5%;
+  }
+  #keypad button{
+    border:0; border-radius:3px; background:rgba(255,240,60,.05);
+    font-size:clamp(8px,1.5vh,14px); font-weight:800; color:#6b5c00;
+  }
+  #keypad button:hover{background:rgba(255,255,255,.55); box-shadow:0 0 0 2px var(--teal);}
+  #keypad button.press{background:rgba(255,255,255,.75); box-shadow:0 0 0 2px var(--teal);}
+  #okBtn{
+    left:78.4%; top:48.2%; width:17.2%; height:5.2%;
+    background:transparent; border:0; border-radius:5px;
+  }
+  #okBtn:hover{box-shadow:0 0 0 3px var(--yellow);}
+  #glass{
+    left:8.0%; top:12.9%; width:68.2%; height:62.0%;
+    border-radius:8px;
+  }
+  #trayName{
+    left:7.6%; top:83.4%; width:83.8%; height:6.8%;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none;
+    font-weight:800; letter-spacing:.1em;
+    font-size:clamp(12px,2.3vh,22px);
+    color:#12e07a;
+    text-shadow:0 1px 2px rgba(0,40,20,.55), 0 0 10px rgba(18,224,122,.45);
+  }
+  #trayName i{font-family:Georgia,serif; letter-spacing:0;}
+
+  /* the money input (right column) */
+  .row-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .money-widget{position:relative; margin-top:2px; user-select:none;}
+  .money-widget > img{width:100%; display:block; border-radius:8px; box-shadow:0 3px 10px rgba(31,90,84,.25);}
+  .money-widget.off{opacity:.55; filter:grayscale(.4);}
+  #numIn{
+    position:absolute; left:13%; top:50%; transform:translateY(-50%);
+    width:54%; background:transparent; border:0; outline:none;
+    font-size:clamp(26px,4.2vh,40px); font-weight:800; color:#2c5a12; text-align:center;
+    border-bottom:3px dashed rgba(44,90,18,.35); padding:0 0 2px; border-radius:0;
+    font-family:inherit;
+  }
+  #numIn:focus{border-bottom-color:#2c5a12;}
+  #numIn::placeholder{color:rgba(44,90,18,.4); font-size:14px; font-weight:600; letter-spacing:.3px;}
+  #numIn:disabled{cursor:not-allowed;}
+  #insertBtn{
+    position:absolute; right:4.5%; top:50%; transform:translateY(-50%);
+    width:44px; height:44px; border-radius:50%; border:3px solid #fff;
+    background:var(--good); color:#fff; font-size:18px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,60,0,.35);
+  }
+  #insertBtn:hover{background:#217a29; transform:translateY(-50%) scale(1.07);}
+  #insertBtn:disabled{background:#9ab5a0; cursor:not-allowed; transform:translateY(-50%);}
+  .hint{font-size:12.5px; color:#8aa19c; margin-top:7px; min-height:16px;}
+
+  /* results table */
+  .vm-right .grow{flex:1; display:flex; flex-direction:column; min-height:180px;}
+  #ruleLine{font-size:14px; margin-bottom:7px; color:#40605b;}
+  #ruleLine b{color:var(--teal-dark);}
+  #ruleLine i{font-family:Georgia,serif;}
+  .tbl-wrap{flex:1; overflow-y:auto; border:1.5px solid #e2edeb; border-radius:10px; min-height:120px; max-height:46vh;}
+  .tbl-wrap table{width:100%; border-collapse:collapse; font-size:15px;}
+  .tbl-wrap thead th{
+    position:sticky; top:0; background:var(--teal); color:#fff; padding:6px 5px; font-size:13.5px;
+  }
+  .tbl-wrap thead th i{font-family:Georgia,serif;}
+  .tbl-wrap tbody td{padding:5px 5px; text-align:center; border-top:1px solid #edf4f3; font-weight:600;}
+  .tbl-wrap tbody tr:nth-child(even){background:#f6fbfa;}
+  .tbl-wrap tbody td.outv{color:var(--accent); font-weight:800;}
+  .tbl-wrap td .who{font-size:13px; white-space:nowrap;}
+  .tbl-wrap td .mini{width:30px; display:inline-block; vertical-align:middle;}
+  .empty-msg{color:#a5b8b4; font-size:13px; text-align:center; padding:18px 6px !important; font-weight:500 !important;}
+
+  /* guess card (left column, like the teaching game) */
+  #guessCard input{
+    width:100%; padding:7px 9px; font-size:15px; border:2px solid #d7e5e2; border-radius:9px; margin-bottom:6px;
+  }
+  #guessCard input:disabled{background:#f2f5f4;}
+  .guess-ops{display:grid; grid-template-columns:1.5fr repeat(4,1fr); gap:6px; margin-bottom:6px;}
+  .guess-ops button{
+    font-size:18px; font-weight:700; padding:4px 0; border-radius:8px;
+    border:2px solid #d7e5e2; background:#f6fbfa; color:#2e7d74;
+    display:flex; align-items:center; justify-content:center; min-height:30px;
+  }
+  .guess-ops button:hover{background:#e3f4f0;}
+  .guess-ops button:disabled{opacity:.45; cursor:default;}
+  #guessVarBtn{border-color:#f0d36b; background:#fffbe6;}
+  #guessVarBtn i{font-family:Georgia,serif; font-size:18px;}
+  #guessPreview{font-size:13.5px; color:#5c7671; min-height:18px; margin-bottom:4px;}
+  #guessPreview b{color:var(--teal-dark);}
+  #guessPreview i{font-family:Georgia,serif;}
+  #guessBtn{
+    width:100%; border:0; border-radius:10px; padding:9px 10px; font-size:15px;
+    background:var(--teal); color:#fff; font-weight:700;
+  }
+  #guessBtn:hover{background:var(--teal-dark);}
+  #guessBtn:disabled{background:#c6d6d2;}
+  #passBtn{
+    width:100%; border:0; border-radius:10px; padding:8px 10px; font-size:14px;
+    background:#eef1f0; color:#5c7671; font-weight:700; margin-top:6px;
+  }
+  #passBtn:hover{background:#e2e8e6;}
+  #guessMsg{font-size:13px; min-height:18px; margin-top:6px; font-weight:600;}
+  #turnLine{font-size:14.5px; font-weight:800; color:var(--teal-dark); text-align:center; min-height:20px;}
+
+  /* the flying money */
+  .money-fly{
+    position:fixed; z-index:55; pointer-events:none;
+    transform-origin:top left;
+  }
+  .money-fly img{width:100%; display:block; border-radius:6px;}
+  .money-fly span{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-52%);
+    font-weight:800; color:#2c5a12;
   }
 
-  #turnLine{text-align:center; font-size:16.5px; font-weight:800; color:var(--teal-dark); margin:8px 0;}
-
-  /* ---------- calculator pads (buyer input + rule guess) ---------- */
-  .calc{max-width:380px; margin:0 auto;}
-  .calc-disp{
-    background:#12241f; color:#7CFC98; border-radius:14px 14px 0 0;
-    font-family:"Menlo","Consolas",monospace; font-size:clamp(22px,4.5vw,30px); font-weight:700;
-    padding:14px 16px; text-align:right; min-height:60px; letter-spacing:1px;
-    overflow-x:auto; white-space:nowrap; box-shadow:inset 0 3px 10px rgba(0,0,0,.5);
+  /* product popup (ported; art = seller's product sprite) */
+  #canOverlay{
+    position:fixed; inset:0; z-index:50; display:none;
+    background:rgba(10,30,28,0);
+    align-items:center; justify-content:center; flex-direction:column; gap:16px;
+    cursor:pointer; transition:background .6s;
   }
-  .calc-disp .ph{color:#3f6b52; font-size:15px; letter-spacing:0;}
-  .calc-keys{
-    display:grid; grid-template-columns:repeat(4,1fr); gap:7px;
-    background:#dfe9e6; border-radius:0 0 16px 16px; padding:10px;
-    box-shadow:0 6px 16px rgba(31,90,84,.25);
+  #canOverlay.open{display:flex;}
+  #canOverlay.dim{background:rgba(10,30,28,.72);}
+  .prod-wrap{position:relative;}
+  .prod-wrap .sprite{width:100%; filter:drop-shadow(0 14px 28px rgba(0,0,0,.5)); border-radius:16px;}
+  .pval{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    font-weight:800; white-space:nowrap; line-height:1;
+    color:#fff; font-size:clamp(48px,9vw,88px);
+    text-shadow:0 3px 10px rgba(0,0,0,.85), 0 0 26px rgba(0,0,0,.7);
   }
-  .calc-keys.five{grid-template-columns:repeat(5,1fr);}
-  .calc-keys button{
-    height:58px; border:0; border-radius:12px; background:#fff;
-    font-size:23px; font-weight:800; color:var(--ink);
-    box-shadow:0 3px 0 #b9cac5; transition:transform .06s, box-shadow .06s;
+  #canCaption{
+    color:#fff; font-size:clamp(20px,3.4vh,30px); font-weight:700;
+    background:rgba(0,0,0,.35); padding:6px 22px; border-radius:30px;
+    opacity:0; transition:opacity .4s;
   }
-  .calc-keys button:active, .calc-keys button.press{
-    transform:translateY(3px) scale(.97); box-shadow:0 0 0 #b9cac5; background:var(--cream);
-  }
-  .calc-keys button.fn{background:#eef3f1; color:#7a8f8b; font-size:19px;}
-  .calc-keys button.op{background:#f4f0fd; color:#5b3fa8;}
-  .calc-keys button.xk{background:var(--yellow); color:#6b5c00; font-family:Georgia,serif;}
-  .calc-keys button.go{
-    background:var(--good); color:#fff; font-size:16px; grid-column:span 2;
-    box-shadow:0 3px 0 #1c5c22;
-  }
-  .calc-keys button.go:active, .calc-keys button.go.press{box-shadow:0 0 0 #1c5c22;}
-  .calc-keys button.wide2{grid-column:span 2;}
-  .kbd-hint{text-align:center; font-size:12.5px; color:#8aa19c; margin-top:8px;}
-  .kbd-hint b{font-family:"Menlo",monospace; background:#eef7f5; border-radius:5px; padding:0 6px;}
-
-  .htable{width:100%; border-collapse:collapse; font-size:14.5px; margin-top:8px;}
-  .htable th{background:var(--teal); color:#fff; padding:6px; font-size:13px;}
-  .htable td{border-top:1px solid #edf4f3; padding:5px 6px; text-align:center; font-weight:600;}
-  .htable td .mini{width:34px; display:inline-block; vertical-align:middle;}
-  .htable td.outv{color:var(--accent); font-weight:800;}
-
-  /* product drop reveal */
-  #revealWrap{
-    position:fixed; inset:0; z-index:45; display:none; align-items:center; justify-content:center;
-    background:rgba(10,30,28,.7); flex-direction:column; gap:14px; cursor:pointer;
-  }
-  #revealWrap.on{display:flex;}
-  #revealCard{background:#fff; border-radius:20px; padding:22px 30px; text-align:center; box-shadow:0 16px 50px rgba(0,0,0,.45);}
-  #revealCard .sprite{width:150px; margin:0 auto;}
-  #revealOut{font-size:30px; font-weight:800; color:var(--accent); margin-top:8px;}
-  #revealName{font-size:15px; font-weight:700; color:#5c7671;}
-  #revealWrap .tap{color:#cfe8df; font-size:13px;}
-
-  /* guess extras */
-  #guessPrompt{font-weight:800; color:var(--teal-dark); text-align:center; margin-bottom:8px; font-size:16px;}
-  .guess-btns{display:flex; gap:10px; justify-content:center; margin-top:12px;}
-  .guess-btns button{border:0; border-radius:12px; font-size:15.5px; font-weight:800; padding:12px 22px;}
-  #guessGo{background:var(--good); color:#fff; box-shadow:0 3px 0 #1c5c22;}
-  #guessGo:active{transform:translateY(3px); box-shadow:none;}
-  #guessPass{background:#eef1f0; color:#5c7671;}
+  #canCaption i{font-family:Georgia,serif;}
+  #canOverlay.dim #canCaption{opacity:1;}
+  #canOverlay .tap{color:#cfe8df; font-size:13px; opacity:0; transition:opacity .4s;}
+  #canOverlay.dim .tap{opacity:1;}
 
   /* ---------- win overlay: confetti + slot machine ---------- */
   #winWrap{
-    position:fixed; inset:0; z-index:50; display:none; overflow:auto;
+    position:fixed; inset:0; z-index:58; display:none; overflow:auto;
     background:rgba(10,30,28,.85); text-align:center; padding:5vh 14px;
   }
   #winWrap.on{display:block;}
   #winTitle{color:#fff; font-size:clamp(24px,4.5vw,40px); font-weight:800; text-shadow:0 3px 14px rgba(0,0,0,.6);}
   #winSub{color:#ffe; font-size:16px; margin:8px 0 20px;}
+  #winSub i{font-family:Georgia,serif;}
   #slotRow{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
   .slotwin{
     width:96px; background:#fff; border-radius:14px; padding:7px;
@@ -272,7 +408,7 @@
   }
   .slotwin .window{height:88px; overflow:hidden; border-radius:9px; background:#f2f2f2; position:relative;}
   .slotwin .strip{display:flex; flex-direction:column; animation:spin .45s linear infinite;}
-  .slotwin .strip .sprite{width:82px; flex:0 0 auto; margin:3px auto; aspect-ratio:1/1 !important;}
+  .slotwin .strip .sprite{width:82px; flex:0 0 auto; margin:3px auto;}
   @keyframes spin{from{transform:translateY(0)} to{transform:translateY(-50%)}}
   .slotwin.stopped .strip{animation:none;}
   .slotwin .nm{font-size:10.5px; font-weight:800; color:#5c7671; margin-top:5px; min-height:13px;}
@@ -305,7 +441,7 @@
 <header>
   <button id="backBtn">← Back</button>
   <h1>🥤 Algebra Machine</h1>
-  <button id="meChip"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
+  <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
 </header>
 
 <main>
@@ -395,8 +531,13 @@
       <div id="sellRule" style="text-align:center;font-weight:800;color:var(--teal-dark);margin-top:10px"></div>
       <div class="players" id="sellPlayers"></div>
       <div id="turnLineSell" style="text-align:center;font-weight:700;color:#4c6b66"></div>
-      <table class="htable" id="sellHist" style="display:none">
-        <thead><tr><th>Customer</th><th>Input</th><th>Output</th><th>Item</th></tr></thead>
+      <table class="htable" id="sellHist" style="display:none;width:100%;border-collapse:collapse;font-size:14.5px;margin-top:8px">
+        <thead><tr>
+          <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px">who</th>
+          <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px"><i>x</i></th>
+          <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px"><i>y</i></th>
+          <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px">item</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
       <button class="bigbtn" id="startBtn" disabled>▶ Start the game</button>
@@ -413,64 +554,82 @@
     </div>
   </section>
 
-  <!-- buyer: room (waiting + playing) -->
+  <!-- buyer: THE MACHINE (waiting + playing), like the teaching game -->
   <section class="screen" id="scrPlay">
-    <h2 id="playTitle">🥤 Machine</h2>
-    <p class="sub" id="playSub"></p>
-    <div class="card">
-      <div class="mymachine" id="playSlots"></div>
-      <div class="players" id="playPlayers"></div>
-      <div id="turnLine"></div>
-
-      <!-- my turn, step 1: put a number in (calculator pad) -->
-      <div id="numMode" style="display:none">
-        <div class="calc">
-          <div class="calc-disp" id="numDisp"><span class="ph">type a number…</span></div>
-          <div class="calc-keys" id="numPad">
-            <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="back" class="fn">⌫</button>
-            <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="clear" class="fn">C</button>
-            <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="neg" class="fn">±</button>
-            <button data-k="0">0</button><button data-k="." class="fn">.</button><button data-k="go" class="go">▶ Put it in!</button>
-          </div>
+    <div class="vm-main">
+      <aside class="vm-left">
+        <div class="card">
+          <h4 id="shopTitle">🏪 Shop</h4>
+          <div class="players" id="playPlayers"></div>
+          <div id="turnLine"></div>
         </div>
-        <p class="kbd-hint">Keyboard works too: numbers, <b>⌫</b>, <b>Enter</b></p>
-        <button class="quietbtn" id="toGuess">🕵️ I already know the rule!</button>
+        <div class="card" id="guessCard">
+          <h4>🕵️ Guess the rule</h4>
+          <input id="guessIn" placeholder="e.g. x + 3" autocomplete="off">
+          <div class="guess-ops" id="guessOps">
+            <button id="guessVarBtn" data-ins="x" title="Insert x"><i>𝑥</i></button>
+            <button data-ins="+">+</button>
+            <button data-ins="−">−</button>
+            <button data-ins="×">×</button>
+            <button data-ins="÷">÷</button>
+          </div>
+          <div id="guessPreview"></div>
+          <button id="guessBtn">Check my guess</button>
+          <button id="passBtn">Pass ➡ next player</button>
+          <div id="guessMsg"></div>
+        </div>
+      </aside>
+
+      <div class="stage">
+        <div class="machine-wrap" id="machineWrap">
+          <img class="machine" src="assets/vending.png" alt="vending machine">
+          <div id="ruleBox" class="ov"></div>
+          <div id="display" class="ov">--</div>
+          <div id="keypad" class="ov">
+            <button>1</button><button>2</button><button>3</button>
+            <button>4</button><button>5</button><button>6</button>
+            <button>7</button><button>8</button><button>9</button>
+            <button data-key="clear">C</button><button>0</button><button data-key="back">⌫</button>
+          </div>
+          <button id="okBtn" class="ov" title="Put your number on the money, then press ▶"></button>
+          <div id="glass" class="ov"></div>
+          <div id="trayName" class="ov"><i>y</i></div>
+        </div>
       </div>
 
-      <!-- my turn, step 2: guess the rule (full pad, spaces welcome) -->
-      <div id="guessMode" style="display:none">
-        <div id="guessPrompt">🕵️ Do you know the rule? Type it — spaces are fine!</div>
-        <div class="calc">
-          <div class="calc-disp" id="guessDisp"><span class="ph">e.g. 𝑥 × 3 + 2</span></div>
-          <div class="calc-keys five" id="guessPad">
-            <button data-k="x" class="xk">𝑥</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="back" class="fn">⌫</button>
-            <button data-k="+" class="op">+</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="clear" class="fn">C</button>
-            <button data-k="-" class="op">−</button><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k=" " class="fn">␣</button>
-            <button data-k="*" class="op">×</button><button data-k="/" class="op">÷</button><button data-k="0">0</button><button data-k="." class="fn">.</button><button data-k="go" class="go">✓</button>
+      <aside class="vm-right">
+        <div class="card">
+          <div class="row-top"><h4 id="insertTitle">Your 𝑥</h4></div>
+          <div class="money-widget" id="moneyWidget">
+            <img src="assets/money.png" alt="money">
+            <input id="numIn" inputmode="decimal" placeholder="type a number" autocomplete="off">
+            <button id="insertBtn" title="Send it into the machine (Enter)">▶</button>
+          </div>
+          <p class="hint" id="stageHint"></p>
+        </div>
+        <div class="card grow">
+          <h4>Results so far</h4>
+          <div id="ruleLine"></div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>who</th><th><i>x</i></th><th><i>y</i></th><th>item</th></tr></thead>
+              <tbody id="histBody"></tbody>
+            </table>
           </div>
         </div>
-        <p class="kbd-hint">Keyboard: <b>x</b> <b>+</b> <b>-</b> <b>*</b> <b>/</b> numbers <b>space</b> <b>Enter</b></p>
-        <div class="guess-btns">
-          <button id="guessGo">✓ I know it!</button>
-          <button id="guessPass">Pass ➡ next player</button>
-        </div>
-      </div>
-      <table class="htable" id="playHist" style="display:none">
-        <thead><tr><th>Customer</th><th>Input</th><th>Output</th><th>Item</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      </aside>
     </div>
   </section>
 </main>
 
-<!-- product drop -->
-<div id="revealWrap">
-  <div id="revealCard">
-    <div class="sprite" id="revealSprite"></div>
-    <div id="revealOut"></div>
-    <div id="revealName"></div>
+<!-- product popup: money in → machine shakes → the item grows out of the tray -->
+<div id="canOverlay">
+  <div class="prod-wrap" id="prodWrap">
+    <div id="prodArt"></div>
+    <div class="pval" id="canVal"></div>
   </div>
-  <p class="tap">Click to continue</p>
+  <div id="canCaption"></div>
+  <p class="tap">Click anywhere to continue</p>
 </div>
 
 <!-- win -->
@@ -493,6 +652,8 @@
   var store = window.CharlieStore, G = window.GameCore;
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  var raf = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window)
+                                         : function(f){ setTimeout(f, 0); };
 
   /* ---------------- session guard ---------------- */
   var sess = null;
@@ -505,6 +666,17 @@
   var role = null;            // 'seller' | 'buyer'
   var machine = null;         // latest copy
   var winShown = false;
+  var busy = false;           // money-fly / shake / popup in progress
+  var inserting = false;      // synchronous latch: an insert save is in flight
+  var roundSeq = 0;           // bumped on leave/cancel so stale timers die
+  /* "already put a number in this turn" lives ON the machine (turnInserted),
+     so refreshing or hopping rooms can't dodge the one-number-per-turn rule */
+  function turnUsed(m){ return !!(m && m.turnInserted); }
+
+  /* ---------------- sounds (same ones as the teaching game) ------------- */
+  var sndMoney = null, sndPop = null;
+  try{ sndMoney = new Audio('assets/money.mp3'); sndPop = new Audio('assets/pop.mp3'); }catch(e){}
+  function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
 
   var toastTimer = null;
   function toast(msg){
@@ -523,6 +695,11 @@
     var on = document.querySelector('.screen.on');
     return on ? on.id : '';
   }
+  function fmt(n){
+    if(!isFinite(n)) return '?';
+    var r = Math.round(n*100)/100;
+    return (Object.is(r,-0)?0:r).toString();
+  }
   function spriteStyle(key){
     var p = G.PRODUCTS[key];
     if(!p) return '';
@@ -530,7 +707,23 @@
   }
   function spriteDiv(key, cls){
     var p = G.PRODUCTS[key];
+    if(!p) return '';
     return '<div class="sprite ' + (p.sheet==='n'?'n ':'') + (cls||'') + '" style="' + spriteStyle(key) + '" title="' + esc(p.name) + '"></div>';
+  }
+  function prettyRule(tokens){
+    return tokens.map(function(t){
+      if(t.t==='var') return '<i>𝑥</i>';
+      if(t.t==='num') return esc(t.v);
+      return ' ' + G.opGlyph(t.v) + ' ';
+    }).join('');
+  }
+  function flash(padEl, k){
+    var b = padEl.querySelector('button[data-k="' + k + '"]');
+    if(!b) return;
+    b.classList.remove('press');
+    void b.offsetWidth;
+    b.classList.add('press');
+    setTimeout(function(){ b.classList.remove('press'); }, 180);
   }
 
   /* ---------------- header chip ---------------- */
@@ -540,7 +733,7 @@
     $('meName').textContent = me.name;
     $('meMoney').textContent = (me.money||0) + ' W';
   }
-  $('meChip').addEventListener('click', function(){ window.location.href='hub.html'; });
+  $('meChip').addEventListener('click', function(){ window.location.href = 'hub.html#me'; });
 
   /* ================= SELLER : stock ================= */
   var picked = [];
@@ -609,7 +802,6 @@
   }
   function finishStock(){
     clearInterval(timerIv);
-    // top up to 7 with random snacks
     if(picked.length < G.MAX_PICK){
       var snacks = Object.keys(G.PRODUCTS).filter(function(k){
         return G.PRODUCTS[k].sheet==='s' && picked.indexOf(k)===-1;
@@ -648,6 +840,7 @@
       tokens.push({t:'var'});
     } else if(/^[0-9]$/.test(k)){
       if(last && last.t==='num'){
+        if(last.v === '0'){ last.v = k; renderRuleScreen(); return; }   // no 012-style numbers
         if(last.v.length >= 3){ toast('Keep numbers small!'); return; }
         last.v += k;
       } else if(last && last.t==='var'){
@@ -690,6 +883,7 @@
   $('openShop').addEventListener('click', function(){
     if(!G.validRule(tokens)){ toast('Your rule needs 𝑥 in it and can\'t end on + − × ÷'); return; }
     if(G.ruleOps(tokens).length < 1){ toast('Add at least one operation — 𝑥 alone is too easy!'); return; }
+    if(!G.evaluableRule(tokens)){ toast('That rule breaks the machine (dividing by zero?) — try another!'); return; }
     var m = {
       id: G.machineId(),
       created: Date.now(),
@@ -701,7 +895,7 @@
       rule: tokens.slice(),
       reward: G.reward(tokens),
       ranges: G.assignRanges(picked),
-      buyers: [], history: [], turn: 0, winner: null
+      buyers: [], history: [], turn: 0, turnInserted: false, winner: null
     };
     store.saveMachine(m).then(function(){
       machineId = m.id; role = 'seller'; winShown = false;
@@ -720,11 +914,11 @@
     $('sellProducts').innerHTML = m.products.map(function(k){
       return '<div class="slot">' + spriteDiv(k) + '<div class="nm">'+esc(G.PRODUCTS[k].name)+'</div></div>';
     }).join('');
-    $('sellRule').innerHTML = 'Your rule: 𝑥 → ' + esc(G.ruleText(m.rule)).replace(/x/g,'𝑥');
+    $('sellRule').innerHTML = 'Your rule: <i style="font-family:Georgia,serif">𝑥</i> → ' + prettyRule(m.rule);
     var ph = [];
     for(var i=0;i<m.capacity;i++){
       var b = m.buyers[i];
-      if(b) ph.push('<span class="pl'+(m.state==='playing' && i===m.turn%m.buyers.length?' now':'')+'"><span class="em">'+(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>');
+      if(b) ph.push('<span class="pl'+(m.state==='playing' && i===m.turn%m.buyers.length?' now':'')+'"><span class="em">'+esc(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>');
       else ph.push('<span class="pl empty">🪑 waiting…</span>');
     }
     $('sellPlayers').innerHTML = ph.join('');
@@ -748,10 +942,16 @@
     });
   });
   $('closeShop').addEventListener('click', function(){
-    withMachine(function(m){ m.state = 'done'; return m; }).then(function(){
+    if(machine && machine.state === 'playing' &&
+       !window.confirm('The game is still running — close the shop anyway?')) return;
+    withMachine(function(m){
+      if(m.state === 'done') return null;    // someone just won — keep their result
+      m.state = 'done';
+      return m;
+    }).then(function(){
       machineId = null; role = null;
       show('scrRole');
-    });
+    }).catch(function(){ toast('Could not reach the shop — try again!'); });
   });
 
   /* ================= BUYER : mall ================= */
@@ -769,7 +969,7 @@
       var mine = m.buyers.some(function(b){ return b.id===me.id; });
       var dis = (m.state!=='open' || full) && !mine;
       return '<button class="sec" data-id="'+m.id+'"'+(dis?' disabled':'')+'>'
-        + '<span class="em">'+(m.seller.emoji||'🙂')+'</span>'
+        + '<span class="em">'+esc(m.seller.emoji||'🙂')+'</span>'
         + '<span class="al">'+esc(m.alias)+'</span>'
         + '<span class="oc'+(full?' full':'')+'">'+oc+'</span>'
         + '</button>';
@@ -779,202 +979,346 @@
     var b = e.target.closest('.sec[data-id]'); if(!b || b.disabled) return;
     joinMachine(b.dataset.id);
   });
-  function joinMachine(id){
+  function joinMachine(id, attempt){
+    attempt = attempt || 0;
     store.getMachine(id).then(function(m){
-      if(!m || m.state!=='open'){ toast('That shop just closed its doors!'); refresh(); return; }
+      if(!m || m.state==='done'){ toast('That shop just closed its doors!'); refresh(); return; }
       var already = m.buyers.some(function(b){ return b.id===me.id; });
       if(!already){
-        if(m.buyers.length >= m.capacity){ toast('That shop is full!'); refresh(); return; }
+        if(m.state!=='open' || m.buyers.length >= m.capacity){ toast('That shop is full!'); refresh(); return; }
         m.buyers.push({id:me.id, name:me.name, emoji:me.emoji || '🙂'});
         return store.saveMachine(m).then(function(){
-          // re-read: if two people squeezed in at once, last one steps back out
+          // re-read: two kids can tap the tile in the same second, and the
+          // whole-blob save is last-write-wins — so check what really landed
           return store.getMachine(id).then(function(m2){
             var idx = -1;
             m2.buyers.forEach(function(b,i){ if(b.id===me.id) idx = i; });
+            if(idx === -1){
+              // my write was clobbered by the other join — try once more
+              if(attempt < 2){ joinMachine(id, attempt + 1); return; }
+              toast('Just missed it — try again!'); refresh(); return;
+            }
             if(idx >= m2.capacity){
               m2.buyers.splice(idx,1);
-              return store.saveMachine(m2).then(function(){ toast('Just missed it — that shop is full!'); });
+              return store.saveMachine(m2).then(function(){ toast('Just missed it — that shop is full!'); refresh(); });
             }
-            machineId = id; role = 'buyer'; winShown = false;
-            show('scrPlay'); refresh();
+            enterRoom(id);
           });
         });
       }
-      machineId = id; role = 'buyer'; winShown = false;
-      show('scrPlay'); refresh();
-    });
+      enterRoom(id);
+    }).catch(function(){ toast('Could not reach the shop — try again!'); });
+  }
+  function enterRoom(id){
+    machineId = id; role = 'buyer';
+    cancelRound();
+    winShown = false;
+    $('guessIn').value = ''; $('guessMsg').textContent = ''; $('guessPreview').innerHTML = '';
+    $('numIn').value = '';
+    show('scrPlay');
+    refresh();
+  }
+  /* kill any in-flight fly/shake/popup so it can't hit the wrong room */
+  function cancelRound(){
+    roundSeq++;
+    busy = false; inserting = false;
+    $('machineWrap').classList.remove('shake');
+    $('canOverlay').classList.remove('open');
+    $('canOverlay').classList.remove('dim');
+    $('display').textContent = '--';
   }
 
-  /* ================= BUYER : play ================= */
+  /* ================= BUYER : the machine screen ================= */
   function myTurn(m){
     return m.state==='playing' && m.buyers.length &&
            m.buyers[m.turn % m.buyers.length].id === me.id;
   }
   function renderPlay(){
     var m = machine; if(!m) return;
-    $('playTitle').innerHTML = '🥤 ' + esc(m.alias) + '\'s machine';
-    $('playSlots').innerHTML = m.products.map(function(k){
-      return '<div class="slot mystery"><div class="q">?</div></div>';
-    }).join('');
+    $('shopTitle').textContent = '🏪 ' + m.alias + '\'s shop';
+
+    /* players + whose turn */
     $('playPlayers').innerHTML = m.buyers.map(function(b,i){
       var now = m.state==='playing' && i === m.turn % m.buyers.length;
-      return '<span class="pl'+(now?' now':'')+'"><span class="em">'+(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>';
-    }).join('');
+      return '<span class="pl'+(now?' now':'')+'"><span class="em">'+esc(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>';
+    }).join('') || '<span class="pl empty">🪑 nobody yet</span>';
+
+    /* the yellow rule box: secret while playing, revealed when done */
+    if(m.state==='done'){
+      $('ruleBox').innerHTML = '<i>𝑥</i> → ' + prettyRule(m.rule);
+    } else {
+      $('ruleBox').innerHTML = '<span style="letter-spacing:8px">🔒 ? ? ?</span>';
+    }
+
+    var mine = myTurn(m);
+    var used = turnUsed(m);
+    var canInsert = mine && !busy && !inserting && !used && m.state==='playing';
+    $('numIn').disabled = !canInsert;
+    $('insertBtn').disabled = !canInsert;
+    $('moneyWidget').classList.toggle('off', !canInsert);
+    $('guessIn').disabled = !(mine && !busy);
+    $('guessBtn').disabled = !(mine && !busy);
+    Array.prototype.forEach.call(document.querySelectorAll('#guessOps button'), function(b){
+      b.disabled = !(mine && !busy);
+    });
+    $('passBtn').style.display = (mine && !busy) ? '' : 'none';
+
     if(m.state==='open'){
-      $('playSub').textContent = 'Waiting for ' + m.alias + ' to start… (' + m.buyers.length + '/' + m.capacity + ' customers here)';
-      $('turnLine').textContent = '';
-      setPads(null);
+      $('turnLine').textContent = '⏳ Waiting for ' + m.alias + ' to start… (' + m.buyers.length + '/' + m.capacity + ' here)';
+      $('stageHint').textContent = 'The machine wakes up when the seller presses Start.';
     } else if(m.state==='playing'){
-      $('playSub').textContent = '7 mystery products inside. Crack the rule to win them!';
       var now = m.buyers[m.turn % m.buyers.length];
-      if(myTurn(m)){
-        if(!wasMyTurn){ playMode = 'number'; }   // fresh turn starts on the number pad
-        wasMyTurn = true;
-        $('turnLine').textContent = playMode === 'guess'
-          ? '⭐ Your turn, ' + me.name + '! Crack the rule — or pass.'
-          : '⭐ Your turn, ' + me.name + '! Put a number in.';
-        setPads(playMode);
+      if(mine){
+        $('turnLine').textContent = used
+          ? '⭐ Know the rule? Guess it — or pass!'
+          : '⭐ Your turn, ' + me.name + '!';
+        $('stageHint').textContent = used
+          ? 'Guess on the left — or Pass to the next player.'
+          : 'Type a number on the money, then press Enter or ▶.';
       } else {
-        wasMyTurn = false;
         $('turnLine').textContent = '⏳ ' + (now?now.name:'…') + ' is having a turn…';
-        setPads(null);
+        $('stageHint').textContent = 'Watch the results — every row is a clue!';
       }
     } else {
-      setPads(null);
       var w = m.winner;
-      $('playSub').textContent = w ? ('The rule was cracked!') : 'The seller closed this shop.';
-      $('turnLine').textContent = w ? '' : 'Back to the mall for another machine!';
+      $('turnLine').innerHTML = w
+        ? '🎉 <b>' + esc(w.name) + '</b> cracked it and took ' + w.prizes.length + ' item' + (w.prizes.length>1?'s':'') + '!'
+        : 'The seller closed this shop.';
+      $('stageHint').textContent = 'Back to the mall for another machine!';
       if(w && !winShown){
         winShown = true;
-        if(w.id === me.id) showWin(m);
-        else { confetti(); $('turnLine').innerHTML = '🎉 <b>' + esc(w.name) + '</b> cracked it and took ' + w.prizes.length + ' item' + (w.prizes.length>1?'s':'') + '! The rule was 𝑥 → ' + esc(G.ruleText(m.rule)).replace(/x/g,'𝑥'); }
+        if(w.id === me.id){ showWin(m); }
+        else { confetti(); }
       }
     }
-    renderHist($('playHist'), m);
+
+    /* rule line + results table (who did what) */
+    $('ruleLine').innerHTML = m.state==='done'
+      ? 'Rule: <b><i>𝑥</i> → ' + prettyRule(m.rule) + '</b>'
+      : 'Rule: <b>??? (secret)</b>';
+    renderHist(document.querySelector('.vm-right .tbl-wrap table'), m);
   }
   function renderHist(tbl, m){
-    if(!m.history.length){ tbl.style.display='none'; return; }
-    tbl.style.display = '';
-    tbl.querySelector('tbody').innerHTML = m.history.map(function(h){
+    var body = tbl.querySelector('tbody');
+    if(!m.history.length){
+      if(tbl.id === 'sellHist'){ tbl.style.display = 'none'; return; }
+      body.innerHTML = '<tr><td colspan="4" class="empty-msg">No numbers yet — every try is a clue!</td></tr>';
+      return;
+    }
+    if(tbl.id === 'sellHist') tbl.style.display = '';
+    body.innerHTML = m.history.map(function(h){
       var b = null;
       m.buyers.forEach(function(x){ if(x.id===h.b) b = x; });
-      return '<tr><td>'+(b?(b.emoji||'')+' '+esc(b.name):'?')+'</td><td>'+esc(String(h.v))+'</td>'
-        + '<td class="outv">'+esc(String(h.out))+'</td>'
-        + '<td><span class="mini">'+spriteDiv(h.p)+'</span> '+esc(G.PRODUCTS[h.p].name)+'</td></tr>';
+      return '<tr>'
+        + '<td><span class="who">'+(b?esc(b.emoji||'🙂')+' '+esc(b.name):'?')+'</span></td>'
+        + '<td>'+esc(fmt(h.v))+'</td>'
+        + '<td class="outv">'+esc(fmt(h.out))+'</td>'
+        + '<td><span class="mini">'+spriteDiv(h.p)+'</span></td>'
+        + '</tr>';
     }).join('');
+    var wrap = body.parentElement.parentElement;
+    if(wrap && wrap.scrollHeight) wrap.scrollTop = wrap.scrollHeight;
   }
 
-  /* -------- calculator pads: state, clicks, keyboard mirroring -------- */
-  var playMode = 'number';        // 'number' | 'guess' (which pad my turn shows)
-  var wasMyTurn = false;
-  var numVal = '', guessVal = '';
-
-  function setPads(mode){
-    $('numMode').style.display = mode === 'number' ? '' : 'none';
-    $('guessMode').style.display = mode === 'guess' ? '' : 'none';
-  }
-  function flash(padEl, k){
-    var b = padEl.querySelector('button[data-k="' + (k === '"' ? '' : k) + '"]');
-    if(!b) return;
-    b.classList.remove('press');
-    void b.offsetWidth;
-    b.classList.add('press');
-    setTimeout(function(){ b.classList.remove('press'); }, 180);
-  }
-  function renderNumDisp(){
-    $('numDisp').innerHTML = numVal === '' ? '<span class="ph">type a number…</span>' : esc(numVal);
-  }
-  function renderGuessDisp(){
-    $('guessDisp').innerHTML = guessVal === ''
-      ? '<span class="ph">e.g. 𝑥 × 3 + 2</span>'
-      : esc(guessVal).replace(/x/g,'𝑥');
-  }
-
-  function numKey(k){
-    if(k === 'go'){ dropNumber(); return; }
-    if(k === 'back'){ numVal = numVal.slice(0,-1); }
-    else if(k === 'clear'){ numVal = ''; }
-    else if(k === 'neg'){ numVal = numVal.charAt(0)==='-' ? numVal.slice(1) : '-' + numVal; }
-    else if(k === '.'){ if(numVal.indexOf('.') === -1) numVal += numVal === '' || numVal === '-' ? '0.' : '.'; }
-    else if(/^[0-9]$/.test(k)){
-      if(numVal.replace(/[-.]/g,'').length >= 4){ toast('Keep it under 1000!'); return; }
-      numVal += k;
-    } else return;
-    renderNumDisp();
-  }
-  $('numPad').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-k]'); if(b) numKey(b.dataset.k);
-  });
-  $('toGuess').addEventListener('click', function(){
-    playMode = 'guess'; setPads('guess');
-    $('turnLine').textContent = '⭐ Your turn, ' + me.name + '! Crack the rule — or pass.';
-  });
-
-  function guessKey(k){
-    if(k === 'go'){ submitGuess(); return; }
-    if(k === 'back'){ guessVal = guessVal.slice(0,-1); }
-    else if(k === 'clear'){ guessVal = ''; }
-    else if(k === ' '){ if(guessVal.length < 24) guessVal += ' '; }
-    else if('+-*/'.indexOf(k) !== -1){
-      if(guessVal.length < 24) guessVal += ({'+':'+','-':'−','*':'×','/':'÷'})[k];
-    }
-    else if(k === 'x' || /^[0-9.]$/.test(k)){
-      if(guessVal.length < 24) guessVal += k;
-    } else return;
-    renderGuessDisp();
-  }
-  $('guessPad').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-k]'); if(b) guessKey(b.dataset.k);
-  });
-
-  /* physical keyboard drives whichever pad is on screen — keys light up */
-  document.addEventListener('keydown', function(e){
-    if(current() !== 'scrPlay' || !machine || !myTurn(machine)) return;
-    if(e.ctrlKey || e.metaKey || e.altKey) return;
-    var k = e.key;
-    if(playMode === 'number' && $('numMode').style.display !== 'none'){
-      var map = k === 'Enter' ? 'go' : k === 'Backspace' ? 'back' : k === '-' ? 'neg' : k;
-      if(map === 'go' || map === 'back' || map === 'neg' || map === '.' || /^[0-9]$/.test(map)){
-        e.preventDefault(); flash($('numPad'), map); numKey(map);
-      }
-    } else if(playMode === 'guess' && $('guessMode').style.display !== 'none'){
-      var gk = k === 'Enter' ? 'go' : k === 'Backspace' ? 'back' : k === 'X' ? 'x' : k;
-      if(gk === 'go' || gk === 'back' || gk === ' ' || gk === 'x' ||
-         '+-*/'.indexOf(gk) !== -1 || /^[0-9.]$/.test(gk)){
-        e.preventDefault(); flash($('guessPad'), gk); guessKey(gk);
-      }
-    }
-  });
-
-  function dropNumber(){
-    var v = parseFloat(numVal);
-    if(numVal.trim() === '' || isNaN(v)){ toast('Type a number first!'); return; }
+  /* ------------- one full round: money → rule box → shake → product ------ */
+  function insert(){
+    if(busy || inserting || $('canOverlay').classList.contains('open')) return;
+    var m = machine;
+    if(!m || !myTurn(m)){ toast('Wait for your turn!'); return; }
+    if(turnUsed(m)){ toast('You already put a number in — guess the rule or pass!'); return; }
+    var v = parseFloat($('numIn').value);
+    if($('numIn').value.trim()==='' || isNaN(v)){ toast('Type a number on the money first!'); $('numIn').focus(); return; }
     if(Math.abs(v) > 999){ toast('Keep it under 1000!'); return; }
-    withMachine(function(m){
-      if(!myTurn(m)) return null;
-      var out = G.evalRule(m.rule, v);
+
+    inserting = true;          // synchronous latch: double-Enter can't run twice
+    withMachine(function(mm){
+      if(!myTurn(mm) || turnUsed(mm)) return null;
+      var out = G.evalRule(mm.rule, v);
       if(out === null){ toast('💥 The machine jammed on that number — try another!'); return null; }
-      var p = m.ranges[G.rangeIndexFor(v)];
-      m.history.push({b:me.id, v:v, out:Math.round(out*100)/100, p:p});
-      return m;
-    }).then(function(m){
-      if(!m) return;
-      numVal = ''; renderNumDisp();
-      var h = m.history[m.history.length-1];
-      $('revealSprite').className = 'sprite' + (G.PRODUCTS[h.p].sheet==='n'?' n':'');
-      $('revealSprite').style.cssText = spriteStyle(h.p);
-      $('revealOut').textContent = 'output = ' + h.out;
-      $('revealName').textContent = G.PRODUCTS[h.p].name + ' dropped into the tray!';
-      $('revealWrap').classList.add('on');
+      var p = mm.ranges[G.rangeIndexFor(v)];
+      mm.history.push({b:me.id, v:v, out:Math.round(out*100)/100, p:p});
+      mm.turnInserted = true;
+      return mm;
+    }).then(function(mm){
+      inserting = false;
+      if(!mm){ renderPlay(); return; }
+      busy = true;
+      renderPlay();
+      var h = mm.history[mm.history.length-1];
+      var seq = ++roundSeq;    // this round's ticket — stale timers check it
+      $('numIn').blur();
+      play(sndMoney);
+      $('display').textContent = fmt(h.v);
+      flyMoneyToRule(h.v, function(){
+        if(seq !== roundSeq) return;         // player left mid-flight
+        $('machineWrap').classList.add('shake');
+        setTimeout(function(){
+          if(seq !== roundSeq) return;
+          $('machineWrap').classList.remove('shake');
+          $('numIn').value = '';
+          showProduct(h.p, h.out);
+        }, 1500);
+      });
+    }).catch(function(){
+      inserting = false;
+      toast('Could not reach the shop — check the connection and try again!');
+      renderPlay();
     });
   }
-  $('revealWrap').addEventListener('click', function(){
-    $('revealWrap').classList.remove('on');
-    /* after seeing the result, offer the guess */
-    if(machine && myTurn(machine)){
-      playMode = 'guess';
-      renderPlay();
+  $('insertBtn').addEventListener('click', insert);
+  $('numIn').addEventListener('keydown', function(e){
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    insert();
+  });
+
+  /* the machine's own keypad types onto the money too */
+  $('keypad').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    var m = machine;
+    if(!m || !myTurn(m) || busy || inserting){ toast('Wait for your turn!'); return; }
+    if(turnUsed(m)){ toast('Guess the rule or pass — the next number comes after!'); return; }
+    var k = b.dataset.key || b.textContent.trim();
+    b.classList.remove('press'); void b.offsetWidth; b.classList.add('press');
+    setTimeout(function(){ b.classList.remove('press'); }, 180);
+    var val = $('numIn').value;
+    if(k === 'clear') val = '';
+    else if(k === 'back' || k === '⌫') val = val.slice(0,-1);
+    else if(/^[0-9]$/.test(k) && val.replace(/[-.]/g,'').length < 4) val += k;
+    $('numIn').value = val;
+  });
+  $('okBtn').addEventListener('click', function(){
+    toast('Type your number on the money, then press ▶!');
+  });
+  $('glass').addEventListener('click', function(){
+    if(busy || $('canOverlay').classList.contains('open')) return;
+    var m = machine;
+    if(m && myTurn(m) && !turnUsed(m)) toast('Type a number on the money and press Enter!');
+    else toast('Watch closely — every number is a clue! 🔍');
+  });
+
+  /* money (with its number) flies onto the secret rule box */
+  function flyMoneyToRule(v, done){
+    var moneyImg = document.querySelector('.money-widget > img');
+    var target = $('ruleBox');
+    var startR = moneyImg.getBoundingClientRect();
+    var tR = target.getBoundingClientRect();
+
+    var w = startR.width || 300;
+    var el = document.createElement('div');
+    el.className = 'money-fly';
+    el.style.width = w + 'px';
+    el.innerHTML = '<img src="assets/money.png"><span style="font-size:' + Math.round(w*0.28) + 'px">' + fmt(v) + '</span>';
+    el.style.left = startR.left + 'px';
+    el.style.top = startR.top + 'px';
+    document.body.appendChild(el);
+
+    var h = w*201/440;
+    var endH = Math.max((tR.height||30)*0.92, 16);
+    var scale = endH/h;
+    var endW = w*scale;
+    var ex = tR.left + tR.width/2 - endW/2, ey = tR.top + tR.height/2 - endH/2;
+
+    var called = false;
+    function finish(){
+      if(called) return; called = true;
+      if(el.parentNode) el.remove();
+      done();
     }
+    try{
+      var anim = el.animate([
+        { transform:'translate(0,0) rotate(0deg) scale(1)' },
+        { transform:'translate('+((ex-startR.left)*0.5)+'px,'+((ey-startR.top)*0.55-70)+'px) rotate(-8deg) scale('+((1+scale)/2)+')', offset:.55 },
+        { transform:'translate('+(ex-startR.left)+'px,'+(ey-startR.top)+'px) rotate(0deg) scale('+scale+')' }
+      ], { duration:1100, easing:'cubic-bezier(.45,.1,.35,1)' });
+      anim.onfinish = finish;
+    }catch(e){}
+    setTimeout(finish, 1400);
+  }
+
+  /* the product appears at the tray flap and grows to the centre */
+  function showProduct(key, out){
+    var p = G.PRODUCTS[key];
+    play(sndPop);
+    $('prodWrap').style.width = 'min(48vw,350px)';
+    $('prodArt').innerHTML = spriteDiv(key);
+    $('canVal').textContent = fmt(out);
+    $('canCaption').innerHTML = '<i>y</i> = ' + fmt(out) + ' &nbsp;·&nbsp; ' + esc(p.name);
+
+    var overlay = $('canOverlay');
+    overlay.classList.add('open');
+    overlay.classList.remove('dim');
+    raf(function(){
+      var endR = $('prodWrap').getBoundingClientRect();
+      var fromR = $('trayName').getBoundingClientRect();
+      if(endR.width > 0 && fromR.width > 0){
+        var scale0 = Math.max(Math.min((fromR.height*1.6)/(endR.height||1), .5), .08);
+        var dx = (fromR.left+fromR.width/2) - (endR.left+endR.width/2);
+        var dy = (fromR.top+fromR.height/2) - (endR.top+endR.height/2);
+        try{
+          $('prodWrap').animate([
+            { transform:'translate('+dx+'px,'+dy+'px) scale('+scale0+')' },
+            { transform:'translate(0,0) scale(1)' }
+          ], { duration:900, easing:'cubic-bezier(.25,.9,.3,1)' });
+        }catch(e){}
+      }
+      overlay.classList.add('dim');
+    });
+  }
+  function closeProduct(){
+    var overlay = $('canOverlay');
+    if(!overlay.classList.contains('open')) return;
+    overlay.classList.remove('open');
+    overlay.classList.remove('dim');
+    $('display').textContent = '--';
+    busy = false;
+    renderPlay();           // the machine's turnInserted flag says: guess or pass
+  }
+  $('canOverlay').addEventListener('click', closeProduct);
+  // Enter / Space / Esc closes the product popup
+  document.addEventListener('keydown', function(e){
+    if(!$('canOverlay').classList.contains('open')) return;
+    if(e.key==='Enter' || e.key===' ' || e.key==='Escape'){
+      e.preventDefault();
+      e.stopPropagation();
+      if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+      closeProduct();
+    }
+  }, true);
+  // Enter with nothing focused on my turn: jump onto the money
+  document.addEventListener('keydown', function(e){
+    if(e.key!=='Enter' || current()!=='scrPlay' || busy) return;
+    if($('canOverlay').classList.contains('open') || $('winWrap').classList.contains('on')) return;
+    var tag = (e.target.tagName||'').toLowerCase();
+    if(tag==='input' || tag==='textarea') return;
+    var m = machine;
+    if(m && myTurn(m) && !turnUsed(m)){ e.preventDefault(); $('numIn').focus(); }
+  });
+
+  /* ---------------- guessing (left card) ---------------- */
+  function insertIntoGuess(ch){
+    var el = $('guessIn');
+    var s = el.selectionStart, en = el.selectionEnd;
+    if(s===null || s===undefined){ s = en = el.value.length; }
+    el.value = el.value.slice(0,s) + ch + el.value.slice(en);
+    el.focus();
+    try{ el.setSelectionRange(s+ch.length, s+ch.length); }catch(err){}
+    renderGuessPreview();
+  }
+  function renderGuessPreview(){
+    var txt = $('guessIn').value || '';
+    if(!txt.trim()){ $('guessPreview').innerHTML = ''; return; }
+    $('guessPreview').innerHTML = 'You wrote: <b>' + esc(txt).replace(/x/gi,'<i>𝑥</i>') + '</b>';
+  }
+  $('guessIn').addEventListener('input', renderGuessPreview);
+  $('guessIn').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); submitGuess(); return; }
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    if(e.key === 'X'){ e.preventDefault(); insertIntoGuess('x'); }
+  });
+  $('guessOps').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-ins]'); if(!b || b.disabled) return;
+    insertIntoGuess(b.dataset.ins);
   });
 
   /* every attempt lands in the student's own history (side panel in the hub) */
@@ -985,9 +1329,9 @@
 
   var guessing = false;
   function submitGuess(){
-    if(guessing) return;
-    var g = guessVal;
-    if(!g.trim()){ toast('Type your guess first — like 𝑥 × 3 + 2'); return; }
+    if(guessing || busy) return;
+    var g = $('guessIn').value;
+    if(!g.trim()){ toast('Type your guess first — like 𝑥 × 3 + 2'); $('guessIn').focus(); return; }
     guessing = true;
     withMachine(function(m){
       if(!myTurn(m)) return null;
@@ -1001,41 +1345,53 @@
         };
       } else {
         m.turn = m.turn + 1;      // wrong → next customer
+        m.turnInserted = false;
         m.wrong = (m.wrong||0) + 1;
       }
       return m;
     }).then(function(m){
       guessing = false;
-      if(!m) return;
-      var tried = guessVal;
-      guessVal = ''; renderGuessDisp();
+      if(!m){ return; }
+      var tried = $('guessIn').value;
+      $('guessIn').value = ''; renderGuessPreview();
       if(m.state === 'done' && m.winner && m.winner.id === me.id){
+        $('guessMsg').style.color = '#2a9d34';
+        $('guessMsg').textContent = '✅ Correct!';
         payOut(m, tried);
       } else {
-        toast('❌ Not quite — the turn moves on. Watch the table for clues!');
-        playMode = 'number'; wasMyTurn = false;   // next turn starts fresh
-        rerender();
+        $('guessMsg').style.color = '#c3323f';
+        $('guessMsg').textContent = '❌ Not quite — watch the results for clues!';
+        toast('❌ Not quite — the turn moves on.');
+        renderPlay();
         store.list().then(function(all){
           var mine = all.filter(function(s){ return s.id===me.id; })[0];
           if(mine) store.update(me.id, {guesses: recordGuess(mine, m, tried, false)});
-        });
+        }).catch(function(){});
       }
+    }).catch(function(){
+      guessing = false;
+      toast('Could not reach the shop — check the connection and try again!');
     });
   }
-  $('guessGo').addEventListener('click', submitGuess);
-  $('guessPass').addEventListener('click', function(){
+  $('guessBtn').addEventListener('click', submitGuess);
+  $('passBtn').addEventListener('click', function(){
+    if(busy || guessing) return;
     withMachine(function(m){
       if(!myTurn(m)) return null;
       m.turn = m.turn + 1;
+      m.turnInserted = false;
       return m;
     }).then(function(){
-      playMode = 'number'; wasMyTurn = false;
-      rerender();
+      $('guessMsg').textContent = '';
+      renderPlay();
+    }).catch(function(){
+      toast('Could not reach the shop — press Pass again!');
     });
   });
 
-  /* winner: bank the prizes + the attempt, pay the seller, then celebrate */
-  function payOut(m, guessText){
+  /* winner: bank the prizes + the attempt, pay the seller, then celebrate.
+     One retry on a network hiccup — losing a win would break hearts. */
+  function payOut(m, guessText, isRetry){
     var prizes = m.winner.prizes;
     store.list().then(function(all){
       var mine = all.filter(function(s){ return s.id===me.id; })[0];
@@ -1052,6 +1408,12 @@
       winShown = true;
       showWin(m);
       refreshMe();
+      renderPlay();
+    }).catch(function(){
+      if(!isRetry){ setTimeout(function(){ payOut(m, guessText, true); }, 1500); return; }
+      winShown = true;
+      showWin(m);      // celebrate anyway; the win is recorded on the machine
+      toast('⚠️ Shaky connection — if your prizes are missing from My room, tell your teacher!');
     });
   }
 
@@ -1059,7 +1421,7 @@
   function showWin(m){
     var prizes = m.winner.prizes;
     $('winTitle').textContent = '🎉 You cracked it, ' + me.name + '!';
-    $('winSub').innerHTML = 'The rule was <b>𝑥 → ' + esc(G.ruleText(m.rule)).replace(/x/g,'𝑥')
+    $('winSub').innerHTML = 'The rule was <b><i>𝑥</i> → ' + prettyRule(m.rule)
       + '</b> — the machine pays out <b>' + prizes.length + '</b> item' + (prizes.length>1?'s':'') + '!';
     var stripKeys = Object.keys(G.PRODUCTS);
     $('slotRow').innerHTML = prizes.map(function(){
@@ -1087,6 +1449,7 @@
   }
   $('winClose').addEventListener('click', function(){
     $('winWrap').classList.remove('on');
+    renderPlay();
   });
 
   function confetti(){
@@ -1122,7 +1485,7 @@
     return store.getMachine(machineId).then(function(m){
       if(!m) return null;
       var out = fn(m);
-      if(!out) { machine = m; rerender(); return null; }
+      if(!out){ machine = m; rerender(); return null; }
       return store.saveMachine(out).then(function(){
         machine = out; rerender();
         return out;
@@ -1170,7 +1533,7 @@
     if(scr === 'scrRole'){ window.location.href = 'hub.html'; return; }
     if(scr === 'scrStock' || scr === 'scrRule'){ show('scrRole'); return; }
     if(scr === 'scrMall'){ show('scrRole'); return; }
-    if(scr === 'scrPlay'){ show('scrMall'); machineId = null; role = null; refresh(); return; }
+    if(scr === 'scrPlay'){ cancelRound(); show('scrMall'); machineId = null; role = null; refresh(); return; }
     if(scr === 'scrSell'){ toast('Close your shop first (button below) or leave it running!'); return; }
     show('scrRole');
   });

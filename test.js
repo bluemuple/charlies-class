@@ -115,6 +115,11 @@ async function testGameCore(){
   const threeOps = [{t:"var"},{t:"op",v:"+"},{t:"num",v:"1"},{t:"op",v:"+"},{t:"num",v:"1"},{t:"op",v:"+"},{t:"num",v:"1"}];
   ok(!G.validRule(threeOps), "max two operations");
 
+  // review findings: unwinnable rules refused, "012" is twelve not octal ten
+  ok(!G.evaluableRule([{t:"var"},{t:"op",v:"/"},{t:"num",v:"0"}]), "x ÷ 0 is not a playable rule");
+  ok(G.evaluableRule([{t:"num",v:"5"},{t:"op",v:"/"},{t:"var"}]), "5 ÷ x is playable (only jams at 0)");
+  ok(G.evalRule([{t:"var"},{t:"op",v:"+"},{t:"num",v:"012"}], 1) === 13, "'012' means twelve, not octal");
+
   ok(G.checkGuess(rule, "x*3+2"), "plain guess accepted");
   ok(G.checkGuess(rule, "  x × 3  +  2 "), "spaces and pretty symbols accepted");
   ok(G.checkGuess(rule, "2 + 3x"), "reordered but equal guess accepted");
@@ -363,9 +368,21 @@ async function testGamePlay(){
   $("stockDone").click();
   ok($("scrRule").classList.contains("on"), "on to the rule laptop");
 
-  // build x × 3 + 2 on the pad
   const rk = k => d.querySelector('#rulePad button[data-k="' + k + '"]').click();
-  ["x","*","3","+","2"].forEach(rk);
+
+  // an unplayable rule (x ÷ 0) is refused at Open my shop
+  ["x","/","0"].forEach(rk);
+  $("openShop").click();
+  await waitFor(() => /breaks the machine/.test($("toast").textContent), "x ÷ 0 rule is refused");
+  ok($("scrRule").classList.contains("on"), "seller stays on the rule screen");
+  // leading zeros can't build octal-looking numbers: 0 then 1 → 1
+  rk("back"); rk("1");
+  ok(/÷.*1/.test($("ruleScreen").textContent) && !/01/.test($("ruleScreen").textContent),
+     "typing 0 then 1 gives 1, not 01");
+  rk("back"); rk("back");   // back to just x
+
+  // build x × 3 + 2 on the pad
+  ["*","3","+","2"].forEach(rk);
   ok(/𝑥/.test($("ruleScreen").textContent), "rule shows on the laptop screen");
   ok(/10 Whare/.test($("rewardLine").textContent), "reward reads 10 Whare for ×…+");
   rk("/");  // third operation must bounce
@@ -413,39 +430,67 @@ async function testGamePlay(){
      "shop shows the alias, never the real name");
   sec.click();
   await waitFor(() => $2("scrPlay").classList.contains("on"), "joining enters the machine room");
-  await waitFor(() => /Waiting for/.test($2("playSub").textContent), "waiting for the seller to start");
+  await waitFor(() => /Waiting for Cute Rabbit/.test($2("turnLine").textContent), "waiting for the seller to start");
+
+  // the machine screen is the classic vending machine
+  ok(!!d2.querySelector("#machineWrap img.machine"), "the vending machine picture is there");
+  ok(/\?/.test($2("ruleBox").textContent), "the rule box keeps the rule secret");
+  ok($2("trayName").textContent.trim() === "y", "the tray says y");
+  ok($2("numIn").disabled, "the money input sleeps until the game starts");
 
   // seller presses start (simulated through the store)
   const m1 = await w2.CharlieStore.getMachine("m-test01");
   m1.state = "playing"; m1.turn = 0;
   await w2.CharlieStore.saveMachine(m1);
-  await waitFor(() => $2("numMode").style.display !== "none", "my turn shows the number pad");
+  await waitFor(() => !$2("numIn").disabled, "my turn wakes the money input");
 
-  // type 2 on the pad and put it in
-  d2.querySelector('#numPad button[data-k="2"]').click();
-  ok($2("numDisp").textContent === "2", "pad types onto the display");
-  d2.querySelector('#numPad button[data-k="go"]').click();
-  await waitFor(() => $2("revealWrap").classList.contains("on"), "the product drops");
-  ok(/output = 8/.test($2("revealOut").textContent), "2 → 8 through x×3+2");
-  $2("revealWrap").click();
-  await waitFor(() => $2("guessMode").style.display !== "none", "after the drop comes the guess pad");
+  // the machine's own keypad types onto the money
+  [...d2.querySelectorAll("#keypad button")].find(b => b.textContent.trim() === "2").click();
+  ok($2("numIn").value === "2", "the machine keypad types onto the money");
+
+  // insert: money flies, machine shakes 1.5 s, the product grows out
+  $2("insertBtn").click();
+  await waitFor(() => $2("display").textContent === "2", "the price screen shows my number");
+  await waitFor(() => d2.querySelector("#machineWrap").classList.contains("shake"), "the machine shakes");
+  await waitFor(() => $2("canOverlay").classList.contains("open"), "the product pops out", 4000);
+  ok($2("canVal").textContent === "8", "2 → 8 through x×3+2");
+  ok(/y.*=.*8/.test($2("canCaption").textContent), "caption reads y = 8");
+
+  // who did what lands in Results
+  ok(/Kiean/.test($2("histBody").textContent), "Results names the customer");
+  const row = $2("histBody").querySelector("tr");
+  ok(/2/.test(row.children[1].textContent) && /8/.test(row.children[2].textContent),
+     "Results row holds x and y");
+
+  $2("canOverlay").click();
+  await waitFor(() => /Know the rule/.test($2("turnLine").textContent), "after the drop: guess or pass");
+  ok($2("display").textContent === "--", "the price screen resets");
+
+  // one number per turn is enforced on the machine itself
+  const midGame = await w2.CharlieStore.getMachine("m-test01");
+  ok(midGame.turnInserted === true, "the machine remembers this turn's number was used");
+  ok($2("numIn").disabled, "the money sleeps until the turn is resolved");
 
   // wrong guess first: x+1
-  const gk = k => d2.querySelector('#guessPad button[data-k="' + k + '"]').click();
-  ["x","+","1"].forEach(gk);
-  $2("guessGo").click();
-  await waitFor(() => /Not quite/.test($2("toast").textContent), "wrong guess gets a friendly no");
-  await waitFor(() => $2("numMode").style.display !== "none", "next turn starts back on numbers");
+  $2("guessIn").value = "x+1";
+  $2("guessBtn").click();
+  await waitFor(() => /Not quite/.test($2("guessMsg").textContent), "wrong guess gets a friendly no");
+  await waitFor(() => !$2("numIn").disabled, "next turn wakes the money again");
+  ok((await w2.CharlieStore.getMachine("m-test01")).turnInserted === false,
+     "a wrong guess hands the next player a fresh turn");
   let kiean = (await w2.CharlieStore.list()).find(s => s.id === "kiean-oabel");
   ok(kiean.guesses.length === 1 && kiean.guesses[0].ok === false, "wrong attempt recorded");
 
-  // now the right one, typed with spaces: x × 3 + 2
-  $2("toGuess").click();
-  ["x"," ","*","3"," ","+","2"].forEach(gk);
-  ok(/𝑥 ×3 \+2|𝑥/.test($2("guessDisp").textContent), "guess display shows the typed rule");
-  $2("guessGo").click();
+  // now the right one, built with the insert buttons and spaces
+  $2("guessVarBtn").click();
+  ok($2("guessIn").value === "x", "the x button inserts into the guess");
+  $2("guessIn").value = "x × 3 + 2";
+  d2.querySelector("#guessIn").dispatchEvent(new w2.Event("input"));
+  ok(/𝑥/.test($2("guessPreview").innerHTML), "preview shows what I wrote");
+  $2("guessBtn").click();
   await waitFor(() => $2("winWrap").classList.contains("on"), "right guess wins — slot machine time");
   await waitFor(() => d2.querySelectorAll("#slotRow .slotwin").length === 7, "7 slot windows for 7 prizes");
+  await waitFor(() => /𝑥/.test($2("ruleBox").innerHTML), "the rule box reveals the rule at the end");
 
   const done = await w2.CharlieStore.getMachine("m-test01");
   ok(done.state === "done" && done.winner.id === "kiean-oabel", "machine records the winner");
@@ -456,6 +501,36 @@ async function testGamePlay(){
   const willow = (await w2.CharlieStore.list()).find(s => s.id === "willow-kolo");
   ok(willow.money === 10, "seller earned the 10 Whare reward");
   try{ dom2.window.close(); }catch(e){}
+
+  /* ---- a hostile emoji in the database must render as text, not HTML ---- */
+  console.log("\nalgebra.html — hostile emoji stays harmless");
+  const dom3 = await load("algebra.html", w3 => {
+    w3.CHARLIE_TEST_SESSION = { id: "jason-lin", name: "Jason" };
+  });
+  const w3 = dom3.window, d3 = dom3.window.document;
+  await waitFor(() => w3.CharlieStore, "store loads");
+  await w3.CharlieStore.init();
+  const evil = '<img src=x onerror="window.pwned=1">';
+  await w3.CharlieStore.saveMachine({
+    id:"m-evil", created: Date.now(),
+    seller:{id:"willow-kolo", name:"Willow", emoji:evil},
+    alias:"Sneaky Gecko", state:"playing", capacity:1,
+    products:["cola","chips","cookie","gummies","popcorn","phone","car"],
+    rule:[{t:"var"},{t:"op",v:"+"},{t:"num",v:"1"}], reward:3,
+    ranges:["cola","cola","cola","cola","cola","cola","cola"],
+    buyers:[{id:"jason-lin", name:"Jason", emoji:evil}],
+    history:[{b:"jason-lin", v:1, out:2, p:"cola"}],
+    turn:0, turnInserted:false, winner:null
+  });
+  dom3.window.document.getElementById("roleBuyer").click();
+  await waitFor(() => d3.querySelectorAll("#sections .sec").length === 1, "the evil shop shows in the mall");
+  ok(!d3.querySelector("#sections img"), "mall renders the emoji as text, not markup");
+  d3.querySelector("#sections .sec").click();
+  await waitFor(() => d3.getElementById("histBody").textContent.includes("Jason"), "room opens with history");
+  ok(!d3.querySelector("#histBody img") && !d3.querySelector("#playPlayers img"),
+     "results and players render the emoji as text, not markup");
+  ok(!w3.pwned, "no script ran from the hostile emoji");
+  try{ dom3.window.close(); }catch(e){}
 }
 
 async function testHub(){

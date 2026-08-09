@@ -95,11 +95,15 @@ This is a class game with play money, so the setup is deliberately simple.
   +2 for combining two). Chooses 1–3 customers; the shop appears in the mall
   under an animal alias (*Cute Rabbit*), never the real name.
 - **Customers**: join a mall section (occupancy 1/3 … full); the seller
-  starts when full. In joining order, each turn a customer drops a number in
-  on a calculator pad (physical keyboard mirrors onto the pad) and sees
-  input → output plus which mystery product falls out (products are shuffled
-  onto 7 input ranges). Then they may guess the rule — spaces and "3x"
-  shorthand both fine — or pass. Wrong guess passes the turn.
+  starts when full. The game screen is the classic **Algebra Vending
+  Machine**: the machine in the centre (rule box reads 🔒 ? ? ? until the
+  end), the money-bill input top right, and *Results so far* bottom right
+  showing **who** put **what** in and what came out. In joining order, each
+  turn a customer types a number on the money (the machine's own keypad
+  works too), the money flies onto the rule box, the machine shakes, and the
+  product grows out of the tray with its output value. Then they may guess
+  the rule — spaces and "3x" shorthand both fine — or pass. Wrong guess
+  passes the turn.
 - **Winning**: crack it by your 2nd turn → all 7 products; 3rd → 6 … 7th →
   2; later → 1. Which ones you get is a weighted draw — snacks are common,
   non-snacks half as likely, electronics rarer (car rarest) but they sell

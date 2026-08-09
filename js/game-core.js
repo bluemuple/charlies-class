@@ -54,13 +54,24 @@
   }
   function evalRule(tokens, v){
     var expr = tokens.map(function(t){
-      return t.t==='var' ? '('+v+')' : t.v;
+      if(t.t==='var') return '('+v+')';
+      if(t.t==='num') return '('+Number(t.v)+')';   // "012" means twelve, not octal
+      return t.v;
     }).join('');
     try{
       var f = new Function('return ('+expr+');');
       var out = f();
       return (typeof out==='number' && isFinite(out)) ? out : null;
     }catch(e){ return null; }
+  }
+  /* a rule must actually work for enough inputs — x ÷ 0 fails everywhere */
+  var EVAL_PTS = [0,1,2,3,5,10,-4,0.5,7.5];
+  function evaluableRule(tokens){
+    var okCount = 0;
+    for(var i=0;i<EVAL_PTS.length;i++){
+      if(evalRule(tokens, EVAL_PTS[i]) !== null) okCount++;
+    }
+    return okCount >= 3;
   }
   function ruleText(tokens){
     return tokens.map(function(t){
@@ -185,7 +196,7 @@
     MAX_PICK:MAX_PICK, MAX_NONSNACK:MAX_NONSNACK, PICK_SECONDS:PICK_SECONDS,
     OP_PRICE:OP_PRICE,
     opGlyph:opGlyph, ruleOps:ruleOps, validRule:validRule, evalRule:evalRule,
-    ruleText:ruleText, reward:reward,
+    evaluableRule:evaluableRule, ruleText:ruleText, reward:reward,
     normaliseGuess:normaliseGuess, checkGuess:checkGuess,
     rangeIndexFor:rangeIndexFor, assignRanges:assignRanges,
     prizeCount:prizeCount, pickPrizes:pickPrizes,
