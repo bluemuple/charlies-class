@@ -7,7 +7,7 @@ window.CharlieStore = (function(){
   "use strict";
 
   var cfg = window.CHARLIE_CONFIG || {};
-  var LS_KEY = 'charlies-class-v1';
+  var LS_KEY = 'charlies-class-v2';   // v2: roster switched to first names
   var CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
 
   var mode = 'local';          // 'local' | 'supabase'
