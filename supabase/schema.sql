@@ -1,18 +1,24 @@
--- Charlie's Class — Supabase schema + seed.
--- Run this once in your Supabase project: SQL Editor → paste → Run.
--- The seed codes below MUST match js/roster.js (they are the printed cards).
+-- Charlie's Class — schema + seed for a fresh Supabase project.
+-- Run once: SQL Editor → paste → Run.
+-- (An existing database from the first version should run
+--  migration-own-codes.sql instead.)
+--
+-- Secret codes are chosen by the students themselves on first login, so no
+-- code is seeded here. code_set is what the website reads — it never asks
+-- for the code column, so no browser receives the class's passwords.
 
 create table if not exists public.students (
   id         text primary key,
   name       text not null,
   gender     text not null check (gender in ('boy','girl')),
-  code       text not null unique check (code ~ '^[0-9]{4}$'),
+  code       text check (code is null or code ~ '^[0-9]{4}$'),
+  code_set   boolean generated always as (code is not null) stored,
   emoji      text not null default '',
   money      numeric not null default 0,
   created_at timestamptz not null default now()
 );
 
--- Classroom-simple access: the public anon key may read and write.
+-- Classroom-simple access: the publishable key may read and write.
 -- (Fine for a class game with play money; can be tightened later with
 -- teacher auth — see README "Security notes".)
 alter table public.students enable row level security;
@@ -35,30 +41,30 @@ exception when duplicate_object then null;
 end $$;
 
 -- Seed: the class from names.png (first names only; 15 boys, 10 girls).
-insert into public.students (id, name, gender, code) values
-  ('cj-rapata', 'CJ', 'boy', '6291'),
-  ('dipesh-kc', 'Dipesh', 'boy', '1797'),
-  ('dwayne-tulipa', 'Dwayne', 'boy', '6815'),
-  ('jason-lin', 'Jason', 'boy', '1074'),
-  ('jonas-roncales', 'Jonas', 'boy', '8788'),
-  ('joses-gan', 'Joses', 'boy', '1887'),
-  ('kiean-oabel', 'Kiean', 'boy', '7899'),
-  ('kraven-alavisi', 'Kraven', 'boy', '2565'),
-  ('kriskurt-pamint', 'Kriskurt', 'boy', '1011'),
-  ('kristoff-yu', 'Kristoff', 'boy', '7842'),
-  ('nathy-sumner', 'Nathy', 'boy', '2792'),
-  ('rj-banico', 'RJ', 'boy', '7290'),
-  ('samarjot-rehill', 'Samarjot', 'boy', '5435'),
-  ('shivansh-reddy', 'Shivansh', 'boy', '1732'),
-  ('tepono-montg', 'Tepono', 'boy', '6004'),
-  ('aleia-de-loyola', 'Aleia', 'girl', '9678'),
-  ('arabelle-cho', 'Arabelle', 'girl', '9087'),
-  ('chenlee-rizzy', 'Chenlee', 'girl', '4254'),
-  ('diwani-kc', 'Diwani', 'girl', '5732'),
-  ('jayarna-may-t', 'Jayarna-May', 'girl', '1045'),
-  ('karla-fawcett', 'Karla', 'girl', '6207'),
-  ('resalyn-vargas', 'Resalyn', 'girl', '4980'),
-  ('sam-carbonqui', 'Sam', 'girl', '8885'),
-  ('venuli-gedara', 'Venuli', 'girl', '5711'),
-  ('willow-kolo', 'Willow', 'girl', '8692')
+insert into public.students (id, name, gender) values
+  ('cj-rapata', 'CJ', 'boy'),
+  ('dipesh-kc', 'Dipesh', 'boy'),
+  ('dwayne-tulipa', 'Dwayne', 'boy'),
+  ('jason-lin', 'Jason', 'boy'),
+  ('jonas-roncales', 'Jonas', 'boy'),
+  ('joses-gan', 'Joses', 'boy'),
+  ('kiean-oabel', 'Kiean', 'boy'),
+  ('kraven-alavisi', 'Kraven', 'boy'),
+  ('kriskurt-pamint', 'Kriskurt', 'boy'),
+  ('kristoff-yu', 'Kristoff', 'boy'),
+  ('nathy-sumner', 'Nathy', 'boy'),
+  ('rj-banico', 'RJ', 'boy'),
+  ('samarjot-rehill', 'Samarjot', 'boy'),
+  ('shivansh-reddy', 'Shivansh', 'boy'),
+  ('tepono-montg', 'Tepono', 'boy'),
+  ('aleia-de-loyola', 'Aleia', 'girl'),
+  ('arabelle-cho', 'Arabelle', 'girl'),
+  ('chenlee-rizzy', 'Chenlee', 'girl'),
+  ('diwani-kc', 'Diwani', 'girl'),
+  ('jayarna-may-t', 'Jayarna-May', 'girl'),
+  ('karla-fawcett', 'Karla', 'girl'),
+  ('resalyn-vargas', 'Resalyn', 'girl'),
+  ('sam-carbonqui', 'Sam', 'girl'),
+  ('venuli-gedara', 'Venuli', 'girl'),
+  ('willow-kolo', 'Willow', 'girl')
 on conflict (id) do nothing;

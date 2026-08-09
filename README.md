@@ -4,15 +4,22 @@ A class website for Year 6/7 maths games, built to run free on **GitHub Pages**
 (static files) + **Supabase** (shared live data across the Chromebooks).
 
 - `index.html` — student entry: *Welcome to Charlie's Class* → Boys / Girls →
-  tap your name → type your 4-digit secret code. On first login the student
-  picks an **emoji avatar** (People / Animals / Plants / Gestures, with skin
-  colours for people and gestures), then lands in the hub.
+  tap your name → secret code. **Students choose their own 4-digit code** the
+  first time (type it, then type it again to confirm); after that they just
+  type it to log in. Then they pick an **emoji avatar** (People / Animals /
+  Plants / Gestures, with skin colours for people and gestures) and land in
+  the hub.
+
+  No browser is ever sent the class's codes: the site reads a `code_set`
+  true/false flag and never the `code` column itself. A forgotten code is
+  cleared by the teacher (admin 🔑), not looked up.
 - `hub.html` — game hub: name + emoji top-right opens **My room** (money in
   Whare, stuff won in games, Pet Shop placeholder, change-emoji, log out).
   The Algebra Machine card sits here, marked *coming very soon*.
 - `admin.html` — **teacher admin**: roster split into boys and girls, add /
-  edit / remove students, each student's unique 4-digit code and money (Whare),
-  and a button that prints A4 login cards (10 per page).
+  edit / remove students, whether each student has chosen a code yet, their
+  money (Whare), a 🔑 button that clears a forgotten code, and a button that
+  prints A4 welcome cards (10 per page).
 - `js/` — `config.js` (your Supabase keys), `roster.js` (seed class list),
   `store.js` (one data layer used by every page), `emoji.js` (avatar picker).
 - `supabase/schema.sql` — run once in Supabase to create + seed the database.
@@ -44,12 +51,12 @@ Blank out both values in `js/config.js` and the site runs entirely in the
 browser (seeded from `js/roster.js`), which is handy offline. The header badge
 always says which mode you are in: *Live — Supabase* or *Local demo*.
 
-## The printed login cards
+## The printed welcome cards
 
-*Print login cards* lays out one card per student (boys first, then girls) on
-A4, two columns × five rows = 10 per page, with dashed cut lines. Codes print
-even while they are hidden on screen. If you regenerate a student's code,
-reprint their card.
+*Print welcome cards* lays out one card per student (boys first, then girls)
+on A4, two columns × five rows = 10 per page, with dashed cut lines. Each card
+carries the student's name, `harufocus.com`, and the three steps for making
+their own code. **No codes are printed** — there are none to print.
 
 ## Things to check in the roster
 
@@ -67,12 +74,17 @@ node test.js
 
 ## Security notes (plain honesty)
 
-This is a class game with play money, so the setup is deliberately simple:
-the public anon key may read and write the `students` table, and a determined
-student with DevTools could read codes. If that ever matters, the upgrade path
-is Supabase email auth for the teacher + row-level-security policies that hide
-`code` from anonymous readers. The 4-digit codes stop casual name-borrowing,
-which is all they need to do.
+This is a class game with play money, so the setup is deliberately simple.
+
+- The site never downloads the `code` column — only `code_set` — so a student
+  poking at DevTools on the name screen does **not** see everyone's codes.
+- But the publishable key can still write to the table, and someone determined
+  could query `code` directly. So: tell the class to pick a code they use
+  **nowhere else**. It guards a snack game, not a bank.
+- `admin.html` is a public URL. Anyone who guesses it can reset codes, edit
+  money, or remove students. Fixing that properly means Supabase teacher
+  login + policies that only let the teacher write — worth doing before the
+  address is widely known.
 
 ## Roadmap (planned pages)
 

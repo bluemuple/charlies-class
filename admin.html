@@ -35,8 +35,6 @@
     background:var(--teal); color:#fff; transition:.15s;
   }
   .head-actions button:hover{background:var(--teal-dark);}
-  .head-actions button.plain{background:#fff; color:var(--teal-dark); border:2px solid #cfe3df;}
-  .head-actions button.plain:hover{background:#eef7f5;}
 
   main{padding:8px 26px 40px; max-width:1200px; margin:0 auto;}
   .card{
@@ -76,10 +74,11 @@
   .row .avatar{font-size:24px; width:32px; text-align:center;}
   .row .name{flex:1; font-weight:600; font-size:15.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .row .code{
-    font-family:"Menlo","Consolas",monospace; font-weight:700; font-size:15px;
-    background:var(--cream); border:1.5px solid #ead9a8; border-radius:8px;
-    padding:3px 9px; letter-spacing:2px; color:#6b5c00; min-width:74px; text-align:center;
+    font-size:12.5px; font-weight:700; border-radius:8px;
+    padding:4px 10px; white-space:nowrap;
+    background:#eef7f5; border:1.5px solid #cfe3df; color:#4c6b66;
   }
+  .row .code.unset{background:#fffbe6; border-color:#f0d36b; color:#8a6d00;}
   .row .money{
     font-size:13.5px; font-weight:700; color:var(--teal-dark);
     background:#e3f4f0; border-radius:8px; padding:4px 9px; white-space:nowrap;
@@ -90,6 +89,7 @@
     opacity:.65; transition:.12s;
   }
   .row .acts button:hover{opacity:1; background:#eef7f5; transform:scale(1.12);}
+  .row .acts button[disabled]{opacity:.2; cursor:default; transform:none; background:none;}
   .empty{color:#a5b8b4; font-size:13.5px; padding:14px 6px;}
 
   .note{font-size:12px; color:#8aa19c; margin-top:4px; line-height:1.5;}
@@ -133,7 +133,7 @@
     box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
   }
 
-  /* ---------- print: A4 login cards, 10 per page ---------- */
+  /* ---------- print: A4 welcome cards, 10 per page ---------- */
   #printSheet{display:none;}
   @media print{
     @page{size:A4 portrait; margin:10mm;}
@@ -146,14 +146,13 @@
       break-inside:avoid; page-break-inside:avoid; overflow:hidden;
     }
     .pcard .tag{font-size:9pt; font-weight:700; color:#2e7d74; letter-spacing:.5px;}
-    .pcard .pname{font-size:17pt; font-weight:800; color:#22333b; line-height:1.15;}
-    .pcard .plabel{font-size:8.5pt; color:#7a8f8b; text-transform:uppercase; letter-spacing:1px;}
-    .pcard .pcode{
-      font-family:"Menlo","Consolas",monospace; font-size:23pt; font-weight:800;
-      letter-spacing:.35em; color:#1f5a54;
+    .pcard .pname{font-size:19pt; font-weight:800; color:#22333b; line-height:1.15;}
+    .pcard .psite{font-size:12pt; font-weight:800; color:#1f5a54; letter-spacing:.3px;}
+    .pcard .psteps{font-size:8.5pt; color:#4c6b66; line-height:1.45;}
+    .pcard .pbox{
+      border:1px solid #cfe3df; border-radius:2mm; padding:1.5mm 3mm;
+      font-size:8.5pt; color:#7a8f8b;
     }
-    .pcard .prow{display:flex; align-items:flex-end; justify-content:space-between;}
-    .pcard .scissors{font-size:9pt; color:#9bb5b0;}
   }
 </style>
 </head>
@@ -165,8 +164,7 @@
   <h1>🏫 Charlie's Class — Teacher Admin</h1>
   <span id="modeBadge">💾 Local demo</span>
   <div class="head-actions">
-    <button id="codesBtn" class="plain">👁 Show codes</button>
-    <button id="printBtn">🖨 Print login cards</button>
+    <button id="printBtn">🖨 Print welcome cards</button>
   </div>
 </header>
 
@@ -181,9 +179,11 @@
       </div>
       <button id="addBtn">＋ Add student</button>
     </div>
-    <p class="note">Students go by first name only. Every student gets a unique
-    4-digit secret code automatically. Use ✏️ to fix a name or move someone to
-    the other group, ↻ for a fresh code, and 🖨 to print the login cards.</p>
+    <p class="note">Students go by first name only and <b>choose their own 4-digit
+    secret code</b> the first time they log in — nobody else ever sees it, not even
+    this page. Use ✏️ to fix a name, move someone to the other group or adjust
+    their money, 🔑 to clear a forgotten code so they can set a new one, and 🖨 to
+    print welcome cards for the first lesson.</p>
   </section>
 
   <div class="cols">
@@ -219,7 +219,7 @@
 </div>
 
 <div id="printSheet"></div>
-<div id="brand">Charlie Company</div>
+<div id="brand">Wharenui School</div>
 
 <script src="js/config.js"></script>
 <script src="js/roster.js"></script>
@@ -231,7 +231,6 @@
   function $(id){ return document.getElementById(id); }
 
   var students = [];
-  var codesShown = false;
   var addGender = 'boy';
   var editingId = null;
 
@@ -242,7 +241,7 @@
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 3000);
   }
 
   function esc(s){
@@ -253,15 +252,17 @@
 
   /* ---------------- roster rendering ---------------- */
   function rowHtml(s){
-    var code = codesShown ? esc(s.code) : '••••';
+    var code = s.codeSet
+      ? '<span class="code" title="This student has set their own secret code">🔒 Code set</span>'
+      : '<span class="code unset" title="They will choose a code next time they log in">✨ No code yet</span>';
     return '<div class="row" data-id="'+esc(s.id)+'">'
       + '<span class="avatar">'+avatar(s)+'</span>'
       + '<span class="name">'+esc(s.name)+'</span>'
-      + '<span class="code" title="Secret code">'+code+'</span>'
+      + code
       + '<span class="money" title="Money">💰 '+esc(money(s))+'</span>'
       + '<span class="acts">'
       +   '<button data-act="edit" title="Edit name, group or money">✏️</button>'
-      +   '<button data-act="code" title="Give a new secret code">↻</button>'
+      +   '<button data-act="code" title="Reset the secret code"'+(s.codeSet ? '' : ' disabled')+'>🔑</button>'
       +   '<button data-act="del" title="Remove this student">🗑</button>'
       + '</span>'
       + '</div>';
@@ -297,7 +298,7 @@
     store.add(name, addGender).then(function(s){
       $('addName').value = '';
       refresh();
-      toast('✅ '+s.name+' added — secret code '+s.code);
+      toast('✅ '+s.name+' added — they pick their own code when they first log in.');
     }).catch(function(){ toast('Hmm, that didn\'t save — check the connection.'); });
   }
   $('addBtn').addEventListener('click', addStudent);
@@ -307,7 +308,7 @@
 
   /* ---------------- row actions ---------------- */
   document.querySelector('main').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-act]'); if(!b) return;
+    var b = e.target.closest('button[data-act]'); if(!b || b.disabled) return;
     var row = b.closest('.row');
     var id = row && row.dataset.id;
     var s = students.filter(function(x){ return x.id === id; })[0];
@@ -315,10 +316,11 @@
 
     if(b.dataset.act === 'edit') openDlg(s);
     else if(b.dataset.act === 'code'){
-      store.regenerateCode(id).then(function(code){
+      if(!window.confirm('Clear ' + s.name + '\'s secret code?\n\nThey will make up a new one next time they log in.')) return;
+      store.resetCode(id).then(function(){
         refresh();
-        toast('↻ '+s.name+'\'s new secret code is '+code+' — reprint their card!');
-      });
+        toast('🔑 '+s.name+' can set a new code at their next login.');
+      }).catch(function(){ toast('That didn\'t save — check the connection.'); });
     }
     else if(b.dataset.act === 'del'){
       if(!window.confirm('Remove '+s.name+' from the class? Their money and code are deleted too.')) return;
@@ -362,23 +364,15 @@
     });
   });
 
-  /* ---------------- show / hide codes ---------------- */
-  $('codesBtn').addEventListener('click', function(){
-    codesShown = !codesShown;
-    $('codesBtn').textContent = codesShown ? '🙈 Hide codes' : '👁 Show codes';
-    render();
-  });
-
-  /* ---------------- print login cards ---------------- */
+  /* ---------------- print welcome cards ---------------- */
   function cardHtml(s){
     return '<div class="pcard">'
       + '<div class="tag">🏫 Charlie\'s Class</div>'
       + '<div class="pname">'+esc(s.name)+'</div>'
-      + '<div class="prow">'
-      +   '<div><div class="plabel">My secret code</div>'
-      +   '<div class="pcode">'+esc(s.code)+'</div></div>'
-      +   '<div class="scissors">✂️ keep me secret!</div>'
-      + '</div>'
+      + '<div class="psite">harufocus.com</div>'
+      + '<div class="psteps">1. Tap <b>Boys</b> or <b>Girls</b> &nbsp;2. Tap your name<br>'
+      +   '3. Make up your own <b>4-digit secret code</b></div>'
+      + '<div class="pbox">My code is a secret — I will remember it! ✂️</div>'
       + '</div>';
   }
   $('printBtn').addEventListener('click', function(){
