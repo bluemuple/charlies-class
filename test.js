@@ -869,18 +869,37 @@ async function testAlZebra(){
   ok(m1.claimed && (await w2.CharlieStore.getMachine("m-zoo1")).claimed["kiean-oabel"] === true,
      "the claim is marked so it can't double-pay");
 
-  // play again with the same group: sign up, get elected, off to build
+  // play again with the same group — and the follow must survive wandering:
+  // press, drift back to the zoo list, and still get pulled into the new pen
   ok(!!$2("rematchBtn"), "the results screen offers a rematch");
   $2("rematchBtn").click();
   await waitFor(async () => {
     const m = await w2.CharlieStore.getMachine("m-zoo1");
     return m.rematch && m.rematch.ids.indexOf("kiean-oabel") !== -1;
   }, "pressing it signs me into the rematch group", 5000);
+  $2("backBtn").click();                        // wander off to the zoo list
+  await waitFor(() => $2("scrZoo").classList.contains("on"), "the tourist drifts to the zoo");
+  // the keeper (elsewhere) rebuilds: a fresh pen appears and the old one points at it
+  await w2.CharlieStore.saveMachine({
+    id:"m-zoo2", type:"zebra", created:Date.now(), alias:"Snowy Fox",
+    seller:{id:"willow-kolo", name:"Willow", emoji:"🐰"}, state:"open", capacity:1,
+    products:["cookie","cola","chips","gummies","popcorn","phone","car"],
+    pool:["cookie","cola","chips","gummies","popcorn","phone","car"],
+    prizeQ:["cookie","cola","chips","gummies","popcorn","phone"],
+    rule:[{t:"var"},{t:"op",v:"+"},{t:"num",v:"2"}], reward:3, limit:18,
+    probs:[1,1,2,2,3,3], prob:0, probStartAt:0,
+    buyers:[], history:[], winner:null, claimed:{}
+  });
   const mRe = await w2.CharlieStore.getMachine("m-zoo1");
-  mRe.rematch.sellerId = "kiean-oabel";        // the group picks me as the new keeper
+  mRe.rematch.sellerId = "willow-kolo";
+  mRe.rematch.newId = "m-zoo2";
   await w2.CharlieStore.saveMachine(mRe);
-  await waitFor(() => $2("scrStock").classList.contains("on"),
-     "the chosen keeper goes off to build the new pen", 8000);
+  await waitFor(() => $2("scrZWait").classList.contains("on"),
+     "the watcher pulls the wanderer into the new pen's waiting room", 10000);
+  await waitFor(async () => {
+    const m2 = await w2.CharlieStore.getMachine("m-zoo2");
+    return m2.buyers.length === 1 && m2.buyers[0].id === "kiean-oabel";
+  }, "and they are seated as the tourist", 5000);
   try{ dom2.window.close(); }catch(e){}
 }
 

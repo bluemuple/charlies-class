@@ -156,10 +156,10 @@
   #splash.r-good{color:#4fd6c2;} #splash.r-nice{color:#7db9ff;} #splash.r-oops{color:#ff6b6b;}
   /* the prize popping out of the zebra's behind */
   /* the output leaves from behind the zebra: silhouette → real prize 💩 */
-  #poop{position:absolute; left:79%; top:48%; width:13%; z-index:4; pointer-events:none;
+  #poop{position:absolute; left:71%; top:44%; width:19.5%; z-index:4; pointer-events:none;
         transition:opacity .6s;}
   #poop.faded{opacity:0;}
-  #poop .sprite{filter:brightness(0) opacity(.45); transition:filter .45s;}
+  #poop .sprite{filter:brightness(0); transition:filter .45s;}
   #poop.reveal .sprite{filter:none;}
   #poopNum{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -168,7 +168,9 @@
     z-index:2;
   }
   /* six problem dots: ✓ green, ✗ red, current pulsing */
-  #probDots{display:flex; gap:12px; justify-content:center; align-items:center; margin:10px 0 6px; min-height:30px;}
+  #probDots{display:flex; gap:12px; justify-content:center; align-items:flex-start; margin:10px 0 6px; min-height:46px;}
+  #probDots .dotcol{display:flex; flex-direction:column; align-items:center; gap:2px;}
+  #probDots .dotem{font-size:13px; line-height:1;}
   #probDots .dot{
     width:26px; height:26px; border-radius:50%; border:3px solid #b9cdc9;
     display:flex; align-items:center; justify-content:center;
@@ -182,7 +184,7 @@
   @keyframes dotland{0%{transform:scale(1.9);} 100%{transform:scale(1);}}
   /* the current-turn tick on a player chip */
   .pl .tick{color:#2a9d34; font-weight:800; font-size:16px; margin-left:4px;}
-  #prizeFly{position:absolute; left:79%; top:48%; width:13%; z-index:5; opacity:0; pointer-events:none;}
+  #prizeFly{position:absolute; left:71%; top:44%; width:19.5%; z-index:5; opacity:0; pointer-events:none;}
   #prizeFly.show{opacity:1; transition:opacity .35s;}
   #prizeFly.gone{opacity:0;}
 
@@ -1200,7 +1202,9 @@
       if(h){ cls += h.ok ? ' yes' : ' no'; mark = h.ok ? '✓' : '✗'; }
       else if(i === m.prob && m.state === 'playing') cls += ' cur';
       if(h && i === m.history.length - 1 && m.history.length > dotsSeen) cls += ' pop';
-      html += '<span class="' + cls + '">' + mark + '</span>';
+      var p = playerFor(m, i);
+      html += '<span class="dotcol"><span class="' + cls + '">' + mark + '</span>'
+            + '<span class="dotem">' + esc((p && p.emoji) || '🙂') + '</span></span>';
     }
     dotsSeen = m.history.length;
     $('probDots').innerHTML = html;
@@ -1431,18 +1435,17 @@
       setTimeout(wrapUp, DUR.sad);
     }
     function flyPrizeTo(hh){
-      var plate = document.querySelector('#gamePlayers .pl[data-pid="'+hh.b+'"]');
+      /* the prize floats straight up and out — the picture frame clips it,
+         so it vanishes exactly at the zebra scene's edge */
       var pf = $('prizeFly');
-      if(plate && pf.getBoundingClientRect().width > 0){
-        var a = pf.getBoundingClientRect(), b = plate.getBoundingClientRect();
-        try{
-          pf.animate([
-            { transform:'translate(0,0) scale(1)' },
-            { transform:'translate('+(b.left+b.width/2-(a.left+a.width/2))+'px,'
-                        +(b.top+b.height/2-(a.top+a.height/2))+'px) scale(.25)' }
-          ], {duration:DUR.prizeFly, easing:'cubic-bezier(.4,.1,.4,1)'});
-        }catch(e){}
-      }
+      var stage = $('stageGame');
+      var rise = stage.getBoundingClientRect().height || 400;
+      try{
+        pf.animate([
+          { transform:'translate(0,0) scale(1)' },
+          { transform:'translate(0,-' + Math.round(rise * .75) + 'px) scale(.85)' }
+        ], {duration:DUR.prizeFly, easing:'cubic-bezier(.3,.2,.5,1)'});
+      }catch(e){}
       setTimeout(function(){
         pf.classList.add('gone'); pf.classList.remove('show');
         wrapUp();
@@ -1472,6 +1475,7 @@
 
   /* ---------------- final screen + self-payout ---------------- */
   function showDone(m){
+    renderZHist(m);   /* the final screen carries the little results table */
     if(doneShown) { claimIfMine(m); tickRematch(m); return; }
     doneShown = true;
     var sc = scoresOf(m);
@@ -1525,6 +1529,19 @@
      short grace. The chosen one builds a new pen; everyone else follows the
      newId written back onto the finished pen. */
   var rematchOn = false, rematchPressAt = 0, rematchPend = null, rematchFollowed = false;
+  /* the watcher follows the OLD pen by id, independent of whatever screen
+     the presser wanders to — Back to the zoo must not orphan the group */
+  var rematchOldId = null, rematchWatch = null;
+  function startRematchWatch(){
+    clearInterval(rematchWatch);
+    rematchWatch = setInterval(function(){
+      if(!rematchOn || !rematchOldId){ clearInterval(rematchWatch); return; }
+      store.getMachine(rematchOldId).then(function(m){ if(m) tickRematch(m); }).catch(function(){});
+    }, 2500);
+  }
+  function stopRematchWatch(){
+    clearInterval(rematchWatch); rematchWatch = null; rematchOldId = null;
+  }
   $('rematchBtn').addEventListener('click', function(){ pressRematch(0); });
   function pressRematch(attempt){
     var id = penId; if(!id) return;
@@ -1541,6 +1558,8 @@
             toast('Could not sign up — try once more!'); return;
           }
           rematchOn = true; rematchPressAt = Date.now();
+          rematchOldId = id;
+          startRematchWatch();
           $('rematchBtn').disabled = true;
           tickRematch(m2);
         });
@@ -1569,12 +1588,13 @@
       if(rm.sellerId !== me.id && !rematchFollowed){
         rematchFollowed = true;
         rematchOn = false;
+        stopRematchWatch();
         joinPen(rm.newId, 0);
       }
       return;
     }
     if(rm.sellerId){
-      if(rm.sellerId === me.id){ startRematchBuild(m); }
+      if(rm.sellerId === me.id){ stopRematchWatch(); startRematchBuild(m); }
       else $('rematchLine').textContent = '🛠 ' + nameIn(m, rm.sellerId) + ' is building the new pen…';
       return;
     }
@@ -1585,6 +1605,7 @@
     });
     if(allGone){
       rematchOn = false;
+      stopRematchWatch();
       $('rematchLine').textContent = '💨 Looks like your race buddy had to head off — it happens! '
         + 'You were great. Race again whenever you like. 💙';
       return;

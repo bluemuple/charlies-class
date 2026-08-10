@@ -1361,6 +1361,19 @@
      short grace. The chosen one builds a new shop; everyone else follows the
      newId written back onto the finished machine. */
   var rematchOn = false, rematchPressAt = 0, rematchPend = null, rematchFollowed = false;
+  /* the watcher follows the OLD machine by id, whatever screen the presser
+     wanders to — the mall must not orphan the rematch group */
+  var rematchOldId = null, rematchWatch = null;
+  function startRematchWatch(){
+    clearInterval(rematchWatch);
+    rematchWatch = setInterval(function(){
+      if(!rematchOn || !rematchOldId){ clearInterval(rematchWatch); return; }
+      store.getMachine(rematchOldId).then(function(m){ if(m) tickRematch(m); }).catch(function(){});
+    }, 2500);
+  }
+  function stopRematchWatch(){
+    clearInterval(rematchWatch); rematchWatch = null; rematchOldId = null;
+  }
   function rematchEls(){
     return role === 'seller'
       ? {btn:$('rematchBtnS'), line:$('rematchLineS')}
@@ -1384,6 +1397,8 @@
             toast('Could not sign up — try once more!'); return;
           }
           rematchOn = true; rematchPressAt = Date.now();
+          rematchOldId = id;
+          startRematchWatch();
           rematchEls().btn.disabled = true;
           tickRematch(m2);
         });
@@ -1406,12 +1421,13 @@
       if(rm.sellerId !== me.id && !rematchFollowed){
         rematchFollowed = true;
         rematchOn = false;
+        stopRematchWatch();
         joinMachine(rm.newId);
       }
       return;
     }
     if(rm.sellerId){
-      if(rm.sellerId === me.id){ startRematchBuild(m); }
+      if(rm.sellerId === me.id){ stopRematchWatch(); startRematchBuild(m); }
       else els.line.textContent = '🛠 ' + nameIn(m, rm.sellerId) + ' is building the new shop…';
       return;
     }
@@ -1422,6 +1438,7 @@
     });
     if(allGone){
       rematchOn = false;
+      stopRematchWatch();
       els.line.textContent = '💨 Looks like the others had to head off — it happens! '
         + 'You were great. Back for a new game whenever you like. 💙';
       return;
@@ -1523,7 +1540,7 @@
   function goToMall(){
     markLeft();
     cancelRound();
-    resetRematchUI();
+    if(!rematchOn) resetRematchUI();   /* pressers keep their follow alive */
     machineId = null; role = 'buyer';
     winShown = false;
     show('scrMall');
