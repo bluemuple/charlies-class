@@ -182,8 +182,12 @@
   #probDots .dot.pop{animation:dotland .5s cubic-bezier(.2,1.6,.4,1);}
   @keyframes dotpulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.18);}}
   @keyframes dotland{0%{transform:scale(1.9);} 100%{transform:scale(1);}}
-  /* the current-turn tick on a player chip */
-  .pl .tick{color:#2a9d34; font-weight:800; font-size:16px; margin-left:4px;}
+  /* player rows: tick on the left, chip, then the night's loot stacking right */
+  #gamePlayers{flex-direction:column; align-items:flex-start; gap:6px;}
+  .plrow{display:flex; align-items:center; gap:6px; width:100%;}
+  .plrow .tick{width:18px; flex:none; text-align:center; color:#2a9d34; font-weight:800; font-size:16px;}
+  .plrow .haul-mini{display:flex; gap:3px; flex-wrap:wrap; align-items:center;}
+  .plrow .haul-mini .sprite{width:22px; border-radius:5px;}
   #prizeFly{position:absolute; left:71%; top:44%; width:19.5%; z-index:5; opacity:0; pointer-events:none;}
   #prizeFly.show{opacity:1; transition:opacity .35s;}
   #prizeFly.gone{opacity:0;}
@@ -1153,10 +1157,16 @@
     $('gamePlayers').innerHTML = players(m).map(function(p, i){
       if(!p) return '';
       var now = m.state==='playing' && m.prob < 6 && (m.prob % 2) === i;
-      return '<span class="pl'+(now?' now':'')+'" data-pid="'+esc(p.id)+'">'
-        + '<span class="em">'+esc(p.emoji||'🙂')+'</span>'+esc(dispName(m, p, m.state==='done'))
-        + ' <span class="sc">'+(sc[p.id]||0)+' pts</span>'
-        + (now ? '<span class="tick">✔</span>' : '')
+      var haul = m.history.filter(function(h){ return h.b === p.id && h.item; });
+      return '<span class="plrow">'
+        + '<span class="tick">' + (now ? '✔' : '') + '</span>'
+        + '<span class="pl'+(now?' now':'')+'" data-pid="'+esc(p.id)+'">'
+        +   '<span class="em">'+esc(p.emoji||'🙂')+'</span>'+esc(dispName(m, p, m.state==='done'))
+        +   ' <span class="sc">'+(sc[p.id]||0)+' pts</span>'
+        + '</span>'
+        + '<span class="haul-mini">' + haul.map(function(h){
+            return '<span class="mini">'+spriteDiv(h.item)+'</span>';
+          }).join('') + '</span>'
         + '</span>';
     }).join('');
     $('zRuleGame').innerHTML = '<span>' + prettyRule(m.rule) + '</span>';
@@ -1435,17 +1445,20 @@
       setTimeout(wrapUp, DUR.sad);
     }
     function flyPrizeTo(hh){
-      /* the prize floats straight up and out — the picture frame clips it,
-         so it vanishes exactly at the zebra scene's edge */
+      /* the prize heads for the scorer's name box; the scene's frame clips
+         it on the way out, then it reappears in their little haul row */
+      var plate = document.querySelector('#gamePlayers .pl[data-pid="'+hh.b+'"]');
       var pf = $('prizeFly');
-      var stage = $('stageGame');
-      var rise = stage.getBoundingClientRect().height || 400;
-      try{
-        pf.animate([
-          { transform:'translate(0,0) scale(1)' },
-          { transform:'translate(0,-' + Math.round(rise * .75) + 'px) scale(.85)' }
-        ], {duration:DUR.prizeFly, easing:'cubic-bezier(.3,.2,.5,1)'});
-      }catch(e){}
+      if(plate && pf.getBoundingClientRect().width > 0){
+        var a = pf.getBoundingClientRect(), b = plate.getBoundingClientRect();
+        try{
+          pf.animate([
+            { transform:'translate(0,0) scale(1)' },
+            { transform:'translate('+(b.left+b.width/2-(a.left+a.width/2))+'px,'
+                        +(b.top+b.height/2-(a.top+a.height/2))+'px) scale(.25)' }
+          ], {duration:DUR.prizeFly, easing:'cubic-bezier(.4,.1,.4,1)'});
+        }catch(e){}
+      }
       setTimeout(function(){
         pf.classList.add('gone'); pf.classList.remove('show');
         wrapUp();
