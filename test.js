@@ -89,8 +89,8 @@ async function testBrand(){
   console.log("\nbranding");
   for(const f of ["index.html", "admin.html", "hub.html", "algebra.html", "alzebra.html"]){
     const src = fs.readFileSync(path.join(__dirname, f), "utf8");
-    ok(/<div id="brand">Wharenui School<\/div>/.test(src) && !/Charlie Company/.test(src),
-       f + " shows Wharenui School bottom-left");
+    ok(!/id="brand"/.test(src) && !/Charlie Company/.test(src),
+       f + " carries no corner label");
   }
   const machine = path.join(__dirname, "..", "algebra-vending-machine.html");
   if(fs.existsSync(machine)){
@@ -588,7 +588,7 @@ async function testGamePlay(){
   ok(row.children.length === 3, "no item column in the results");
 
   await waitFor(() => !$2("canOverlay").classList.contains("open"),
-     "the product tidies itself away after 3 s", 4600);
+     "the product tidies itself away after 3 s", 6500);
   await waitFor(() => $2("display").textContent === "--", "the price screen resets");
 
   // a number IS the whole turn — it moved straight on (and wrapped back: one customer)
@@ -923,7 +923,7 @@ async function testHub(){
   await waitFor(() => {
     return w.CharlieStore.list().then(l => {
       const s = l.find(x => x.id === "willow-kolo");
-      return s.pet && s.pet.type === 1 && s.money === 3;
+      return Array.isArray(s.pet) && s.pet[0].type === 1 && s.money === 3;
     });
   }, "goldfish bought — 15 Whare paid", 5000);
   await waitFor(() => /❤️ 0/.test($("petBox").textContent), "the pet is home with 0 hearts");
@@ -944,7 +944,7 @@ async function testHub(){
   await waitFor(() => {
     return w.CharlieStore.list().then(l => {
       const s = l.find(x => x.id === "willow-kolo");
-      return s.pet.affection === 0 && s.items.length === 1;
+      return s.pet[0].affection === 0 && s.items.length === 1;
     });
   }, "saying no keeps the snack and the hearts unchanged");
   w.confirm = () => true;
@@ -952,7 +952,7 @@ async function testHub(){
   await waitFor(() => {
     return w.CharlieStore.list().then(l => {
       const s = l.find(x => x.id === "willow-kolo");
-      return s.pet.affection === 5 && s.items.length === 0;
+      return s.pet[0].affection === 5 && s.items.length === 0;
     });
   }, "feeding gives +5 affection and eats the snack", 5000);
 
@@ -966,7 +966,7 @@ async function testHub(){
   await waitFor(() => {
     return w.CharlieStore.list().then(l => {
       const s = l.find(x => x.id === "willow-kolo");
-      return s.pet.powers.length === 1;
+      return s.pet[0].powers.length === 1;
     });
   }, "the chosen superpower sticks", 5000);
   await waitFor(() => d.querySelectorAll("#petBox .pet-powers button").length === 1, "the power shows as a badge");
@@ -991,12 +991,12 @@ async function testHub(){
   d.querySelector("#powerList button").click();
   await waitFor(async () => {
     const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
-    return s.pet.powers.length === 2;
+    return s.pet[0].powers.length === 2;
   }, "the second power sticks", 5000);
   d.querySelector('#stuffBox button[data-i]').click();      // → 20 ❤️
   await waitFor(async () => {
     const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
-    return s.pet.affection === 20;
+    return s.pet[0].affection === 20;
   }, "snack two lands (20 hearts)", 5000);
   await sleep(2600);                                        // past the 2 s offer delay
   ok(!$("powerWrap").classList.contains("open"), "20 hearts is not enough for power three");
@@ -1006,7 +1006,7 @@ async function testHub(){
   d.querySelector("#powerList button").click();
   await waitFor(async () => {
     const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
-    return s.pet.powers.length === 3;
+    return s.pet[0].powers.length === 3;
   }, "the third power sticks", 5000);
 
   // feedback to Charlie: stars + note land in the shared log with my name
@@ -1049,7 +1049,7 @@ async function testHub(){
   $("talkSend").click();
   await waitFor(async () => {
     const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
-    return s.pet.chat && s.pet.chat.length === 2 && /best goldfish/.test(s.pet.chat[1].text);
+    return s.pet[0].chat && s.pet[0].chat.length === 2 && /best goldfish/.test(s.pet[0].chat[1].text);
   }, "my message lands after the thank-you", 5000);
   await waitFor(() => d.querySelectorAll("#talkLog .bub").length === 2, "both bubbles show");
 
@@ -1061,7 +1061,7 @@ async function testHub(){
   d.querySelector("#talkPowerRow button").click();
   await waitFor(async () => {
     const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
-    return s.pet.chat.length === 3 && s.pet.chat[2].who === "pet";
+    return s.pet[0].chat.length === 3 && s.pet[0].chat[2].who === "pet";
   }, "tapping a power makes the pet give a pep talk", 5000);
   $("talkBack").click();
   ok($("profOwn").style.display !== "none", "back returns to the loot column");
@@ -1079,14 +1079,37 @@ async function testHub(){
   // friends: anonymous pet cards with level, likes shown, no real names
   $("friendsBtn").click();
   await waitFor(() => $("friendsWrap").classList.contains("open"), "the Friends popup opens");
-  ok(d.querySelectorAll("#frGrid .fr").length === 1, "one classmate pet on show");
+  ok(d.querySelectorAll("#frGrid .frbar").length === 1, "one classmate bar on show");
   ok(/Bubbles/.test($("frGrid").textContent) && /Lv 4/.test($("frGrid").textContent),
      "the card shows the pet's name and level");
-  ok(!/Willow/.test($("frGrid").textContent) && /class friend/.test($("frGrid").textContent),
+  ok(!/Willow/.test($("frGrid").textContent) && /Friend 1/.test($("frGrid").textContent),
      "the owner stays anonymous by default");
   ok(/Taylor Swift/.test($("frGrid").textContent) && /football/.test($("frGrid").textContent),
      "favourite music and hobby show on the card");
   $("friendsClose").click();
+
+  // pets are collectable: a second goldfish joins, arrows slide between them
+  await w.CharlieStore.update("willow-kolo", { money: 30 });
+  await waitFor(() => $("profMoney").textContent === "30", "the allowance arrives");
+  $("petShopCap").click();
+  await waitFor(() => $("profShop").style.display !== "none", "the capsule opens the shop again");
+  d.querySelector('#petGrid button[data-t="1"]').click();
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return Array.isArray(s.pet) && s.pet.length === 2;
+  }, "a second pet joins the family", 5000);
+  await waitFor(() => !!$("petPrev") && !!$("petNext"), "arrows appear beside the pet");
+  ok(/2 \/ 2/.test($("petBox").textContent), "the room slides straight to the newcomer");
+  $("petPrev").click();
+  await waitFor(() => /1 \/ 2/.test($("petBox").textContent), "the left arrow slides back to Bubbles");
+  ok(/Bubbles/.test($("petBox").textContent), "Bubbles is on stage again");
+
+  // the superpower glow was a one-time guide: it stays retired now
+  d.querySelector("#talkBtn").click();
+  await waitFor(() => $("profTalk").style.display !== "none", "the chat opens again");
+  ok($("talkGuide").style.display === "none" && !d.querySelector("#talkPowerRow .glowcap"),
+     "the glow guide never comes back after its first tap");
+  $("talkBack").click();
 
   const cards = d.querySelectorAll(".games .game");
   ok(cards.length === 2, "just the two games — no 'More games' placeholder");

@@ -144,6 +144,13 @@
   .pet-love{font-size:16px; font-weight:800; color:var(--accent); flex:1; text-align:left;}
   .pet-name{font-size:16px; font-weight:800; color:var(--teal-dark);}
   .pet-lv2{flex:1; text-align:right; font-size:13px; font-weight:800;}
+  .pet-slider{display:flex; align-items:center; gap:6px; justify-content:center;}
+  .pet-arrow{
+    border:0; background:#e3f4f0; color:var(--teal-dark); border-radius:12px;
+    font-size:26px; font-weight:800; padding:14px 10px; line-height:1; cursor:pointer;
+  }
+  .pet-arrow:hover{background:var(--teal); color:#fff;}
+  .pet-count{text-align:center; font-size:12px; font-weight:800; color:#8aa19c; margin-top:4px;}
   .pet-lv2 span{background:var(--teal); color:#fff; border-radius:12px; padding:2px 9px;}
   .pet-name button{border:0; background:none; font-size:15px; opacity:.6; padding:2px 4px;}
   .pet-name button:hover{opacity:1; transform:scale(1.15);}
@@ -221,10 +228,10 @@
   #talkClose{border:0; background:none; color:#8aa19c; font-size:13px; font-weight:700; margin:8px auto 0; display:block;}
   /* friends */
   #friendsBtn{
-    position:fixed; right:16px; top:50%; transform:translateY(-50%); z-index:30;
+    position:fixed; left:16px; bottom:16px; z-index:30;
     border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
-    border-radius:14px; padding:12px 14px; font-size:14px; font-weight:800;
-    box-shadow:0 4px 12px rgba(31,90,84,.18); writing-mode:horizontal-tb;
+    border-radius:14px; padding:12px 16px; font-size:14px; font-weight:800;
+    box-shadow:0 4px 12px rgba(31,90,84,.18);
   }
   #friendsBtn:hover{background:var(--cream);}
   #friendsWrap{
@@ -237,19 +244,26 @@
     padding:18px 22px; box-shadow:0 14px 40px rgba(0,0,0,.35); overflow-y:auto;
   }
   #friendsCard h3{color:var(--teal-dark); font-size:18px; text-align:center; margin-bottom:12px;}
-  .fr-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
-  .fr{
-    border:2px solid #e2edeb; border-radius:14px; background:#fbfdfc; padding:10px;
-    text-align:center; position:relative;
+  /* chunky bars: one classmate per bar — more pets, thicker bar */
+  .frbar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    border:2px solid #e2edeb; border-radius:14px; background:#fbfdfc;
+    padding:10px 14px; margin-bottom:10px;
   }
-  .fr img{width:100%; border-radius:10px;}
-  .fr .pn{font-weight:800; color:var(--teal-dark); font-size:15px; margin-top:4px;}
-  .fr .own{font-size:12px; color:#8aa19c; font-weight:700;}
-  .fr .lv{
-    position:absolute; top:14px; right:14px; background:var(--teal); color:#fff;
-    font-size:11px; font-weight:800; border-radius:10px; padding:1px 7px;
+  .frbar .own{
+    flex:0 0 110px; font-size:13px; color:#5c7671; font-weight:800; text-align:center;
   }
-  .fr .likes{font-size:11.5px; color:#5c7671; margin-top:4px; line-height:1.4;}
+  .frbar .petchip{
+    display:flex; align-items:center; gap:7px; background:#fff;
+    border:1.5px solid #e2edeb; border-radius:12px; padding:4px 10px 4px 4px;
+  }
+  .frbar .petchip img{width:34px; height:34px; border-radius:8px; object-fit:cover;}
+  .frbar .petchip .pn{font-weight:800; color:var(--teal-dark); font-size:13px;}
+  .frbar .petchip .lv{
+    background:var(--teal); color:#fff; font-size:10.5px; font-weight:800;
+    border-radius:10px; padding:1px 6px;
+  }
+  .frbar .likes{font-size:12px; color:#5c7671; line-height:1.5; margin-left:auto; text-align:right;}
   #friendsClose{border:0; background:none; color:#8aa19c; font-size:13px; font-weight:700; margin:12px auto 0; display:block;}
   .likes-in{
     width:100%; border:2px solid #cfe3df; border-radius:10px; padding:7px 10px;
@@ -336,12 +350,6 @@
   }
   #toast.show{transform:translateX(-50%) translateY(0);}
 
-  #brand{
-    position:fixed; left:14px; bottom:10px; z-index:5;
-    font-size:12.5px; font-weight:700; letter-spacing:.4px; color:#4c6b66;
-    background:#ffffffcc; padding:4px 13px; border-radius:14px;
-    box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
-  }
 </style>
 </head>
 <body>
@@ -431,8 +439,8 @@
         <h3 style="font-size:16px;color:var(--teal-dark)">🐾 Pet Shop</h3>
       </div>
       <p style="font-size:13.5px;color:#8aa19c;margin-bottom:10px">
-        One pet per student — it lives in your room, eats your spare snacks,
-        and learns superpowers as your hearts grow.</p>
+        Collect as many pets as you like — each one eats snacks and learns
+        its own superpowers as your hearts grow.</p>
       <div class="pet-grid" id="petGrid"></div>
       <button class="prof-btn quiet" id="shopBack">← Never mind</button>
     </div>
@@ -451,7 +459,7 @@
 <div id="friendsWrap">
   <div id="friendsCard">
     <h3>👥 Class pets</h3>
-    <div class="fr-grid" id="frGrid"></div>
+    <div id="frGrid"></div>
     <button id="friendsClose">Close</button>
   </div>
 </div>
@@ -473,7 +481,6 @@
   </div>
 </div>
 
-<div id="brand">Wharenui School</div>
 
 <script src="js/config.js"></script>
 <script src="js/roster.js"></script>
@@ -559,11 +566,11 @@
     var p = k && G.PRODUCTS[k];
     if(!p) return;
     if(!p.sell){
-      if(!me.pet){
+      if(!myPets().length){
         toast('🐾 ' + p.name + ' is pet food — buy a pet in the Pet Shop below!');
         return;
       }
-      if(!window.confirm('Give the ' + p.name + ' to ' + petCallName(me.pet) + '? 😋')) return;
+      if(!window.confirm('Give the ' + p.name + ' to ' + petCallName(activePet()) + '? 😋')) return;
       feedPet(i, k, b);
       return;
     }
@@ -642,18 +649,39 @@
     return 'assets/pets/p' + t + (happy ? '-h' : '') + '.jpg';
   }
   function petCallName(pet){ return pet.name || ('your ' + PETS[pet.type].name); }
+  /* students can collect any number of pets; the column may hold a legacy
+     single object or the new array — always read through myPets() */
+  function myPets(){
+    var p = me && me.pet;
+    if(!p) return [];
+    return Array.isArray(p) ? p : [p];
+  }
+  var petIdx = 0;
+  function activePet(){
+    var ps = myPets();
+    if(petIdx >= ps.length) petIdx = ps.length ? ps.length - 1 : 0;
+    return ps[petIdx] || null;
+  }
+  function saveActivePet(newPet){
+    var ps = myPets().slice();
+    ps[petIdx] = newPet;
+    me.pet = ps;
+    return store.update(me.id, {pet: ps});
+  }
   /* one level per superpower learned: starts at 1, tops out at 7 */
   function petLevel(pet){ return Math.min(7, 1 + ((pet && pet.powers) || []).length); }
 
   function renderPet(){
     if(typeof document === 'undefined' || !document || !document.body) return;
     var box = $('petBox');
-    if(!me.pet){
+    var ps = myPets();
+    if(!ps.length){
       box.innerHTML = '<div class="prof-empty">No pet yet — pets eat your spare snacks and learn superpowers as they grow!</div>'
         + '<button class="prof-btn" id="shopOpenBtn">🐾 Visit the Pet Shop</button>';
       return;
     }
-    var pet = me.pet, meta = PETS[pet.type] || PETS[1];
+    var pet = activePet(), meta = PETS[pet.type] || PETS[1];
+    var many = ps.length > 1;
     box.innerHTML =
       '<div class="pet-card">'
       + '<div class="pet-row">'
@@ -663,10 +691,15 @@
       +     ' <button id="petNameBtn" title="Name your pet">✏️</button></span>'
       +   '<span class="pet-lv2"><span>Lv ' + petLevel(pet) + '</span></span>'
       + '</div>'
-      + '<div class="pet-stage' + (Date.now() < fedUntil ? ' fed' : '') + '" id="petStage">'
-      +   '<img src="' + petImg(pet.type, false) + '" alt="' + esc(meta.name) + '">'
-      +   '<img class="happy" src="' + petImg(pet.type, true) + '" alt="">'
+      + '<div class="pet-slider">'
+      +   (many ? '<button class="pet-arrow" id="petPrev" title="Previous pet">‹</button>' : '')
+      +   '<div class="pet-stage' + (Date.now() < fedUntil ? ' fed' : '') + '" id="petStage">'
+      +     '<img src="' + petImg(pet.type, false) + '" alt="' + esc(meta.name) + '">'
+      +     '<img class="happy" src="' + petImg(pet.type, true) + '" alt="">'
+      +   '</div>'
+      +   (many ? '<button class="pet-arrow" id="petNext" title="Next pet">›</button>' : '')
       + '</div>'
+      + (many ? '<div class="pet-count">' + (petIdx + 1) + ' / ' + ps.length + '</div>' : '')
       + '<button class="prof-btn" id="talkBtn" style="margin-top:8px">💬 Talk to ' + esc(petCallName(pet)) + '</button>'
       + ((pet.powers && pet.powers.length)
           ? '<div class="pet-powers">' + pet.powers.map(function(pw, i){
@@ -688,6 +721,24 @@
     if(e.target.closest('#shopOpenBtn')){ renderShop(); showView('shop'); return; }
     if(e.target.closest('#petNameBtn')){ namePet(); return; }
     if(e.target.closest('#talkBtn')){ openTalk(); return; }
+    var arrow = e.target.closest('#petPrev, #petNext');
+    if(arrow){
+      var ps = myPets(); if(ps.length < 2) return;
+      var dir = arrow.id === 'petNext' ? 1 : -1;
+      petIdx = (petIdx + dir + ps.length) % ps.length;
+      openPower = -1;
+      renderPet();
+      var stage = $('petStage');
+      if(stage){
+        try{
+          stage.animate([
+            {transform: 'translateX(' + (dir * 46) + 'px)', opacity: .25},
+            {transform: 'translateX(0)', opacity: 1}
+          ], {duration: 260, easing: 'ease-out'});
+        }catch(err){}
+      }
+      return;
+    }
     var cap = e.target.closest('.pet-powers button');
     if(cap){
       var i = parseInt(cap.getAttribute('data-pow'), 10);
@@ -697,13 +748,14 @@
   });
 
   function namePet(){
-    var meta = PETS[me.pet.type];
-    var name = window.prompt('What will you name your ' + meta.name + '?', me.pet.name || '');
+    var cur = activePet(); if(!cur) return;
+    var meta = PETS[cur.type];
+    var name = window.prompt('What will you name your ' + meta.name + '?', cur.name || '');
     if(name === null) return;
     name = String(name).trim().slice(0, 16);
     if(!name){ toast('A pet needs a name!'); return; }
-    var pet = Object.assign({}, me.pet, {name: name});
-    store.update(me.id, {pet: pet}).then(function(){
+    var pet = Object.assign({}, cur, {name: name});
+    saveActivePet(pet).then(function(){
       toast('✨ ' + name + ' loves it!');
       refresh();
     }).catch(function(){ toast('Hmm, that didn\'t save — try again!'); });
@@ -720,17 +772,20 @@
   $('petGrid').addEventListener('click', function(e){
     var b = e.target.closest('button[data-t]'); if(!b || buying) return;
     var t = parseInt(b.dataset.t, 10), meta = PETS[t];
-    if(me.pet){ toast('You already have a pet — one each!'); return; }
+
     if((me.money || 0) < meta.price){
       toast('Save up! The ' + meta.name + ' costs ' + meta.price + ' Whare — you have ' + (me.money || 0) + '.');
       return;
     }
     if(!window.confirm('Buy the ' + meta.name + ' for ' + meta.price + ' Whare?')) return;
     buying = true;
+    var newPets = myPets().concat([{type: t, name: null, affection: 0, powers: []}]);
     store.update(me.id, {
       money: (me.money || 0) - meta.price,
-      pet: {type: t, name: null, affection: 0, powers: []}
+      pet: newPets
     }).then(function(){
+      me.pet = newPets;
+      petIdx = newPets.length - 1;   /* slide straight to the newcomer */
       toast('🎉 Your ' + meta.name + ' is home — give it a name!');
       showView('main');
       return refresh();          // hold the latch until `me` is fresh —
@@ -744,11 +799,12 @@
     if(stuffBusy) return;
     stuffBusy = true;
     var p = G.PRODUCTS[itemKey];
-    var pet = me.pet, meta = PETS[pet.type];
+    var pet = activePet(), meta = PETS[pet.type];
     var items = me.items.slice(); items.splice(idx, 1);
     var newPet = Object.assign({}, pet, {affection: (pet.affection || 0) + 5});
-    store.update(me.id, {items: items, pet: newPet}).then(function(){
-      me.pet = newPet; me.items = items;   /* keep the local copy honest */
+    var newPets = myPets().slice(); newPets[petIdx] = newPet;
+    store.update(me.id, {items: items, pet: newPets}).then(function(){
+      me.pet = newPets; me.items = items;  /* keep the local copy honest */
       recentFeeds.push(p.name);            /* the pet will say thanks in chat */
       /* the snack flies over to the pet */
       var stage = $('petStage');
@@ -804,7 +860,7 @@
   /* superpower knocks at 10 → 15 → 25 → 35 → 45 → 55 → 65 → 75 ❤️ */
   var POWER_STEPS = [10, 15, 25, 35, 45, 55, 65, 75];
   function maybeOfferPower(){
-    var pet = me && me.pet;
+    var pet = activePet();
     if(!pet) return;
     var aff = pet.affection || 0;
     var earned = POWER_STEPS.filter(function(t){ return aff >= t; }).length;
@@ -820,18 +876,20 @@
     $('powerWrap').classList.add('open');
   }
   $('powerList').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-pw]'); if(!b || !me.pet) return;
+    var b = e.target.closest('button[data-pw]'); if(!b || !activePet()) return;
     var opts = JSON.parse($('powerList').dataset.opts || '[]');
     var pw = opts[parseInt(b.dataset.pw, 10)];
     if(!pw) return;
-    if((me.pet.powers || []).indexOf(pw) !== -1){    // chosen in another tab meanwhile
+    if(((activePet() || {}).powers || []).indexOf(pw) !== -1){    // chosen in another tab meanwhile
       $('powerWrap').classList.remove('open');
       refresh();
       return;
     }
-    var pet = Object.assign({}, me.pet, {powers: (me.pet.powers || []).concat([pw])});
-    store.update(me.id, {pet: pet}).then(function(){
-      me.pet = pet;   /* local patch first — kills the stale re-offer race */
+    var cur2 = activePet();
+    var pet = Object.assign({}, cur2, {powers: (cur2.powers || []).concat([pw])});
+    var ps2 = myPets().slice(); ps2[petIdx] = pet;
+    store.update(me.id, {pet: ps2}).then(function(){
+      me.pet = ps2;   /* local patch first — kills the stale re-offer race */
       $('powerWrap').classList.remove('open');       // close only once it's saved
       toast('🌟 New superpower learned!');
       return refresh().then(maybeOfferPower).catch(function(){});
@@ -993,17 +1051,72 @@
     '🌋 Thick-Skin Mode': ['Unkind words? Bounce. Right off the armour. 🌋','My skin is thick so your heart can stay soft.'],
     '🥁 Stomp of Joy': ['Small win? STOMP STOMP STOMP. Victory dance! 🥁','Every win counts. Stomp with me!']
   };
+  var POWER_TALK_EXTRA = {
+    '🫧 Bubble of Calm': ['Wobbles are just bubbles — pop, and on you go.','Calm is your superpower too. I just remind you.','One bubble-breath before you start. Ready? Pop!'],
+    '📚 Goldfish Memory': ['You knew it yesterday, so it is still in there today.','Close your eyes — the answer swims up on its own.','Practice sticks. That is the whole secret.'],
+    '💧 Deep-Water Focus': ['Down here it is quiet. Bring your work, stay a while.','One thing. Then the next thing. That is focus.','The surface is noisy — we work below it.'],
+    '✨ Shiny Scales': ['Chin up — the light catches you best that way.','You do not need to be loud to shine.','Sparkle first, worry never.'],
+    '🌊 Cool Current': ['Let it drift past. You have better places to swim.','Cool head, warm heart — my favourite weather.','Ripples fade. Kindness stays.'],
+    '🐚 Treasure Sense': ['Dig one more minute — treasure loves patience.','Even messy sand hides pearls. Keep sifting.','X marks your idea. Go back and look!'],
+    '🎏 School of Friends': ['Together the current feels half as strong.','Ask your school for help — that is what schools are for.','Swim beside someone new today.'],
+    '🌀 Whirl of Ideas': ['No wrong ideas in the whirl — scoop up three!','Stir first, judge later.','Dizzy with ideas beats stuck with none.'],
+    '🩹 Regrow': ['Broken bits grow back stronger. Proof: me.','A flop is just a first draft with feelings.','Patch it, pat it, go again.'],
+    '😊 Forever Smile': ['Smiles are contagious. Catch mine!','Even Mondays melt if you grin at them.','You have a smile that fixes rooms.'],
+    '🔬 Lab Partner': ['Wrong results are still results. Write them down!','Curious beats clever, every time.','Goggles on — let us find out!'],
+    '🌙 Soft Glow': ['Sleep is when your brain files the good stuff.','Dim the worries, keep the glow.','Tomorrow needs you rested, not perfect.'],
+    '🧘 Chill Champion': ['Slow breaths win fast races.','You cannot pour from a wobbly cup. Steady first.','Calm is quiet strength.'],
+    '🌱 Grow-Back Grit': ['Roots grow in the hard weeks, not the easy ones.','Try again — the soil remembers.','Grit today, garden tomorrow.'],
+    '🫂 Gentle Cheer': ['I believe in you at whisper volume. Always on.','Small steps still count as marching.','You are more ready than you feel.'],
+    '🔦 Deep-Cave Courage': ['The first step in is the whole trick.','Dark just means undiscovered.','I will hold the torch. You lead.'],
+    '🧶 Stress Pounce': ['Stress is my chew toy now. Proceed!','Worries wiggle — that is why we pounce.','Consider it pounced. Next!'],
+    '😴 Power-Nap Coach': ['Rest is training too.','Recharge now, conquer later.','Even lions nap. Especially lions.'],
+    '🔍 Curiosity Boost': ['Every "boring" thing is a mystery wearing a disguise.','Look twice — the second look wins.','Questions are keys. Bring lots.'],
+    '💜 Purr Engine': ['Purr level: maximum focus. Engage.','Steady hum, steady mind.','Feel the rumble? That is momentum.'],
+    '🚪 Confident Strut': ['Enter like the room asked for you personally.','Tall spine, soft eyes, big presence.','You belong wherever your feet are.'],
+    '🐾 Silent Focus': ['Quiet paws finish first.','Distractions cannot chase what they cannot hear.','Tiptoe past the noise, land on the answer.'],
+    '🌤️ Windowsill Wisdom': ['Somewhere in today there is a sunbeam. Find it.','Watch a while — the answer often walks past.','Warm spot found. Now think big.'],
+    '🎁 Surprise Reflex': ['Cats invented plan B. Borrow it.','Land first, gasp later.','New plan? Fun plan.'],
+    '🎾 Fact Fetcher': ['Say the question out loud — I will chase it down.','Fetching… got it! You knew it all along.','Facts love being fetched. Ask again!'],
+    '🏃 Walk Buddy': ['Feet moving, brain grooving.','Best ideas live outdoors. Visit them.','One lap of fresh air fixes most maths.'],
+    '🛡️ Mood Guard': ['Grumpy clouds get barked at here.','Your good mood is under my protection.','Woof means "you are safe". Woof.'],
+    '🤝 Friend Magnet': ['Kind first. Everything else follows.','A wag and a hello — undefeated combo.','New friends are strangers you smiled at.'],
+    '👂 Best Listener': ['Say it messy. I will hear it kindly.','No worry is too small for these ears.','Talking helps. I am proof.'],
+    '🦴 Loyalty Shield': ['Whatever today brings, we split it.','Team us. Always team us.','I do not do quitting. Neither do you.'],
+    '🌟 Trick Learner': ['Every expert was once a puppy at this.','One more try — that is how tricks are born.','Practice, treat, repeat!'],
+    '🚀 Zoomies Boost': ['Three… two… one… ZOOM!','Save some zoom for the finish line — or do not!','Fast feet, brave heart.'],
+    '🗣️ Vocab Parrot': ['New word? Say it thrice, own it twice.','Words are seeds. Plant loudly.','Polly says: YOU ARE SMART. Repeat!'],
+    '🎵 Happy Whistle': ['Hum along — worries hate harmony.','A tune in your head beats a cloud over it.','Whistle first, worry never.'],
+    '🎤 Speech Coach': ['Your voice deserves the front row.','Practice makes brave, not perfect.','Deep breath, first word, the rest follows.'],
+    '🌈 Colour Splash': ['Grey day? Not on my palette.','Add one bright thing and watch the rest follow.','You are the colour in this classroom.'],
+    '🪽 Big-Picture View': ['Zoom out — the maze has an exit, promise.','High up, problems look like puzzles.','Wings up! Perspective on.'],
+    '🪞 Mirror Pep-Talk': ['Speak to yourself like someone you love.','The mirror agrees: you have got this.','Kind words in, brave kid out.'],
+    '🌻 Seed of Patience': ['Water it daily. Watch it slowly. Win it surely.','Sunflowers do not rush. Neither should you.','Little and often beats big and never.'],
+    '📣 Brave Announcer': ['Clear voice, kind heart, big idea. Go!','Someone needs to hear exactly what you think.','Raise the hand. The room is ready.'],
+    '🛡️ Triple Shield': ['Worry one, two, three — blocked, blocked, blocked.','My horns, your courage. Fair trade.','Shields up. Walk tall.'],
+    '🪨 Homework Crusher': ['Gravel is just a boulder that met a plan.','Crush the first pebble. The rest crumble.','Stomp. Tick. Stomp. Tick. Done.'],
+    '💪 Brave Horns': ['Point your horns at question one. Charge!','Scared and doing it anyway — that is the whole recipe.','Horns forward, doubts backward.'],
+    '🥦 Veggie Power': ['Green fuel, giant results.','Dinosaur tip: eat the trees, become the mountain.','Crunch the broccoli, crush the day.'],
+    '⛰️ Unshakeable': ['Storms visit. Mountains stay.','Plant your feet. You are geology now.','Wobble outside, mountain inside.'],
+    '🦕 Ancient Patience': ['Sixty-six million years say: no rush.','Slow lava still moves mountains.','Take the long view — dinosaurs always do.'],
+    '🌋 Thick-Skin Mode': ['Armour on the outside, kindness on the inside.','Bounce the words, keep the lesson.','Their weather, not your climate.'],
+    '🥁 Stomp of Joy': ['Win spotted! Commence stomping!','Celebrate small. Stomp big.','Boom-boom-STOMP! That one was for you.']
+  };
+  (function(){
+    for(var k in POWER_TALK_EXTRA){
+      if(POWER_TALK[k] && POWER_TALK_EXTRA[k]) POWER_TALK[k] = POWER_TALK[k].concat(POWER_TALK_EXTRA[k]);
+    }
+  })();
   function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
   function petSay(text){
-    var pet = Object.assign({}, me.pet);
+    var pet = Object.assign({}, activePet());
     pet.chat = ((pet.chat || []).concat([{t: Date.now(), text: text.slice(0, 220), who: 'pet'}])).slice(-50);
-    me.pet = pet;
+    var ps = myPets().slice(); ps[petIdx] = pet; me.pet = ps;
     renderTalkLog();
-    store.update(me.id, {pet: pet}).catch(function(){});
+    store.update(me.id, {pet: ps}).catch(function(){});
   }
   function renderTalkLog(){
     if(typeof document === 'undefined' || !document || !document.body) return;
-    var chat = (me.pet && me.pet.chat) || [];
+    var chat = ((activePet() || {}).chat) || [];
     $('talkLog').innerHTML = chat.length
       ? chat.map(function(c){
           return '<div class="bub' + (c.who === 'pet' ? ' pet' : '') + '">' + esc(c.text)
@@ -1013,30 +1126,42 @@
     $('talkLog').scrollTop = $('talkLog').scrollHeight;
     renderTalkPowers();
   }
+  var guideSeenMem = false;
+  function guideSeen(){
+    if(guideSeenMem) return true;
+    try{ return !!localStorage.getItem('charlie-powerguide-' + (me && me.id)); }catch(e){ return false; }
+  }
+  function markGuideSeen(){
+    guideSeenMem = true;
+    try{ localStorage.setItem('charlie-powerguide-' + (me && me.id), '1'); }catch(e){}
+  }
   function renderTalkPowers(){
-    var pet = me.pet;
+    var pet = activePet();
     var powers = (pet && pet.powers) || [];
     var saidSomething = ((pet && pet.chat) || []).some(function(c){ return c.who !== 'pet'; });
     var show = powers.length > 0 && saidSomething;
     $('talkPowers').style.display = show ? '' : 'none';
     if(!show) return;
-    $('talkGuide').textContent = '✨ Tap a superpower — ' + petCallName(pet) + ' has something to say!';
+    var fresh = !guideSeen();   /* the glow + nudge appear only the first time */
+    $('talkGuide').style.display = fresh ? '' : 'none';
+    if(fresh) $('talkGuide').textContent = '✨ Tap a superpower — ' + petCallName(pet) + ' has something to say!';
     $('talkPowerRow').innerHTML = powers.map(function(pw, i){
-      return '<button class="glowcap" data-tp="' + i + '">' + esc(pw.split(' — ')[0]) + '</button>';
+      return '<button' + (fresh ? ' class="glowcap"' : '') + ' data-tp="' + i + '">' + esc(pw.split(' — ')[0]) + '</button>';
     }).join('');
   }
   $('talkPowerRow').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-tp]'); if(!b || !me.pet) return;
-    var pw = (me.pet.powers || [])[parseInt(b.dataset.tp, 10)]; if(!pw) return;
+    var b = e.target.closest('button[data-tp]'); if(!b || !activePet()) return;
+    var pw = ((activePet().powers) || [])[parseInt(b.dataset.tp, 10)]; if(!pw) return;
+    markGuideSeen();   /* first tap retires the glow for good */
     var key = pw.split(' — ')[0];
     var lines = POWER_TALK[key];
     petSay(lines ? pick(lines) : ('Remember my ' + key + '? ' + (pw.split(' — ')[1] || '') + ' — and today, that is you! 💪'));
   });
   function openTalk(){
-    if(!me.pet) return;
-    $('talkTitle').textContent = '💬 To ' + petCallName(me.pet);
+    if(!activePet()) return;
+    $('talkTitle').textContent = '💬 To ' + petCallName(activePet());
     $('talkIn').value = '';
-    $('talkIn').placeholder = pick(PROMPTS).split('{p}').join(petCallName(me.pet));
+    $('talkIn').placeholder = pick(PROMPTS).split('{p}').join(petCallName(activePet()));
     showView('talk');
     renderTalkLog();
     /* a snack just landed? say thank you (once per batch of snacks) */
@@ -1051,14 +1176,15 @@
   }
   function sendTalk(){
     var text = $('talkIn').value.trim();
-    if(!text || talkBusy || !me.pet) return;
+    if(!text || talkBusy || !activePet()) return;
     talkBusy = true;
-    var pet = Object.assign({}, me.pet);
+    var pet = Object.assign({}, activePet());
     pet.chat = ((pet.chat || []).concat([{t: Date.now(), text: text.slice(0, 200)}])).slice(-50);
-    store.update(me.id, {pet: pet}).then(function(){
+    var ps = myPets().slice(); ps[petIdx] = pet;
+    store.update(me.id, {pet: ps}).then(function(){
       talkBusy = false;
       $('talkIn').value = '';
-      me.pet = pet;
+      me.pet = ps;
       renderTalkLog();
     }).catch(function(){
       talkBusy = false;
@@ -1093,22 +1219,35 @@
 
   /* ---------------- friends: everyone's pets, anonymous by default ------- */
   var FR_SETTINGS = {hidden:false, showNames:false};
+  function petsOf(s){
+    var p = s.pet;
+    if(!p) return [];
+    return Array.isArray(p) ? p : [p];
+  }
   $('friendsBtn').addEventListener('click', function(){
     store.list().then(function(all){
-      var owners = all.filter(function(s){ return s.pet; });
-      $('frGrid').innerHTML = owners.length ? owners.map(function(s){
-        var p = s.pet, prof = s.profile || {};
+      var n = 0;
+      var rows = all.map(function(s){
+        var pets = petsOf(s), prof = s.profile || {};
+        if(!pets.length && !prof.music && !prof.hobby) return '';
+        n++;
         var likes = [];
         if(prof.music) likes.push('🎵 ' + esc(prof.music));
         if(prof.hobby) likes.push('⚽ ' + esc(prof.hobby));
-        return '<div class="fr">'
-          + '<img src="' + petImg(p.type, false) + '" alt="">'
-          + '<span class="lv">Lv ' + petLevel(p) + '</span>'
-          + '<div class="pn">' + esc(p.name || PETS[p.type].name) + '</div>'
-          + '<div class="own">' + (FR_SETTINGS.showNames ? esc(s.name) : '🎈 a class friend') + '</div>'
-          + (likes.length ? '<div class="likes">' + likes.join('<br>') + '</div>' : '')
+        /* more pets → a beefier bar */
+        var pad = 8 + Math.min(4, pets.length) * 4;
+        return '<div class="frbar" style="padding-top:' + pad + 'px;padding-bottom:' + pad + 'px">'
+          + '<span class="own">' + (FR_SETTINGS.showNames ? esc(s.name) : '🎈 Friend ' + n) + '</span>'
+          + pets.map(function(p){
+              return '<span class="petchip"><img src="' + petImg(p.type, false) + '" alt="">'
+                + '<span class="pn">' + esc(p.name || PETS[p.type].name) + '</span>'
+                + '<span class="lv">Lv ' + petLevel(p) + '</span></span>';
+            }).join('')
+          + (likes.length ? '<span class="likes">' + likes.join('<br>') + '</span>' : '')
           + '</div>';
-      }).join('') : '<div style="grid-column:1/-1;text-align:center;color:#8aa19c;padding:20px 0">No pets yet — the Pet Shop awaits! 🐾</div>';
+      }).join('');
+      $('frGrid').innerHTML = rows
+        || '<div style="text-align:center;color:#8aa19c;padding:20px 0">No pets yet — the Pet Shop awaits! 🐾</div>';
       $('friendsWrap').classList.add('open');
     }).catch(function(){ toast('Could not fetch the pets — try again!'); });
   });

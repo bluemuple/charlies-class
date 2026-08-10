@@ -160,12 +160,6 @@
   }
   #toast.show{transform:translateX(-50%) translateY(0);}
 
-  #brand{
-    position:fixed; left:14px; bottom:10px; z-index:5;
-    font-size:12.5px; font-weight:700; letter-spacing:.4px; color:#4c6b66;
-    background:#ffffffcc; padding:4px 13px; border-radius:14px;
-    box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
-  }
 
   /* ---------- print: A4 welcome cards, 10 per page ---------- */
   #printSheet{display:none;}
@@ -306,7 +300,6 @@
 </div>
 
 <div id="printSheet"></div>
-<div id="brand">Wharenui School</div>
 
 <script src="js/config.js"></script>
 <script src="js/roster.js"></script>
@@ -342,9 +335,13 @@
   var PET_EMOJI = {1:'🐟', 2:'🦎', 3:'🐱', 4:'🐶', 5:'🦜', 6:'🦖'};
   function petBadge(s){
     if(!s.pet) return '';
-    var em = PET_EMOJI[parseInt(s.pet.type, 10)] || '🐾';
-    var aff = parseInt(s.pet.affection, 10) || 0;
-    var nm = s.pet.name ? s.pet.name : 'unnamed pet';
+    var pets = Array.isArray(s.pet) ? s.pet : [s.pet];
+    if(!pets.length) return '';
+    var first = pets[0];
+    var em = PET_EMOJI[parseInt(first.type, 10)] || '🐾';
+    var aff = parseInt(first.affection, 10) || 0;
+    var nm = (first.name ? first.name : 'unnamed pet')
+           + (pets.length > 1 ? ' +' + (pets.length - 1) + ' more' : '');
     return '<span class="petb" title="'+esc(nm)+' — '+aff+' affection">'+em+' '+aff+'❤</span>';
   }
   function rowHtml(s){
