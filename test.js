@@ -213,6 +213,21 @@ async function testAdmin(){
   await waitFor(() => /🐱 15❤/.test((d.querySelector('.row[data-id="cj-rapata"]')||{}).textContent || ""),
      "pet badge shows in the roster");
   ok(/Mochi/.test(d.querySelector('.row[data-id="cj-rapata"] .petb').title), "badge tooltip names the pet");
+
+  // the games card: hide a game + retune the difficulty, saved as one blob
+  ok(!!$("gamesCard") && $("setZebraOn").checked && $("setAlgOn").checked,
+     "games card starts with both games visible");
+  $("setZebraOn").checked = false;
+  $("setZebraOn").dispatchEvent(new w.Event("change"));
+  $("limPlus").value = "20";
+  $("limPlus").dispatchEvent(new w.Event("change"));
+  $("setTurnSecs").value = "25";
+  $("setTurnSecs").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = await w.CharlieStore.getMachine("game-settings");
+    return s && s.hidden.alzebra === true && s.hidden.algebra === false
+        && s.alzebra.limits["+"] === 20 && s.algebra.turnSecs === 25;
+  }, "hide + difficulty settings land in the game-settings blob", 5000);
   ok(/No code yet/.test($("boyList").textContent), "roster shows 'No code yet'");
   ok(!/Show codes/.test(d.body.textContent), "no 'show codes' button — codes are private now");
 
@@ -462,6 +477,7 @@ async function testGamePlay(){
   const ms = await w.CharlieStore.listMachines();
   ok(ms.length === 1 && ms[0].state === "open", "machine saved and open");
   ok(ms[0].capacity === 5, "every room holds up to 5 customers");
+  ok(ms[0].turnSecs === 40, "each turn gets the default 40-second clock");
   await waitFor(() => /mission: crack this rule/.test($("sellRule").textContent),
      "the rule line tells the seller what customers are trying to do");
   ok($("startBtn").disabled, "Start sleeps while the shop is empty");
@@ -487,6 +503,7 @@ async function testGamePlay(){
   console.log("\nalgebra.html — customer cracks the rule");
   const dom2 = await load("algebra.html", w2 => {
     w2.CHARLIE_TEST_SESSION = { id: "kiean-oabel", name: "Kiean" };
+    w2.CHARLIE_TEST_FAST = true;
   });
   const w2 = dom2.window, d2 = dom2.window.document;
   const $2 = id => d2.getElementById(id);
@@ -556,20 +573,20 @@ async function testGamePlay(){
   ok($2("canVal").textContent === "8", "2 → 8 through x×3+2");
   ok(/y.*=.*8/.test($2("canCaption").textContent), "caption reads y = 8");
 
-  // who did what lands in Results
-  ok(/Kiean/.test($2("histBody").textContent), "Results names the customer");
+  // who did what lands in Results — as an alias while the game runs
+  ok(!/Kiean/.test($2("histBody").textContent) && !!$2("histBody").querySelector("tr"),
+     "Results shows an alias, not the real name, during play");
   const row = $2("histBody").querySelector("tr");
   ok(/2/.test(row.children[1].textContent) && /8/.test(row.children[2].textContent),
      "Results row holds x and y");
 
   $2("canOverlay").click();
-  await waitFor(() => /Know the rule/.test($2("turnLine").textContent), "after the drop: guess or pass");
-  ok($2("display").textContent === "--", "the price screen resets");
+  await waitFor(() => $2("display").textContent === "--", "the price screen resets");
 
-  // one number per turn is enforced on the machine itself
+  // a number IS the whole turn — it moved straight on (and wrapped back: one customer)
   const midGame = await w2.CharlieStore.getMachine("m-test01");
-  ok(midGame.turnInserted === true, "the machine remembers this turn's number was used");
-  ok($2("numIn").disabled, "the money sleeps until the turn is resolved");
+  ok(midGame.turn === 1 && midGame.turnInserted === false, "a number spends the whole turn");
+  await waitFor(() => !$2("numIn").disabled, "the turn wraps back — the money wakes again");
 
   // wrong guess first: x+1
   $2("guessIn").value = "x+1";
@@ -608,6 +625,7 @@ async function testGamePlay(){
   console.log("\nalgebra.html — hostile emoji stays harmless");
   const dom3 = await load("algebra.html", w3 => {
     w3.CHARLIE_TEST_SESSION = { id: "jason-lin", name: "Jason" };
+    w3.CHARLIE_TEST_FAST = true;
   });
   const w3 = dom3.window, d3 = dom3.window.document;
   await waitFor(() => w3.CharlieStore, "store loads");
@@ -628,7 +646,9 @@ async function testGamePlay(){
   await waitFor(() => d3.querySelectorAll("#sections .sec").length === 1, "the evil shop shows in the mall");
   ok(!d3.querySelector("#sections img"), "mall renders the emoji as text, not markup");
   d3.querySelector("#sections .sec").click();
-  await waitFor(() => d3.getElementById("histBody").textContent.includes("Jason"), "room opens with history");
+  await waitFor(() => d3.getElementById("histBody").textContent.includes("Mystery Player"),
+     "room opens with history — alias only, no real name");
+  ok(!d3.getElementById("histBody").textContent.includes("Jason"), "Jason stays incognito during play");
   ok(!d3.querySelector("#histBody img") && !d3.querySelector("#playPlayers img"),
      "results and players render the emoji as text, not markup");
   ok(!w3.pwned, "no script ran from the hostile emoji");
@@ -660,6 +680,7 @@ async function testAlZebra(){
   console.log("\nalzebra.html — keeper paints a rule");
   const dom = await load("alzebra.html", w => {
     w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+    w.CHARLIE_TEST_FAST = true;      /* skip the 3-2-1-Go for headless runs */
   });
   const w = dom.window, d = w.document;
   const $ = id => d.getElementById(id);
@@ -757,7 +778,8 @@ async function testAlZebra(){
 
   $2("roleTourist").click();
   await waitFor(() => d2.querySelectorAll("#pens .pen").length === 1, "the zoo lists Willow's pen");
-  ok(/Willow's pen/.test($2("pens").textContent), "pen carries the keeper's name");
+  ok(/'s pen/.test($2("pens").textContent) && !/Willow/.test($2("pens").textContent),
+     "the pen tile shows an alias, never the keeper's name");
   d2.querySelector("#pens .pen").click();
   await waitFor(() => $2("scrGame").classList.contains("on"), "tourist steps into the pen");
   await waitFor(() => /your go/.test($2("probLine").textContent), "tourist goes first");
@@ -816,6 +838,19 @@ async function testAlZebra(){
   }, "winner banks the money and both prizes", 6000);
   ok(m1.claimed && (await w2.CharlieStore.getMachine("m-zoo1")).claimed["kiean-oabel"] === true,
      "the claim is marked so it can't double-pay");
+
+  // play again with the same group: sign up, get elected, off to build
+  ok(!!$2("rematchBtn"), "the results screen offers a rematch");
+  $2("rematchBtn").click();
+  await waitFor(async () => {
+    const m = await w2.CharlieStore.getMachine("m-zoo1");
+    return m.rematch && m.rematch.ids.indexOf("kiean-oabel") !== -1;
+  }, "pressing it signs me into the rematch group", 5000);
+  const mRe = await w2.CharlieStore.getMachine("m-zoo1");
+  mRe.rematch.sellerId = "kiean-oabel";        // the group picks me as the new keeper
+  await w2.CharlieStore.saveMachine(mRe);
+  await waitFor(() => $2("scrStock").classList.contains("on"),
+     "the chosen keeper goes off to build the new pen", 8000);
   try{ dom2.window.close(); }catch(e){}
 }
 

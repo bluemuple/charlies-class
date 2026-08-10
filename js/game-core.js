@@ -169,10 +169,13 @@
   /* ---------------- Al-Zebra (beginners): answer the outputs fast -------- */
   /* time to answer one problem, set by the hardest operation in the rule */
   var ZEBRA_LIMITS = {'+':12, '-':16, '*':22, '/':25};
-  function zebraTimeLimit(tokens){
-    var lim = 12;
+  function zebraTimeLimit(tokens, over){
+    /* the teacher can retune seconds per operation from the admin page */
+    var table = {};
+    for(var k in ZEBRA_LIMITS) table[k] = (over && over[k] > 0) ? +over[k] : ZEBRA_LIMITS[k];
+    var lim = table['+'] || 12;
     ruleOps(tokens).forEach(function(o){
-      if((ZEBRA_LIMITS[o]||12) > lim) lim = ZEBRA_LIMITS[o];
+      if((table[o]||lim) > lim) lim = table[o];
     });
     return lim;
   }

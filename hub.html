@@ -260,6 +260,9 @@
         <h3>My pet</h3>
         <div id="petBox"></div>
       </div>
+      <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:6px 0 10px;cursor:pointer">
+        <input type="checkbox" id="hideRealPref"> 🙈 Don't reveal my real name in game results
+      </label>
       <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
       <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
     </div>
@@ -694,7 +697,23 @@
   });
 
   /* ---------------- init ---------------- */
+  try{ document.getElementById('hideRealPref').checked =
+         localStorage.getItem('charlie-hide-real') === '1'; }catch(e){}
+  document.getElementById('hideRealPref').addEventListener('change', function(){
+    try{ localStorage.setItem('charlie-hide-real', this.checked ? '1' : ''); }catch(e){}
+  });
   store.init().then(function(){
+    /* the teacher can rest a game: its card vanishes from the hub */
+    store.getMachine('game-settings').then(function(s){
+      if(!s || !s.hidden) return;
+      if(s.hidden.alzebra) $('alzebraGame').style.display = 'none';
+      if(s.hidden.algebra) $('algebraGame').style.display = 'none';
+      if(s.hidden.alzebra && s.hidden.algebra){
+        document.querySelector('.games').insertAdjacentHTML('beforeend',
+          '<div style="grid-column:1/-1;text-align:center;color:#7a8f8b;font-weight:700;padding:26px 0">'
+          + '😴 The games are having a rest — see you next time!</div>');
+      }
+    }).catch(function(){});
     store.onChange(refresh);     // money won in games appears live
     return refresh();
   }).then(function(){

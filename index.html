@@ -185,15 +185,24 @@
   function goHub(){ window.location.href = 'hub.html'; }
 
   /* ---------------- gender → names ---------------- */
+  var namesGender = null;   /* so a late roster can repaint the open list */
   function openNames(gender){
+    namesGender = gender;
     var kids = students.filter(function(s){ return s.gender === gender; });
     $('namesTitle').textContent = gender === 'boy' ? '👦 Boys' : '👧 Girls';
-    $('nameGrid').innerHTML = kids.map(function(s){
+    $('nameGrid').innerHTML = kids.length ? kids.map(function(s){
       return '<button data-id="' + esc(s.id) + '">'
         + (s.codeSet ? '' : '<span class="newtag">NEW</span>')
         + '<span class="em">' + esc(s.emoji || '🙂') + '</span>' + esc(s.name) + '</button>';
-    }).join('');
+    }).join('')
+      : '<div style="grid-column:1/-1;text-align:center;color:#8aa19c;font-weight:600;padding:18px 0">'
+        + 'Fetching the class list…</div>';
     show('scrNames');
+  }
+  /* the roster can arrive after the first tap — repaint the open list */
+  function namesArrived(){
+    var on = document.querySelector('.screen.on');
+    if(on && on.id === 'scrNames' && namesGender) openNames(namesGender);
   }
   $('boysBtn').addEventListener('click', function(){ openNames('boy'); });
   $('girlsBtn').addEventListener('click', function(){ openNames('girl'); });
@@ -306,11 +315,12 @@
   /* ---------------- init ---------------- */
   store.init().then(function(){
     store.onChange(function(){
-      store.list().then(function(l){ students = l; });
+      store.list().then(function(l){ students = l; namesArrived(); });
     });
     return store.list();
   }).then(function(list){
     students = list;
+    namesArrived();
   });
 })();
 </script>

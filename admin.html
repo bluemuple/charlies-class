@@ -233,6 +233,34 @@
     print welcome cards for the first lesson.</p>
   </section>
 
+  <section class="card" id="gamesCard">
+    <h2>🎮 Games</h2>
+    <div style="display:flex; gap:26px; flex-wrap:wrap">
+      <div style="min-width:250px">
+        <h3 style="margin:4px 0 8px">🦓 Al-Zebra</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setZebraOn" checked> Visible to students</label>
+        <div style="font-size:14px;color:#4c6b66;font-weight:700;margin-bottom:4px">Seconds per problem:</div>
+        <div style="display:flex;gap:8px;align-items:center;font-weight:800">
+          + <input type="number" id="limPlus"  min="4" max="120" style="width:56px">
+          − <input type="number" id="limMinus" min="4" max="120" style="width:56px">
+          × <input type="number" id="limTimes" min="4" max="120" style="width:56px">
+          ÷ <input type="number" id="limDiv"   min="4" max="120" style="width:56px">
+        </div>
+      </div>
+      <div style="min-width:250px">
+        <h3 style="margin:4px 0 8px">🥤 Algebra Machine</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setAlgOn" checked> Visible to students</label>
+        <label style="font-size:14px;color:#4c6b66;font-weight:700">Seconds per turn
+          <input type="number" id="setTurnSecs" min="10" max="180" style="width:64px;margin-left:6px"></label>
+      </div>
+    </div>
+    <p class="note">Hiding a game takes it off the students' hub — games already running
+    finish normally, but nobody can start a new one until you show it again.
+    Time settings apply to rooms created after the change. <span id="gamesSaved" style="color:#2a9d34;font-weight:800"></span></p>
+  </section>
+
   <div class="cols">
     <section class="card group" data-g="boy">
       <h2>👦 Boys · <b id="boyCount">0</b></h2>
@@ -510,7 +538,56 @@
   function boot(){
     if(booted) return;
     booted = true;
+  /* ---------------- per-game settings (shared blob in the machines store) --- */
+  var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false},
+                       algebra:{turnSecs:40},
+                       alzebra:{limits:{'+':12,'-':16,'*':22,'/':25}}};
+  var gameSet = null, gamesSaveT = null;
+  function loadGameSettings(){
+    store.getMachine('game-settings').then(function(s){
+      gameSet = s || null;
+      var g = s || GAME_DEFAULTS;
+      var hid = g.hidden || {};
+      document.getElementById('setZebraOn').checked = !hid.alzebra;
+      document.getElementById('setAlgOn').checked = !hid.algebra;
+      var lim = (g.alzebra && g.alzebra.limits) || GAME_DEFAULTS.alzebra.limits;
+      document.getElementById('limPlus').value  = lim['+'];
+      document.getElementById('limMinus').value = lim['-'];
+      document.getElementById('limTimes').value = lim['*'];
+      document.getElementById('limDiv').value   = lim['/'];
+      document.getElementById('setTurnSecs').value =
+        (g.algebra && g.algebra.turnSecs) || GAME_DEFAULTS.algebra.turnSecs;
+    }).catch(function(){});
+  }
+  function saveGameSettings(){
+    clearTimeout(gamesSaveT);
+    gamesSaveT = setTimeout(function(){
+      var n = function(id, dflt){ var v = +document.getElementById(id).value; return v > 0 ? v : dflt; };
+      var blob = {
+        id:'game-settings', type:'settings', created: Date.now(),
+        hidden:{alzebra: !document.getElementById('setZebraOn').checked,
+                algebra: !document.getElementById('setAlgOn').checked},
+        algebra:{turnSecs: n('setTurnSecs', 40)},
+        alzebra:{limits:{'+':n('limPlus',12), '-':n('limMinus',16),
+                         '*':n('limTimes',22), '/':n('limDiv',25)}}
+      };
+      store.saveMachine(blob).then(function(){
+        gameSet = blob;
+        var ok = document.getElementById('gamesSaved');
+        ok.textContent = 'Saved ✓';
+        setTimeout(function(){ ok.textContent = ''; }, 1600);
+      }).catch(function(){
+        document.getElementById('gamesSaved').textContent = 'Could not save — try again';
+      });
+    }, 350);
+  }
+  ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs']
+    .forEach(function(id){
+      document.getElementById(id).addEventListener('change', saveGameSettings);
+    });
+
     store.init().then(function(mode){
+      loadGameSettings();
       var badge = $('modeBadge');
       if(mode === 'supabase'){
         badge.textContent = '☁️ Live — Supabase';
