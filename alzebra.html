@@ -63,8 +63,8 @@
   }
   .role-btns button:hover{transform:translateY(-4px);}
   .role-btns .big{font-size:54px; display:block; margin-bottom:8px;}
-  .role-btns .t{font-size:21px; font-weight:800; color:var(--teal-dark);}
-  .role-btns .d{font-size:13.5px; color:#6b8480; margin-top:6px; line-height:1.45;}
+  .role-btns .t{font-size:21px; font-weight:800; color:var(--teal-dark); display:block;}
+  .role-btns .d{font-size:14px; color:#6b8480; margin-top:8px; line-height:1.45; display:block;}
 
   /* ---------- keeper: pick prizes ---------- */
   #pickCount{font-weight:800; color:var(--teal-dark); font-size:15px; margin-bottom:8px; display:inline-block;}
@@ -246,19 +246,23 @@
   /* dark full-screen veils: countdown, turn flash, first-money hint */
   /* the tourist arrives to a living zoo: a silent 10 s loop behind the page,
      under a heavy white veil so every card and heading stays crisp */
-  #bgVid{
+  .bgv{
     position:fixed; inset:0; width:100%; height:100%; object-fit:cover;
-    z-index:-2; opacity:0; transition:opacity .8s; pointer-events:none;
+    z-index:-2; opacity:0; pointer-events:none;
     filter:blur(3px) saturate(.55);
     transform:scale(1.04);   /* hides the blurred edges */
+    transition:opacity .9s linear;
   }
-  #bgVeil{
-    position:fixed; inset:0; z-index:-1; background:rgba(240,248,244,.93);
-    opacity:0; transition:opacity .8s; pointer-events:none;
+  body.zoobg .bgv.live{opacity:1;}
+  /* only the panels wear the pale veil — the rest of the zoo stays open */
+  body.zoobg .card, body.zoobg .pen, body.zoobg .empty-zoo{
+    background:rgba(255,255,255,.94);
+    box-shadow:0 6px 20px rgba(31,90,84,.28);
   }
-  body.zoobg #bgVid, body.zoobg #bgVeil{opacity:1;}
-  body.zoobg .card, body.zoobg .pen{background:rgba(255,255,255,.97);}
-  body.zoobg h2, body.zoobg .sub, body.zoobg #zWaitLine{text-shadow:0 1px 8px rgba(255,255,255,.95);}
+  body.zoobg h2, body.zoobg .sub, body.zoobg #zWaitLine{
+    color:#12403b; text-shadow:0 1px 3px rgba(255,255,255,.95), 0 0 14px rgba(255,255,255,.85);
+  }
+  body.zoobg #backBtn{background:rgba(255,255,255,.94);}
   .veil{
     position:fixed; inset:0; z-index:80; display:none; align-items:center;
     justify-content:center; background:rgba(8,22,20,.78);
@@ -322,7 +326,11 @@
   .pen .al{font-size:17px; font-weight:800; color:var(--teal-dark);}
   .pen .oc{font-size:13.5px; font-weight:700; color:#4c6b66;}
   .pen[disabled]{opacity:.6; cursor:default;}
-  .empty-zoo{text-align:center; color:#7a8f8b; padding:30px 10px; font-size:15px;}
+  .empty-zoo{
+    text-align:center; color:#7a8f8b; padding:26px 18px; font-size:15px; font-weight:700;
+    background:var(--card); border-radius:16px; box-shadow:0 4px 14px rgba(31,90,84,.18);
+    max-width:420px; margin:0 auto;
+  }
 
   /* players / lobby */
   .players{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0;}
@@ -421,8 +429,9 @@
   <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
 </header>
 
-<video id="bgVid" src="assets/zebra-loop.mp4" muted loop playsinline autoplay preload="auto"></video>
-<div id="bgVeil"></div>
+<video id="bgVid" class="bgv" src="assets/zebra-loop.mp4" muted playsinline autoplay preload="auto"></video>
+<video id="bgVid2" class="bgv" src="assets/zebra-loop.mp4" muted playsinline preload="auto"></video>
+
 
 <main>
   <!-- role -->
@@ -657,16 +666,53 @@
     /* the zoo video plays behind the tourist's own screens only */
     var wantBg = (id === 'scrZoo' || id === 'scrZWait');
     document.body.classList.toggle('zoobg', wantBg);
-    var v = $('bgVid');
-    if(v){
-      if(wantBg){ try{ v.play(); }catch(e){} }
-      else { try{ v.pause(); }catch(e){} }
-    }
+
+    if(wantBg){ bgPlay(); startBgLoop(); } else { bgStop(); }
     /* the name capsule hides in waiting rooms, the match and the results */
     $('meChip').style.display = HIDE_CHIP[id] ? 'none' : '';
     if(HIDE_CHIP[id]) dismissHint();   /* never spotlight a hidden capsule */
     else maybeMoneyHint();
   }
+  /* two copies of the clip trade places: while one runs out of tape the
+     other has already started from the top, and they cross-fade — so the
+     loop point never shows as a cut */
+  var bgTimer = null, bgFront = 1, bgHanded = false;
+  var FADE = 0.9;   /* keep in sync with the .bgv transition */
+  function bgEls(){ return [$('bgVid'), $('bgVid2')]; }
+  function bgPlay(){
+    var els = bgEls();
+    els.forEach(function(v, i){ v.classList.toggle('live', (i + 1) === bgFront); });
+    var front = els[bgFront - 1];
+    if(front && front.paused){ try{ front.play(); }catch(e){} }
+  }
+  function bgStop(){
+    bgEls().forEach(function(v){ try{ v.pause(); }catch(e){} });
+  }
+  function startBgLoop(){
+    if(bgTimer) return;
+    /* browsers pause video in hidden tabs — pick it back up on return */
+    document.addEventListener('visibilitychange', function(){
+      if(!document.hidden && document.body.classList.contains('zoobg')) bgPlay();
+    });
+    bgTimer = setInterval(function(){
+      if(!document.body.classList.contains('zoobg')) return;
+      var els = bgEls();
+      var front = els[bgFront - 1], back = els[2 - bgFront];
+      if(!front || !front.duration) return;
+      var left = front.duration - front.currentTime;
+      if(left <= FADE && !bgHanded){
+        bgHanded = true;
+        try{ back.currentTime = 0; back.play(); }catch(e){}
+        bgFront = 3 - bgFront;
+        els.forEach(function(v, i){ v.classList.toggle('live', (i + 1) === bgFront); });
+        setTimeout(function(){
+          try{ els[2 - bgFront].pause(); }catch(e){}
+          bgHanded = false;
+        }, FADE * 1000);
+      }
+    }, 100);
+  }
+
   /* -------- first-time hints: money, then items — never both at once ---- */
   var hintShowing = null, hintSeenMem = {};
   var HINT_HTML = {
