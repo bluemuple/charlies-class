@@ -36,18 +36,22 @@
 
   main{max-width:980px; margin:0 auto; padding:2vh 22px 70px;}
   main h2{font-size:clamp(22px,3.4vw,32px); color:var(--teal-dark); margin:3vh 0 2vh; text-align:center;}
-  .games{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px;}
+  .games{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+         gap:20px; max-width:640px; margin:0 auto;}
   .game{
     border:0; border-radius:20px; background:var(--card); padding:26px 18px;
     box-shadow:0 4px 14px rgba(31,90,84,.16); text-align:center; transition:.15s;
   }
   .game:hover{transform:translateY(-4px); box-shadow:0 10px 22px rgba(31,90,84,.26);}
-  .game .art{font-size:56px; display:block; margin-bottom:10px;}
-  .game .t{font-size:20px; font-weight:800; color:var(--teal-dark);}
-  .game .d{font-size:14px; color:#6b8480; margin-top:6px; line-height:1.4;}
-  .game.soon{opacity:.75;}
+  /* the art sits in a fixed-height box so an emoji and a photo line up */
+  .game .art{
+    display:flex; align-items:flex-end; justify-content:center;
+    height:110px; font-size:76px; line-height:1; margin-bottom:12px;
+  }
+  .game .art img{max-height:110px; width:auto; filter:drop-shadow(0 5px 10px rgba(31,90,84,.28));}
+  .game .t{font-size:21px; font-weight:800; color:var(--teal-dark); display:block;}
   .game .badge{
-    display:inline-block; margin-top:10px; font-size:12px; font-weight:800;
+    display:inline-block; margin-top:12px; font-size:13px; font-weight:800;
     background:var(--yellow); color:#6b5c00; border-radius:20px; padding:3px 12px;
   }
 
@@ -221,19 +225,12 @@
     <button class="game" id="alzebraGame">
       <span class="art">🦓</span>
       <span class="t">Al-Zebra</span>
-      <span class="d">For beginners — feed the zebra the right outputs, fast! Race a friend over 6 carrots.</span>
       <span class="badge">▶ Play now</span>
     </button>
     <button class="game" id="algebraGame">
-      <span class="art">🥤</span>
+      <span class="art"><img src="assets/vending.png" alt=""></span>
       <span class="t">Algebra Machine</span>
-      <span class="d">For intermediates — sell snacks with a secret rule, or crack another seller's rule and win the lot!</span>
       <span class="badge">▶ Play now</span>
-    </button>
-    <button class="game soon" disabled>
-      <span class="art">🎁</span>
-      <span class="t">More games</span>
-      <span class="d">New games will appear here during the year.</span>
     </button>
   </div>
 </main>

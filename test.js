@@ -871,10 +871,19 @@ async function testHub(){
   await waitFor(() => !d.querySelector("#petBox .pet-power-story"), "tapping again hides the description");
 
   const cards = d.querySelectorAll(".games .game");
-  ok(/Al-Zebra/.test(cards[0].textContent) && /beginners/.test(cards[0].textContent),
-     "Al-Zebra (for beginners) comes first");
-  ok(/Algebra Machine/.test(cards[1].textContent) && /intermediates/.test(cards[1].textContent),
-     "Algebra Machine (for intermediates) sits beside it");
+  ok(cards.length === 2, "just the two games — no 'More games' placeholder");
+  ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
+  ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
+  // title + Play now only: the art icon, the title and the badge, nothing else
+  [...cards].forEach((c, i) => {
+    const kids = [...c.children].map(k => k.className);
+    ok(kids.join(",") === "art,t,badge" && !c.querySelector(".d"),
+       "card " + (i + 1) + " shows only its icon, title and Play now");
+    ok(/Play now/.test(c.querySelector(".badge").textContent),
+       "card " + (i + 1) + " keeps its Play now button");
+  });
+  ok(/vending\.png/.test(cards[1].querySelector(".art img").src),
+     "the Algebra Machine card uses the vending machine, not a drink");
 
   try{ dom.window.close(); }catch(e){}
 }
