@@ -140,8 +140,11 @@
 
   /* ---------- the pet ---------- */
   .pet-card{text-align:center;}
-  .pet-love{font-size:18px; font-weight:800; color:var(--accent); margin-bottom:2px;}
-  .pet-name{font-size:16px; font-weight:800; color:var(--teal-dark); margin-bottom:6px;}
+  .pet-row{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .pet-love{font-size:16px; font-weight:800; color:var(--accent); flex:1; text-align:left;}
+  .pet-name{font-size:16px; font-weight:800; color:var(--teal-dark);}
+  .pet-lv2{flex:1; text-align:right; font-size:13px; font-weight:800;}
+  .pet-lv2 span{background:var(--teal); color:#fff; border-radius:12px; padding:2px 9px;}
   .pet-name button{border:0; background:none; font-size:15px; opacity:.6; padding:2px 4px;}
   .pet-name button:hover{opacity:1; transform:scale(1.15);}
   .pet-stage{position:relative; width:min(62vw,230px); margin:0 auto;}
@@ -150,6 +153,23 @@
     position:absolute; inset:0; opacity:0; transition:opacity 1.2s ease;
   }
   .pet-stage.fed img.happy{opacity:1;}
+  .pet-stage.sparkle::before, .pet-stage.sparkle::after{
+    content:'✨'; position:absolute; font-size:26px; z-index:3;
+    animation:spark 1.6s ease-in-out; opacity:0;
+  }
+  .pet-stage.sparkle::before{top:8%; left:8%;}
+  .pet-stage.sparkle::after{bottom:12%; right:10%; animation-delay:.25s;}
+  .pet-stage.sparkle img{animation:shine 1.8s ease-in-out;}
+  @keyframes spark{
+    0%{opacity:0; transform:scale(.4) rotate(-20deg);}
+    35%{opacity:1; transform:scale(1.25) rotate(10deg);}
+    100%{opacity:0; transform:scale(.6) rotate(30deg) translateY(-14px);}
+  }
+  @keyframes shine{
+    0%,100%{filter:brightness(1);}
+    30%{filter:brightness(1.35) saturate(1.25) drop-shadow(0 0 18px rgba(255,220,90,.9));}
+    65%{filter:brightness(1.2) drop-shadow(0 0 10px rgba(255,220,90,.6));}
+  }
   .pet-hint{font-size:12.5px; color:#8aa19c; margin-top:6px;}
   .pet-powers{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:8px;}
   .pet-powers button{
@@ -164,6 +184,77 @@
   }
   .pet-power-story b{color:#5b3fa8;}
   .snack-fly{position:fixed; z-index:80; pointer-events:none; width:56px;}
+  .pet-lv{
+    position:absolute; bottom:6px; right:6px; background:var(--teal); color:#fff;
+    font-size:12px; font-weight:800; border-radius:12px; padding:2px 9px;
+    box-shadow:0 2px 8px rgba(31,90,84,.4); z-index:2;
+  }
+  /* talking to the pet */
+  #talkWrap{
+    position:fixed; inset:0; z-index:70; display:none; align-items:center;
+    justify-content:center; background:rgba(10,30,28,.55); padding:20px;
+  }
+  #talkWrap.open{display:flex;}
+  #talkCard{
+    background:#fff; border-radius:18px; width:min(94vw,420px); max-height:86vh;
+    padding:18px 20px; box-shadow:0 14px 40px rgba(0,0,0,.35);
+    display:flex; flex-direction:column;
+  }
+  #talkCard h3{color:var(--teal-dark); font-size:17px; text-align:center; margin-bottom:10px;}
+  #talkLog{flex:1; overflow-y:auto; min-height:120px; max-height:46vh; padding:4px 2px; margin-bottom:10px;}
+  .bub{
+    background:#e3f4f0; color:#1f5a54; border-radius:14px 14px 3px 14px;
+    padding:8px 12px; margin:0 0 7px auto; max-width:85%; width:fit-content;
+    font-size:14.5px; line-height:1.45;
+  }
+  .bub .when{display:block; font-size:10.5px; color:#8aa19c; margin-top:2px; text-align:right;}
+  #talkEmpty{color:#8aa19c; font-size:13.5px; text-align:center; padding:20px 0;}
+  #talkRow{display:flex; gap:8px;}
+  #talkIn{
+    flex:1; border:2px solid #cfe3df; border-radius:12px; padding:9px 12px;
+    font-family:inherit; font-size:14.5px;
+  }
+  #talkSend{
+    border:0; border-radius:12px; background:var(--good); color:#fff;
+    font-weight:800; font-size:14px; padding:9px 16px;
+  }
+  #talkClose{border:0; background:none; color:#8aa19c; font-size:13px; font-weight:700; margin:8px auto 0; display:block;}
+  /* friends */
+  #friendsBtn{
+    position:fixed; right:16px; top:50%; transform:translateY(-50%); z-index:30;
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:14px; padding:12px 14px; font-size:14px; font-weight:800;
+    box-shadow:0 4px 12px rgba(31,90,84,.18); writing-mode:horizontal-tb;
+  }
+  #friendsBtn:hover{background:var(--cream);}
+  #friendsWrap{
+    position:fixed; inset:0; z-index:70; display:none; align-items:center;
+    justify-content:center; background:rgba(10,30,28,.55); padding:20px;
+  }
+  #friendsWrap.open{display:flex;}
+  #friendsCard{
+    background:#fff; border-radius:18px; width:min(94vw,620px); max-height:86vh;
+    padding:18px 22px; box-shadow:0 14px 40px rgba(0,0,0,.35); overflow-y:auto;
+  }
+  #friendsCard h3{color:var(--teal-dark); font-size:18px; text-align:center; margin-bottom:12px;}
+  .fr-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
+  .fr{
+    border:2px solid #e2edeb; border-radius:14px; background:#fbfdfc; padding:10px;
+    text-align:center; position:relative;
+  }
+  .fr img{width:100%; border-radius:10px;}
+  .fr .pn{font-weight:800; color:var(--teal-dark); font-size:15px; margin-top:4px;}
+  .fr .own{font-size:12px; color:#8aa19c; font-weight:700;}
+  .fr .lv{
+    position:absolute; top:14px; right:14px; background:var(--teal); color:#fff;
+    font-size:11px; font-weight:800; border-radius:10px; padding:1px 7px;
+  }
+  .fr .likes{font-size:11.5px; color:#5c7671; margin-top:4px; line-height:1.4;}
+  #friendsClose{border:0; background:none; color:#8aa19c; font-size:13px; font-weight:700; margin:12px auto 0; display:block;}
+  .likes-in{
+    width:100%; border:2px solid #cfe3df; border-radius:10px; padding:7px 10px;
+    font-family:inherit; font-size:13.5px; margin-bottom:7px;
+  }
   /* feedback to Charlie: a quiet button bottom-right of the game chooser */
   #fbBtn{
     position:fixed; right:16px; bottom:16px; z-index:30;
@@ -293,8 +384,15 @@
         </div>
         <div class="prof-money">💰 <span id="profMoney">0</span> Whare</div>
         <div class="prof-sec">
-          <h3>My pet</h3>
+          <h3 style="display:flex;align-items:center;justify-content:space-between">My pet
+            <button id="petShopCap" style="border:0;background:var(--yellow);color:#6b5c00;border-radius:14px;padding:3px 12px;font-size:11.5px;font-weight:800;cursor:pointer;letter-spacing:0">🐾 Pet Shop</button>
+          </h3>
           <div id="petBox"></div>
+        </div>
+        <div class="prof-sec">
+          <h3>About me</h3>
+          <input class="likes-in" id="likeMusic" placeholder="🎵 My favourite music…" maxlength="60">
+          <input class="likes-in" id="likeHobby" placeholder="⚽ My favourite hobby…" maxlength="60">
         </div>
         <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:6px 0 10px;cursor:pointer">
           <input type="checkbox" id="hideRealPref"> 🙈 Don't reveal my real name in game results
@@ -303,6 +401,7 @@
         <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
       </div>
       <div class="prof-right">
+        <div id="profOwn">
         <div class="prof-sec">
           <h3>My stuff</h3>
           <div id="stuffBox"></div>
@@ -311,27 +410,47 @@
           <h3>🕵️ My rule attempts</h3>
           <div id="attemptsBox"></div>
         </div>
+        </div>
+        <div id="profShop" style="display:none">
+      <div class="prof-head" style="margin-bottom:6px">
+        <h3 style="font-size:16px;color:var(--teal-dark)">🐾 Pet Shop</h3>
+      </div>
+      <p style="font-size:13.5px;color:#8aa19c;margin-bottom:10px">
+        One pet per student — it lives in your room, eats your spare snacks,
+        and learns superpowers as your hearts grow.</p>
+      <div class="pet-grid" id="petGrid"></div>
+      <button class="prof-btn quiet" id="shopBack">← Never mind</button>
+    </div>
       </div>
     </div>
     <div id="profPicker" style="display:none">
       <div id="profPickerBox"></div>
       <button class="prof-btn quiet" id="pickerBack">← Never mind</button>
     </div>
-    <div id="profShop" style="display:none">
-      <div class="prof-head" style="margin-bottom:6px">
-        <h3 style="font-size:16px;color:var(--teal-dark)">🐾 Pet Shop</h3>
-      </div>
-      <p style="font-size:13.5px;color:#8aa19c;margin-bottom:10px">
-        One pet per student — it lives in your room, eats your spare snacks,
-        and learns a superpower every 10 ❤️.</p>
-      <div class="pet-grid" id="petGrid"></div>
-      <button class="prof-btn quiet" id="shopBack">← Never mind</button>
-    </div>
   </div>
 </div>
 
 <!-- superpower chooser (every 10 affection) -->
 <button id="fbBtn">💬 Give Feedback to Charlie</button>
+<button id="friendsBtn">👥 Friends</button>
+<div id="friendsWrap">
+  <div id="friendsCard">
+    <h3>👥 Class pets</h3>
+    <div class="fr-grid" id="frGrid"></div>
+    <button id="friendsClose">Close</button>
+  </div>
+</div>
+<div id="talkWrap">
+  <div id="talkCard">
+    <h3 id="talkTitle">💬 To my pet</h3>
+    <div id="talkLog"></div>
+    <div id="talkRow">
+      <input id="talkIn" maxlength="200" placeholder="Say something kind…">
+      <button id="talkSend">Send</button>
+    </div>
+    <button id="talkClose">Close</button>
+  </div>
+</div>
 <div id="fbWrap">
   <div id="fbCard">
     <h3>💬 Feedback for Charlie</h3>
@@ -463,62 +582,86 @@
       '📚 Goldfish Memory — never forgets homework due dates',
       '💧 Deep-Water Focus — 10 quiet minutes of pure concentration',
       '✨ Shiny Scales — a confidence sparkle before you speak up',
-      '🌊 Cool Current — washes arguments away before they grow']},
+      '🌊 Cool Current — washes arguments away before they grow',
+      '🐚 Treasure Sense — spots the good idea hiding in your draft',
+      '🎏 School of Friends — turns group work into smooth swimming',
+      '🌀 Whirl of Ideas — stirs up three fresh ideas when you\'re stuck']},
     2:{name:'Axolotl', price:12, powers:[
       '🩹 Regrow — bounce back fast from any mistake',
       '😊 Forever Smile — instant cheer-up on grey days',
       '🔬 Lab Partner — makes science homework feel easy',
       '🌙 Soft Glow — a gentle nightlight for good sleep',
-      '🧘 Chill Champion — teaches world-class calm']},
+      '🧘 Chill Champion — teaches world-class calm',
+      '🌱 Grow-Back Grit — try again energy after every flop',
+      '🫂 Gentle Cheer — quiet encouragement exactly when needed',
+      '🔦 Deep-Cave Courage — lights the way through scary new things']},
     3:{name:'Cat', price:14, powers:[
       '🧶 Stress Pounce — pounces on your stress so you don\'t have to',
       '😴 Power-Nap Coach — perfect 20-minute recharges',
       '🔍 Curiosity Boost — turns boring study into exploring',
       '💜 Purr Engine — purrs at exactly the focus frequency',
-      '🚪 Confident Strut — walk into any room like you own it']},
+      '🚪 Confident Strut — walk into any room like you own it',
+      '🐾 Silent Focus — pads so quietly distractions give up',
+      '🌤️ Windowsill Wisdom — finds the sunny side of any day',
+      '🎁 Surprise Reflex — lands on your feet when plans change']},
     4:{name:'Dog', price:16, powers:[
       '🎾 Fact Fetcher — fetches the answer you almost remembered',
       '🏃 Walk Buddy — gets you outside and moving every day',
       '🛡️ Mood Guard — barks bad moods right out of the room',
       '🤝 Friend Magnet — makes making friends easier',
-      '👂 Best Listener — hears every worry, judges none']},
+      '👂 Best Listener — hears every worry, judges none',
+      '🦴 Loyalty Shield — sticks with you through the tricky bits',
+      '🌟 Trick Learner — makes practising new skills feel like play',
+      '🚀 Zoomies Boost — a burst of energy for the last lap']},
     5:{name:'Budgie', price:18, powers:[
       '🗣️ Vocab Parrot — repeats your spelling words till they stick',
       '🎵 Happy Whistle — whistles your favourite song when you\'re down',
       '🎤 Speech Coach — practise presentations to a kind audience',
       '🌈 Colour Splash — brightens the most boring afternoon',
-      '🪽 Big-Picture View — flies up high so you see what matters']},
+      '🪽 Big-Picture View — flies up high so you see what matters',
+      '🪞 Mirror Pep-Talk — teaches you the kindest self-talk',
+      '🌻 Seed of Patience — small daily practice grows big wins',
+      '📣 Brave Announcer — helps your ideas be heard in class']},
     6:{name:'Triceratops', price:20, powers:[
       '🛡️ Triple Shield — blocks three worries at once',
       '🪨 Homework Crusher — stomps big tasks into little pieces',
       '💪 Brave Horns — lends courage for tests and try-outs',
       '🥦 Veggie Power — cheers you on to eat the green stuff',
-      '⛰️ Unshakeable — stands steady when everything wobbles']}
+      '⛰️ Unshakeable — stands steady when everything wobbles',
+      '🦕 Ancient Patience — 66 million years of taking your time',
+      '🌋 Thick-Skin Mode — lets unkind words bounce right off',
+      '🥁 Stomp of Joy — a victory dance for every small win']}
   };
   function petImg(t, happy){
     t = parseInt(t, 10) || 1;
     return 'assets/pets/p' + t + (happy ? '-h' : '') + '.jpg';
   }
   function petCallName(pet){ return pet.name || ('your ' + PETS[pet.type].name); }
+  /* one level per superpower learned: starts at 1, tops out at 7 */
+  function petLevel(pet){ return Math.min(7, 1 + ((pet && pet.powers) || []).length); }
 
   function renderPet(){
     var box = $('petBox');
     if(!me.pet){
-      box.innerHTML = '<div class="prof-empty">No pet yet — pets eat your spare snacks and learn a superpower every 10 ❤️!</div>'
+      box.innerHTML = '<div class="prof-empty">No pet yet — pets eat your spare snacks and learn superpowers as they grow!</div>'
         + '<button class="prof-btn" id="shopOpenBtn">🐾 Visit the Pet Shop</button>';
       return;
     }
     var pet = me.pet, meta = PETS[pet.type] || PETS[1];
     box.innerHTML =
       '<div class="pet-card">'
-      + '<div class="pet-love">❤️ ' + (parseInt(pet.affection, 10) || 0) + '</div>'
-      + '<div class="pet-name">'
-      +   (pet.name ? esc(pet.name) : '<span style="color:#8aa19c">Name me!</span>')
-      +   ' <button id="petNameBtn" title="Name your pet">✏️</button></div>'
+      + '<div class="pet-row">'
+      +   '<span class="pet-love">❤️ ' + (parseInt(pet.affection, 10) || 0) + '</span>'
+      +   '<span class="pet-name">'
+      +     (pet.name ? esc(pet.name) : '<span style="color:#8aa19c">Name me!</span>')
+      +     ' <button id="petNameBtn" title="Name your pet">✏️</button></span>'
+      +   '<span class="pet-lv2"><span>Lv ' + petLevel(pet) + '</span></span>'
+      + '</div>'
       + '<div class="pet-stage' + (Date.now() < fedUntil ? ' fed' : '') + '" id="petStage">'
       +   '<img src="' + petImg(pet.type, false) + '" alt="' + esc(meta.name) + '">'
       +   '<img class="happy" src="' + petImg(pet.type, true) + '" alt="">'
       + '</div>'
+      + '<button class="prof-btn" id="talkBtn" style="margin-top:8px">💬 Talk to ' + esc(petCallName(pet)) + '</button>'
       + ((pet.powers && pet.powers.length)
           ? '<div class="pet-powers">' + pet.powers.map(function(pw, i){
               return '<button data-pow="' + i + '"'
@@ -531,13 +674,14 @@
                   + esc(pet.powers[openPower].split(' — ').slice(1).join(' — ') || '…')
                   + '</div>' : '')
           : '')
-      + '<div class="pet-hint">Feed snacks from My stuff — every 10 ❤️ unlocks a superpower!</div>'
+      + '<div class="pet-hint">Feed snacks from My stuff — more ❤️ unlocks new superpowers!</div>'
       + '</div>';
   }
   var openPower = -1;   /* which capsule's story is showing (-1 = none) */
   $('petBox').addEventListener('click', function(e){
     if(e.target.closest('#shopOpenBtn')){ renderShop(); showView('shop'); return; }
     if(e.target.closest('#petNameBtn')){ namePet(); return; }
+    if(e.target.closest('#talkBtn')){ openTalk(); return; }
     var cap = e.target.closest('.pet-powers button');
     if(cap){
       var i = parseInt(cap.getAttribute('data-pow'), 10);
@@ -598,6 +742,7 @@
     var items = me.items.slice(); items.splice(idx, 1);
     var newPet = Object.assign({}, pet, {affection: (pet.affection || 0) + 5});
     store.update(me.id, {items: items, pet: newPet}).then(function(){
+      me.pet = newPet; me.items = items;   /* keep the local copy honest */
       /* the snack flies over to the pet */
       var stage = $('petStage');
       if(fromBtn && stage){
@@ -622,16 +767,24 @@
       toast('😋 ' + petCallName(pet) + ' loved the ' + p.name + '! +5 ❤️');
       return refresh();
     }).then(function(){
-      /* soft happy crossfade, then back to normal — fedUntil lets renderPet
-         re-apply the class if a realtime refresh rebuilds the stage mid-glow */
-      fedUntil = Date.now() + 2400;
-      var stage = $('petStage');
-      if(stage) stage.classList.add('fed');
+      /* only once the snack LANDS (700 ms flight): happy face + sparkle —
+         fedUntil lets renderPet re-apply the class if a realtime refresh
+         rebuilds the stage mid-glow */
+      fedUntil = Date.now() + 700 + 2400;
+      setTimeout(function(){
+        var stage = $('petStage');
+        if(stage){
+          stage.classList.add('fed');
+          stage.classList.remove('sparkle'); void stage.offsetWidth;
+          stage.classList.add('sparkle');
+        }
+      }, 700);
       setTimeout(function(){
         fedUntil = 0;
         var s2 = $('petStage');
         if(s2) s2.classList.remove('fed');
-      }, 2400);
+        if(s2) s2.classList.remove('sparkle');
+      }, 3100);   /* 700 ms flight + 2.4 s of glowing */
       stuffBusy = false;
       /* let the munching moment land before the superpower knock */
       setTimeout(maybeOfferPower, 2000);
@@ -641,9 +794,8 @@
     });
   }
 
-  /* each superpower needs a bigger affection leap than the last:
-     10 → 25 → 45 → 70 → 100 ❤️ (2, 3, 4, 5, 6 snacks apart) */
-  var POWER_STEPS = [10, 25, 45, 70, 100];
+  /* superpower knocks at 10 → 15 → 25 → 35 → 45 → 55 → 65 → 75 ❤️ */
+  var POWER_STEPS = [10, 15, 25, 35, 45, 55, 65, 75];
   function maybeOfferPower(){
     var pet = me && me.pet;
     if(!pet) return;
@@ -672,6 +824,7 @@
     }
     var pet = Object.assign({}, me.pet, {powers: (me.pet.powers || []).concat([pw])});
     store.update(me.id, {pet: pet}).then(function(){
+      me.pet = pet;   /* local patch first — kills the stale re-offer race */
       $('powerWrap').classList.remove('open');       // close only once it's saved
       toast('🌟 New superpower learned!');
       return refresh().then(maybeOfferPower).catch(function(){});
@@ -709,6 +862,7 @@
     }).then(function(list){
       me = list.filter(function(s){ return s.id === sess.id; })[0] || null;
       if(!me){ window.location.replace('index.html'); return; }
+      fillLikes();
       render();
     });
   }
@@ -717,6 +871,7 @@
   function openProf(){
     $('profWrap').classList.add('open');
     showPicker(false);
+    fillLikes();
     maybeOfferPower();     // an earned-but-unchosen superpower greets you here
   }
   function closeProf(){ $('profWrap').classList.remove('open'); }
@@ -726,12 +881,15 @@
 
   /* the profile popup has three faces: the room, the emoji picker, the shop */
   function showView(which){
-    $('profMain').style.display = which === 'main' ? '' : 'none';
+    /* the shop lives in the RIGHT column; the picker still takes the page */
+    $('profMain').style.display = which === 'picker' ? 'none' : '';
     $('profPicker').style.display = which === 'picker' ? '' : 'none';
+    $('profOwn').style.display = which === 'shop' ? 'none' : '';
     $('profShop').style.display = which === 'shop' ? '' : 'none';
   }
   function showPicker(on){ showView(on ? 'picker' : 'main'); }
   $('shopBack').addEventListener('click', function(){ showView('main'); });
+  $('petShopCap').addEventListener('click', function(){ renderShop(); showView('shop'); });
   $('editEmojiBtn').addEventListener('click', function(){
     window.CharlieEmoji.mount($('profPickerBox'), {
       initial: me && me.emoji,
@@ -756,6 +914,95 @@
   $('logoutBtn').addEventListener('click', function(){
     try{ sessionStorage.removeItem('charlie-session'); }catch(e){}
     window.location.href = 'index.html';
+  });
+
+  /* ---------------- talking to the pet (saved on the pet itself) -------- */
+  var talkBusy = false;
+  function renderTalkLog(){
+    var chat = (me.pet && me.pet.chat) || [];
+    $('talkLog').innerHTML = chat.length
+      ? chat.map(function(c){
+          return '<div class="bub">' + esc(c.text)
+            + '<span class="when">' + new Date(c.t).toLocaleDateString() + '</span></div>';
+        }).join('')
+      : '<div id="talkEmpty">Nothing yet — say hello! 👋</div>';
+    $('talkLog').scrollTop = $('talkLog').scrollHeight;
+  }
+  function openTalk(){
+    if(!me.pet) return;
+    $('talkTitle').textContent = '💬 To ' + petCallName(me.pet);
+    $('talkIn').value = '';
+    renderTalkLog();
+    $('talkWrap').classList.add('open');
+    $('talkIn').focus();
+  }
+  function sendTalk(){
+    var text = $('talkIn').value.trim();
+    if(!text || talkBusy || !me.pet) return;
+    talkBusy = true;
+    var pet = Object.assign({}, me.pet);
+    pet.chat = ((pet.chat || []).concat([{t: Date.now(), text: text.slice(0, 200)}])).slice(-50);
+    store.update(me.id, {pet: pet}).then(function(){
+      talkBusy = false;
+      $('talkIn').value = '';
+      me.pet = pet;
+      renderTalkLog();
+    }).catch(function(){
+      talkBusy = false;
+      toast('Hmm, that didn\'t save — try again!');
+    });
+  }
+  $('talkSend').addEventListener('click', sendTalk);
+  $('talkIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') sendTalk(); });
+  $('talkClose').addEventListener('click', function(){ $('talkWrap').classList.remove('open'); });
+  $('talkWrap').addEventListener('click', function(e){
+    if(e.target === $('talkWrap')) $('talkWrap').classList.remove('open');
+  });
+
+  /* ---------------- about me: favourite music + hobby ---------------- */
+  var likesTimer = null;
+  function fillLikes(){
+    var p = me.profile || {};
+    if(document.activeElement !== $('likeMusic')) $('likeMusic').value = p.music || '';
+    if(document.activeElement !== $('likeHobby')) $('likeHobby').value = p.hobby || '';
+  }
+  function saveLikes(){
+    clearTimeout(likesTimer);
+    likesTimer = setTimeout(function(){
+      var p = Object.assign({}, me.profile || {}, {
+        music: $('likeMusic').value.trim().slice(0, 60),
+        hobby: $('likeHobby').value.trim().slice(0, 60)
+      });
+      store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
+    }, 600);
+  }
+  $('likeMusic').addEventListener('input', saveLikes);
+  $('likeHobby').addEventListener('input', saveLikes);
+
+  /* ---------------- friends: everyone's pets, anonymous by default ------- */
+  var FR_SETTINGS = {hidden:false, showNames:false};
+  $('friendsBtn').addEventListener('click', function(){
+    store.list().then(function(all){
+      var owners = all.filter(function(s){ return s.pet; });
+      $('frGrid').innerHTML = owners.length ? owners.map(function(s){
+        var p = s.pet, prof = s.profile || {};
+        var likes = [];
+        if(prof.music) likes.push('🎵 ' + esc(prof.music));
+        if(prof.hobby) likes.push('⚽ ' + esc(prof.hobby));
+        return '<div class="fr">'
+          + '<img src="' + petImg(p.type, false) + '" alt="">'
+          + '<span class="lv">Lv ' + petLevel(p) + '</span>'
+          + '<div class="pn">' + esc(p.name || PETS[p.type].name) + '</div>'
+          + '<div class="own">' + (FR_SETTINGS.showNames ? esc(s.name) : '🎈 a class friend') + '</div>'
+          + (likes.length ? '<div class="likes">' + likes.join('<br>') + '</div>' : '')
+          + '</div>';
+      }).join('') : '<div style="grid-column:1/-1;text-align:center;color:#8aa19c;padding:20px 0">No pets yet — the Pet Shop awaits! 🐾</div>';
+      $('friendsWrap').classList.add('open');
+    }).catch(function(){ toast('Could not fetch the pets — try again!'); });
+  });
+  $('friendsClose').addEventListener('click', function(){ $('friendsWrap').classList.remove('open'); });
+  $('friendsWrap').addEventListener('click', function(e){
+    if(e.target === $('friendsWrap')) $('friendsWrap').classList.remove('open');
   });
 
   /* ---------------- feedback to Charlie ---------------- */
@@ -816,6 +1063,10 @@
   store.init().then(function(){
     /* the teacher can rest a game: its card vanishes from the hub */
     store.getMachine('game-settings').then(function(s){
+      if(s && s.friends){
+        FR_SETTINGS = s.friends;
+        if(s.friends.hidden) $('friendsBtn').style.display = 'none';
+      }
       if(!s || !s.hidden) return;
       if(s.hidden.alzebra) $('alzebraGame').style.display = 'none';
       if(s.hidden.algebra) $('algebraGame').style.display = 'none';

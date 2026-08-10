@@ -17,6 +17,8 @@ create table if not exists public.students (
   money      numeric not null default 0,
   items      jsonb not null default '[]',
   guesses    jsonb not null default '[]',
+  pet        jsonb,
+  profile    jsonb,
   created_at timestamptz not null default now()
 );
 

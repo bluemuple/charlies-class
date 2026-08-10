@@ -17,9 +17,10 @@ window.CharlieStore = (function(){
   var CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js';
 
   /* Everything except `code`. code_set is a generated column (code is not null). */
-  var ROSTER_COLS = 'id,name,gender,emoji,money,code_set,items,guesses,pet';
-  /* if migration-pets.sql hasn't run yet, retreat by ONE column — never to '*',
+  var ROSTER_COLS = 'id,name,gender,emoji,money,code_set,items,guesses,pet,profile';
+  /* if a migration hasn't run yet, retreat ONE column at a time — never to '*',
      which would ship the whole class's codes to every browser */
+  var NO_PROFILE_COLS = 'id,name,gender,emoji,money,code_set,items,guesses,pet';
   var NO_PET_COLS = 'id,name,gender,emoji,money,code_set,items,guesses';
   var LS_MACHINES = 'charlies-class-machines-v1';
 
@@ -51,6 +52,7 @@ window.CharlieStore = (function(){
       items: row.items || [],
       guesses: row.guesses || [],
       pet: row.pet || null,
+      profile: row.profile || null,
       codeSet: ('code_set' in row) ? !!row.code_set : !!(row.code && String(row.code).length)
     };
   }
@@ -123,14 +125,30 @@ window.CharlieStore = (function(){
     var blob = (err.message||'') + (err.details||'') + (err.hint||'');
     return /code_set|items|guesses/.test(blob);
   }
-  var petless = false;   // migration-pets.sql not run yet — drop only that column
+  var petless = false;      // migration-pets.sql not run yet
+  var profileless = false;  // migration-profile.sql not run yet
   function missingPet(err){
     if(!err) return false;
     var blob = (err.message||'') + (err.details||'') + (err.hint||'');
     return /\bpet\b/.test(blob) && !/code_set|items|guesses/.test(blob);
   }
-  function cols(){ return legacy ? '*' : (petless ? NO_PET_COLS : ROSTER_COLS); }
+  function missingProfile(err){
+    if(!err) return false;
+    var blob = (err.message||'') + (err.details||'') + (err.hint||'');
+    return /\bprofile\b/.test(blob) && !/code_set|items|guesses/.test(blob);
+  }
+  function cols(){
+    return legacy ? '*'
+      : petless ? NO_PET_COLS
+      : profileless ? NO_PROFILE_COLS
+      : ROSTER_COLS;
+  }
   function noteMissingColumn(err){
+    if(!profileless && missingProfile(err)){
+      profileless = true;
+      try{ console.warn('Charlie\'s Class: run supabase/migration-profile.sql — music/hobby/pet chat are off until then.'); }catch(e){}
+      return true;
+    }
     if(!petless && missingPet(err)){
       petless = true;
       try{ console.warn('Charlie\'s Class: run supabase/migration-pets.sql — pets are off until then.'); }catch(e){}
