@@ -872,24 +872,40 @@
     if(HIDE_CHIP[id]) dismissHint();   /* never spotlight a hidden capsule */
     else maybeMoneyHint();
   }
-  /* -------- first Whare ever: spotlight the name capsule once -------- */
-  var hintSeenMem = false;
-  function hintKey(){ return 'charlie-money-hint-' + (me && me.id); }
-  function hintSeen(){
-    if(hintSeenMem) return true;
-    try{ return !!localStorage.getItem(hintKey()); }catch(e){ return false; }
+  /* -------- first-time hints: money, then items — never both at once ---- */
+  var hintShowing = null, hintSeenMem = {};
+  var HINT_HTML = {
+    money: '<span class="up">⬆️</span>🎉 <b>You earned Whare!</b><br>'
+      + 'Tap your name up there to visit <b>My room</b> — the Pet Shop is waiting.<br>'
+      + '<span style="color:#8aa19c;font-size:13px">(click or press any key to close)</span>',
+    item: '<span class="up">⬆️</span>🎒 <b>You won an item!</b><br>'
+      + 'Tap your name up there to see your stuff — snacks can be given to your pet later.<br>'
+      + '<span style="color:#8aa19c;font-size:13px">(click or press any key to close)</span>'
+  };
+  function hintKey(type){ return 'charlie-' + type + '-hint-' + (me && me.id); }
+  function hintSeen(type){
+    if(hintSeenMem[type]) return true;
+    try{ return !!localStorage.getItem(hintKey(type)); }catch(e){ return false; }
   }
   function maybeMoneyHint(){
-    if(!me || !(me.money > 0) || HIDE_CHIP[current()] || hintSeen()) return;
+    if(hintShowing || !me || HIDE_CHIP[current()]) return;
+    var type = null;
+    if(me.money > 0 && !hintSeen('money')) type = 'money';
+    else if((me.items || []).length > 0 && !hintSeen('item')) type = 'item';
+    if(!type) return;
+    hintShowing = type;
+    $('hintCard').innerHTML = HINT_HTML[type];
     document.body.classList.add('hinting');
     $('hintWrap').classList.add('on');
   }
   function dismissHint(){
-    if(!$('hintWrap').classList.contains('on')) return;
-    hintSeenMem = true;
-    try{ localStorage.setItem(hintKey(), '1'); }catch(e){}
+    if(!hintShowing) return;
+    hintSeenMem[hintShowing] = true;
+    try{ localStorage.setItem(hintKey(hintShowing), '1'); }catch(e){}
+    hintShowing = null;
     document.body.classList.remove('hinting');
     $('hintWrap').classList.remove('on');
+    setTimeout(maybeMoneyHint, 900);   /* the next hint waits its turn */
   }
   $('hintWrap').addEventListener('click', dismissHint);
   document.addEventListener('keydown', function(e){ dismissHint(); }, true);
@@ -1614,6 +1630,13 @@
       if(w && !winShown){
         winShown = true;
         if(w.id === me.id){ showWin(m); }   /* confetti lives in showWin — winner only */
+        else if(!window.CHARLIE_TEST_FAST){
+          /* the other players hear about it big, then the veil lifts */
+          $('turnWho').textContent = '🏁 ' + dispName(m, w, true) + ' cracked the rule — game over!';
+          $('turnFlash').classList.add('on');
+          clearTimeout(turnFlashT);
+          turnFlashT = setTimeout(function(){ $('turnFlash').classList.remove('on'); }, 2600);
+        }
       }
       tickRematch(m);
       scheduleMallExit('scrPlay');
@@ -1777,6 +1800,8 @@
     var overlay = $('canOverlay');
     overlay.classList.add('open');
     overlay.classList.remove('dim');
+    clearTimeout(prodTimer);
+    prodTimer = setTimeout(closeProduct, 3000);   /* it tidies itself away */
     raf(function(){
       var endR = $('prodWrap').getBoundingClientRect();
       var fromR = $('trayName').getBoundingClientRect();
@@ -1794,7 +1819,9 @@
       overlay.classList.add('dim');
     });
   }
+  var prodTimer = null;
   function closeProduct(){
+    clearTimeout(prodTimer);
     var overlay = $('canOverlay');
     if(!overlay.classList.contains('open')) return;
     overlay.classList.remove('open');

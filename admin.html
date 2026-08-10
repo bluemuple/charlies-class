@@ -261,6 +261,11 @@
     Time settings apply to rooms created after the change. <span id="gamesSaved" style="color:#2a9d34;font-weight:800"></span></p>
   </section>
 
+  <section class="card" id="fbCard2">
+    <h2>💬 Student feedback <span id="fbAvg" style="color:#8a6d00;font-size:16px"></span></h2>
+    <div id="fbList" style="font-size:14.5px;color:#4c6b66">No feedback yet.</div>
+  </section>
+
   <div class="cols">
     <section class="card group" data-g="boy">
       <h2>👦 Boys · <b id="boyCount">0</b></h2>
@@ -538,6 +543,30 @@
   function boot(){
     if(booted) return;
     booted = true;
+  /* ---------------- student feedback ---------------- */
+  function esc2(s){ return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function loadFeedback(){
+    store.getMachine('feedback-log').then(function(log){
+      var list = document.getElementById('fbList');
+      var avgEl = document.getElementById('fbAvg');
+      var es = (log && log.entries) || [];
+      if(!es.length){ list.textContent = 'No feedback yet.'; avgEl.textContent = ''; return; }
+      var avg = es.reduce(function(a, e){ return a + (e.stars||0); }, 0) / es.length;
+      avgEl.textContent = '· average ' + (Math.round(avg*10)/10) + ' ★ from ' + es.length;
+      list.innerHTML = es.slice().reverse().map(function(e){
+        var stars = '★★★★★'.slice(0, e.stars) + '<span style="opacity:.3">' + '★★★★★'.slice(e.stars) + '</span>';
+        var when = e.t ? new Date(e.t).toLocaleDateString() : '';
+        return '<div style="border:1.5px solid #e2edeb;border-radius:12px;padding:8px 12px;margin-bottom:7px;background:#fbfdfc">'
+          + '<b style="color:var(--teal-dark)">' + esc2(e.name || e.id) + '</b> '
+          + '<span style="color:#c9a227;font-size:15px">' + stars + '</span>'
+          + '<span style="float:right;color:#8aa19c;font-size:12.5px">' + when + '</span>'
+          + (e.text ? '<div style="margin-top:4px">' + esc2(e.text) + '</div>' : '')
+          + '</div>';
+      }).join('');
+    }).catch(function(){});
+  }
+
   /* ---------------- per-game settings (shared blob in the machines store) --- */
   var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false},
                        algebra:{turnSecs:40},
@@ -588,6 +617,7 @@
 
     store.init().then(function(mode){
       loadGameSettings();
+      loadFeedback();
       var badge = $('modeBadge');
       if(mode === 'supabase'){
         badge.textContent = '☁️ Live — Supabase';

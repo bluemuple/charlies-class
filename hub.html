@@ -56,25 +56,26 @@
   }
 
   /* profile: big centred popup, scrolls vertically */
-  #profWrap{
-    position:fixed; inset:0; z-index:40; display:none;
-    background:rgba(10,30,28,.6); align-items:center; justify-content:center;
-    padding:3vh 14px;
-  }
+  /* the room is a full page: identity + pet on the left, loot on the right,
+     so a snack can fly from the shelf straight into the pet's mouth */
+  #profWrap{position:fixed; inset:0; z-index:40; display:none; background:#fff;}
   #profWrap.open{display:flex;}
   #prof{
-    background:#fff; width:min(94vw,720px); max-height:94vh;
-    padding:26px 30px; border-radius:24px;
-    box-shadow:0 20px 60px rgba(0,0,0,.45);
-    overflow-y:auto; overscroll-behavior:contain;
+    background:#fff; width:100vw; height:100vh; height:100dvh;
+    padding:0; display:flex; flex-direction:column; overflow:hidden;
   }
+  .prof-head{padding:12px 18px 10px; border-bottom:1.5px solid #e2edeb;}
+  #profMain{display:flex; flex:1; min-height:0;}
+  .prof-left{
+    flex:0 0 33%; min-width:250px; overflow-y:auto; overscroll-behavior:contain;
+    padding:16px 18px 30px; border-right:1.5px solid #e2edeb;
+  }
+  .prof-right{flex:1; overflow-y:auto; overscroll-behavior:contain; padding:16px 24px 40px;}
+  #profPicker, #profShop{flex:1; overflow-y:auto; padding:16px 24px 40px;}
   @media (max-width:640px){
-    #profWrap{padding:0;}
-    #prof{
-      width:100vw; border-radius:0;
-      height:100vh; max-height:100vh;
-      height:100dvh; max-height:100dvh;   /* tracks the real visible area on phones */
-    }
+    #profMain{flex-direction:column; overflow-y:auto;}
+    .prof-left{flex:none; border-right:0; border-bottom:1.5px solid #e2edeb; overflow:visible;}
+    .prof-right{flex:none; overflow:visible;}
   }
   #profClose{
     border:0; background:#eef1f0; color:#5c7671; border-radius:10px;
@@ -103,16 +104,24 @@
     border-radius:8px; aspect-ratio:1/1;
   }
   .sprite.n{background-image:url(assets/non-snacks.png);}
-  .stuff-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .stuff-grid{display:grid; grid-template-columns:repeat(auto-fill, 74px); gap:7px;}
   .stuff-grid button{
     border:2px solid #e2edeb; border-radius:12px; background:#fbfdfc; padding:6px;
     transition:.12s; position:relative;
   }
   .stuff-grid button:hover{transform:scale(1.06); border-color:var(--teal);}
-  .stuff-grid .nm{font-size:10px; font-weight:700; color:#5c7671; display:block; margin-top:3px;}
+  .stuff-grid .nm{
+    font-size:9px; font-weight:700; color:#5c7671; display:block; margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
   .stuff-grid .tag{
-    position:absolute; top:4px; right:4px; background:var(--yellow); color:#6b5c00;
-    font-size:9.5px; font-weight:800; border-radius:10px; padding:1px 6px;
+    position:absolute; bottom:18px; right:3px; background:var(--yellow); color:#6b5c00;
+    font-size:8.5px; font-weight:800; border-radius:10px; padding:0 5px;
+  }
+  .stuff-grid .cnt{
+    position:absolute; top:-6px; right:-6px; background:var(--teal); color:#fff;
+    font-size:10.5px; font-weight:800; border-radius:12px; padding:1px 6px;
+    box-shadow:0 2px 6px rgba(31,90,84,.35);
   }
 
   /* rule attempts history */
@@ -155,6 +164,40 @@
   }
   .pet-power-story b{color:#5b3fa8;}
   .snack-fly{position:fixed; z-index:80; pointer-events:none; width:56px;}
+  /* feedback to Charlie: a quiet button bottom-right of the game chooser */
+  #fbBtn{
+    position:fixed; right:16px; bottom:16px; z-index:30;
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:14px; padding:10px 16px; font-size:14px; font-weight:700;
+    box-shadow:0 4px 12px rgba(31,90,84,.18);
+  }
+  #fbBtn:hover{background:var(--cream);}
+  #fbWrap{
+    position:fixed; inset:0; z-index:70; display:none; align-items:center;
+    justify-content:center; background:rgba(10,30,28,.55); padding:20px;
+  }
+  #fbWrap.open{display:flex;}
+  #fbCard{
+    background:#fff; border-radius:18px; width:min(94vw,420px); padding:20px 22px;
+    box-shadow:0 14px 40px rgba(0,0,0,.35); text-align:center;
+  }
+  #fbCard h3{color:var(--teal-dark); font-size:18px; margin-bottom:10px;}
+  #fbStars{font-size:34px; letter-spacing:6px; cursor:pointer; user-select:none; margin-bottom:10px;}
+  #fbStars span{opacity:.35; transition:.1s;}
+  #fbStars span.on{opacity:1;}
+  #fbText{
+    width:100%; min-height:84px; border:2px solid #cfe3df; border-radius:12px;
+    padding:10px 12px; font-family:inherit; font-size:14.5px; resize:vertical;
+  }
+  #fbSend{
+    display:block; margin:12px auto 0; border:0; border-radius:12px;
+    background:var(--good); color:#fff; font-size:15px; font-weight:800; padding:11px 26px;
+  }
+  #fbSend[disabled]{background:#c6d6d2;}
+  #fbCancel{
+    display:block; margin:8px auto 0; border:0; background:none; color:#8aa19c;
+    font-size:13px; font-weight:700;
+  }
 
   /* pet shop grid (silhouettes until they come home) */
   .pet-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
@@ -243,28 +286,32 @@
       <button id="profClose">✕ Close</button>
     </div>
     <div id="profMain">
-      <div class="prof-me">
-        <div class="em" id="profEmoji">🙂</div>
-        <div class="nm" id="profName">…</div>
+      <div class="prof-left">
+        <div class="prof-me">
+          <div class="em" id="profEmoji">🙂</div>
+          <div class="nm" id="profName">…</div>
+        </div>
+        <div class="prof-money">💰 <span id="profMoney">0</span> Whare</div>
+        <div class="prof-sec">
+          <h3>My pet</h3>
+          <div id="petBox"></div>
+        </div>
+        <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:6px 0 10px;cursor:pointer">
+          <input type="checkbox" id="hideRealPref"> 🙈 Don't reveal my real name in game results
+        </label>
+        <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
+        <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
       </div>
-      <div class="prof-money">💰 <span id="profMoney">0</span> Whare</div>
-      <div class="prof-sec">
-        <h3>My stuff</h3>
-        <div id="stuffBox"></div>
+      <div class="prof-right">
+        <div class="prof-sec">
+          <h3>My stuff</h3>
+          <div id="stuffBox"></div>
+        </div>
+        <div class="prof-sec">
+          <h3>🕵️ My rule attempts</h3>
+          <div id="attemptsBox"></div>
+        </div>
       </div>
-      <div class="prof-sec">
-        <h3>🕵️ My rule attempts</h3>
-        <div id="attemptsBox"></div>
-      </div>
-      <div class="prof-sec">
-        <h3>My pet</h3>
-        <div id="petBox"></div>
-      </div>
-      <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:6px 0 10px;cursor:pointer">
-        <input type="checkbox" id="hideRealPref"> 🙈 Don't reveal my real name in game results
-      </label>
-      <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
-      <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
     </div>
     <div id="profPicker" style="display:none">
       <div id="profPickerBox"></div>
@@ -284,6 +331,17 @@
 </div>
 
 <!-- superpower chooser (every 10 affection) -->
+<button id="fbBtn">💬 Give Feedback to Charlie</button>
+<div id="fbWrap">
+  <div id="fbCard">
+    <h3>💬 Feedback for Charlie</h3>
+    <div id="fbStars"><span data-s="1">⭐</span><span data-s="2">⭐</span><span data-s="3">⭐</span><span data-s="4">⭐</span><span data-s="5">⭐</span></div>
+    <textarea id="fbText" placeholder="What did you like? What should be better?"></textarea>
+    <button id="fbSend" disabled>Send ✈️</button>
+    <button id="fbCancel">Never mind</button>
+  </div>
+</div>
+
 <div id="powerWrap">
   <div id="powerBox">
     <div id="powerTitle"></div>
@@ -352,11 +410,18 @@
       $('stuffBox').innerHTML = '<div class="prof-empty">Snacks and prizes you win in the games will show up here. 🍪🧸</div>';
       return;
     }
-    $('stuffBox').innerHTML = '<div class="stuff-grid">' + items.map(function(k, i){
+    /* duplicates stack into one tile with a ×n badge; clicking spends ONE */
+    var order = [], count = {}, firstAt = {};
+    items.forEach(function(k, i){
+      if(!(k in count)){ order.push(k); count[k] = 0; firstAt[k] = i; }
+      count[k]++;
+    });
+    $('stuffBox').innerHTML = '<div class="stuff-grid">' + order.map(function(k){
       var p = G.PRODUCTS[k];
       if(!p) return '';
       var tag = p.sell ? '<span class="tag">'+p.sell+' W</span>' : '';
-      return '<button data-i="'+i+'" title="'+esc(p.name)+'">'+tag+spriteDiv(k)
+      var cnt = count[k] > 1 ? '<span class="cnt">×'+count[k]+'</span>' : '';
+      return '<button data-i="'+firstAt[k]+'" title="'+esc(p.name)+'">'+tag+cnt+spriteDiv(k)
         + '<span class="nm">'+esc(p.name)+'</span></button>';
     }).join('') + '</div>';
   }
@@ -568,17 +633,22 @@
         if(s2) s2.classList.remove('fed');
       }, 2400);
       stuffBusy = false;
-      maybeOfferPower();
+      /* let the munching moment land before the superpower knock */
+      setTimeout(maybeOfferPower, 2000);
     }).catch(function(){
       stuffBusy = false;
       toast('Hmm, the snack got lost — try again!');
     });
   }
 
+  /* each superpower needs a bigger affection leap than the last:
+     10 → 25 → 45 → 70 → 100 ❤️ (2, 3, 4, 5, 6 snacks apart) */
+  var POWER_STEPS = [10, 25, 45, 70, 100];
   function maybeOfferPower(){
     var pet = me && me.pet;
     if(!pet) return;
-    var earned = Math.floor((pet.affection || 0) / 10);
+    var aff = pet.affection || 0;
+    var earned = POWER_STEPS.filter(function(t){ return aff >= t; }).length;
     if(earned <= (pet.powers || []).length) return;
     var meta = PETS[pet.type];
     var remaining = meta.powers.filter(function(pw){ return (pet.powers || []).indexOf(pw) === -1; });
@@ -686,6 +756,47 @@
   $('logoutBtn').addEventListener('click', function(){
     try{ sessionStorage.removeItem('charlie-session'); }catch(e){}
     window.location.href = 'index.html';
+  });
+
+  /* ---------------- feedback to Charlie ---------------- */
+  var fbStars = 0, fbBusy = false;
+  $('fbBtn').addEventListener('click', function(){
+    fbStars = 0; $('fbText').value = '';
+    renderFbStars(); $('fbSend').disabled = true;
+    $('fbWrap').classList.add('open');
+  });
+  $('fbCancel').addEventListener('click', function(){ $('fbWrap').classList.remove('open'); });
+  $('fbWrap').addEventListener('click', function(e){
+    if(e.target === $('fbWrap')) $('fbWrap').classList.remove('open');
+  });
+  function renderFbStars(){
+    Array.prototype.forEach.call($('fbStars').children, function(s){
+      s.classList.toggle('on', +s.dataset.s <= fbStars);
+    });
+  }
+  $('fbStars').addEventListener('click', function(e){
+    var s = e.target.closest('span[data-s]'); if(!s) return;
+    fbStars = +s.dataset.s;
+    renderFbStars();
+    $('fbSend').disabled = false;
+  });
+  $('fbSend').addEventListener('click', function(){
+    if(!fbStars || fbBusy || !me) return;
+    fbBusy = true; $('fbSend').disabled = true;
+    store.getMachine('feedback-log').then(function(log){
+      log = log || {id:'feedback-log', type:'feedback', created: Date.now(), entries:[]};
+      log.entries.push({id:me.id, name:me.name, stars:fbStars,
+                        text:$('fbText').value.slice(0, 500), t: Date.now()});
+      log.created = Date.now();
+      return store.saveMachine(log);
+    }).then(function(){
+      fbBusy = false;
+      $('fbWrap').classList.remove('open');
+      toast('💌 Thanks — Charlie got your feedback!');
+    }).catch(function(){
+      fbBusy = false; $('fbSend').disabled = false;
+      toast('Hmm, it didn\'t send — try again!');
+    });
   });
 
   /* ---------------- games ---------------- */

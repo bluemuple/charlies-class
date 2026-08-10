@@ -580,7 +580,8 @@ async function testGamePlay(){
   ok(/2/.test(row.children[1].textContent) && /8/.test(row.children[2].textContent),
      "Results row holds x and y");
 
-  $2("canOverlay").click();
+  await waitFor(() => !$2("canOverlay").classList.contains("open"),
+     "the product tidies itself away after 3 s", 4600);
   await waitFor(() => $2("display").textContent === "--", "the price screen resets");
 
   // a number IS the whole turn — it moved straight on (and wrapped back: one customer)
@@ -926,6 +927,9 @@ async function testHub(){
   await waitFor(() => /Bubbles/.test($("petBox").textContent), "the goldfish is now Bubbles");
 
   // feeding: the leftover cookie becomes +5 hearts — but only after a yes
+  ok(!!d.querySelector(".prof-left #petBox") && !!d.querySelector(".prof-right #stuffBox")
+     && !!d.querySelector(".prof-left #logoutBtn") && !!d.querySelector(".prof-right #attemptsBox"),
+     "the room is a full page: pet + settings left, loot right");
   await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 1, "one snack left to feed");
   w.confirm = () => false;                       // "Give the Cookie to Bubbles?" → no
   d.querySelector('#stuffBox button[data-i="0"]').click();
@@ -967,6 +971,49 @@ async function testHub(){
      "the story holds more than the capsule title");
   d.querySelector("#petBox .pet-powers button").click();
   await waitFor(() => !d.querySelector("#petBox .pet-power-story"), "tapping again hides the description");
+
+  // duplicates stack into one tile with a ×n badge; the next power needs a
+  // bigger leap (10 → 25), so 20 hearts stays quiet and 25 knocks
+  await w.CharlieStore.update("willow-kolo", { items: ["cookie","cookie","cookie"] });
+  await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 1
+     && /×3/.test($("stuffBox").textContent), "three cookies stack into one ×3 tile");
+  d.querySelector('#stuffBox button[data-i]').click();      // → 15 ❤️
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.pet.affection === 15;
+  }, "snack one lands (15 hearts)", 5000);
+  await waitFor(() => /×2/.test($("stuffBox").textContent), "the stack ticks down to ×2");
+  d.querySelector('#stuffBox button[data-i]').click();      // → 20 ❤️
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.pet.affection === 20;
+  }, "snack two lands (20 hearts)", 5000);
+  await sleep(2600);                                        // past the 2 s offer delay
+  ok(!$("powerWrap").classList.contains("open"), "20 hearts is no longer enough for power two");
+  d.querySelector('#stuffBox button[data-i]').click();      // → 25 ❤️
+  await waitFor(() => $("powerWrap").classList.contains("open"),
+     "25 hearts knocks with the second superpower", 8000);
+  d.querySelector("#powerList button").click();
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.pet.powers.length === 2;
+  }, "the second power sticks", 5000);
+
+  // feedback to Charlie: stars + note land in the shared log with my name
+  ok(!!$("fbBtn"), "the feedback button waits bottom-right");
+  $("fbBtn").click();
+  ok($("fbWrap").classList.contains("open") && $("fbSend").disabled,
+     "the popup opens and Send sleeps until stars are given");
+  d.querySelector('#fbStars span[data-s="4"]').click();
+  ok(!$("fbSend").disabled, "four stars wake the Send button");
+  $("fbText").value = "More zebras please!";
+  $("fbSend").click();
+  await waitFor(async () => {
+    const log = await w.CharlieStore.getMachine("feedback-log");
+    return log && log.entries.length === 1 && log.entries[0].id === "willow-kolo"
+        && log.entries[0].stars === 4 && /zebras/.test(log.entries[0].text);
+  }, "the feedback lands in the log with name, stars and note", 5000);
+  ok(!$("fbWrap").classList.contains("open"), "the popup closes after sending");
 
   const cards = d.querySelectorAll(".games .game");
   ok(cards.length === 2, "just the two games — no 'More games' placeholder");
