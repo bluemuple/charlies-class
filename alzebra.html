@@ -244,6 +244,21 @@
     background:var(--teal); color:#fff; font-weight:800; font-size:14px; padding:8px 22px;
   }
   /* dark full-screen veils: countdown, turn flash, first-money hint */
+  /* the tourist arrives to a living zoo: a silent 10 s loop behind the page,
+     under a heavy white veil so every card and heading stays crisp */
+  #bgVid{
+    position:fixed; inset:0; width:100%; height:100%; object-fit:cover;
+    z-index:-2; opacity:0; transition:opacity .8s; pointer-events:none;
+    filter:blur(3px) saturate(.55);
+    transform:scale(1.04);   /* hides the blurred edges */
+  }
+  #bgVeil{
+    position:fixed; inset:0; z-index:-1; background:rgba(240,248,244,.93);
+    opacity:0; transition:opacity .8s; pointer-events:none;
+  }
+  body.zoobg #bgVid, body.zoobg #bgVeil{opacity:1;}
+  body.zoobg .card, body.zoobg .pen{background:rgba(255,255,255,.97);}
+  body.zoobg h2, body.zoobg .sub, body.zoobg #zWaitLine{text-shadow:0 1px 8px rgba(255,255,255,.95);}
   .veil{
     position:fixed; inset:0; z-index:80; display:none; align-items:center;
     justify-content:center; background:rgba(8,22,20,.78);
@@ -405,6 +420,9 @@
   <button id="backBtn">← Back</button>
   <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
 </header>
+
+<video id="bgVid" src="assets/zebra-loop.mp4" muted loop playsinline autoplay preload="auto"></video>
+<div id="bgVeil"></div>
 
 <main>
   <!-- role -->
@@ -636,6 +654,14 @@
     Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
       s.classList.toggle('on', s.id === id);
     });
+    /* the zoo video plays behind the tourist's own screens only */
+    var wantBg = (id === 'scrZoo' || id === 'scrZWait');
+    document.body.classList.toggle('zoobg', wantBg);
+    var v = $('bgVid');
+    if(v){
+      if(wantBg){ try{ v.play(); }catch(e){} }
+      else { try{ v.pause(); }catch(e){} }
+    }
     /* the name capsule hides in waiting rooms, the match and the results */
     $('meChip').style.display = HIDE_CHIP[id] ? 'none' : '';
     if(HIDE_CHIP[id]) dismissHint();   /* never spotlight a hidden capsule */
