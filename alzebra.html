@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Al-Zebra — Charlie's Class</title>
+<title>Al-Zebra — Wharenui Maths</title>
+<meta name="description" content="Beginners' algebra game: paint a rule on your zebra and race a tourist through six carrot problems.">
+<link rel="canonical" href="https://bluemuple.github.io/charlies-class/alzebra.html">
 <style>
   :root{
     --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
@@ -17,8 +19,10 @@
     min-height:100vh;
   }
   button{font-family:inherit; cursor:pointer;}
-  header{display:flex; align-items:center; gap:12px; padding:12px 20px;}
-  header h1{font-size:clamp(17px,2.4vw,24px); color:var(--teal-dark);}
+  /* slim floating header: Back left, me-chip right — frees a whole row */
+  header{position:absolute; top:0; left:0; right:0; display:flex; align-items:center;
+         gap:12px; padding:10px 16px; z-index:20; pointer-events:none;}
+  header > *{pointer-events:auto;}
   #backBtn{
     border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
     border-radius:12px; padding:7px 14px; font-size:14px; font-weight:700;
@@ -33,23 +37,23 @@
   #meChip .em{font-size:20px;}
   #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
 
-  main{max-width:1080px; margin:0 auto; padding:6px 18px 60px;}
+  main{max-width:1080px; margin:0 auto; padding:10px 18px 30px;}
   .screen{display:none;}
   .screen.on{display:block;}
-  h2{font-size:clamp(20px,3vw,30px); color:var(--teal-dark); text-align:center; margin:2.5vh 0 1vh;}
-  .sub{font-size:15px; color:#4c6b66; text-align:center; margin-bottom:2.5vh;}
+  h2{font-size:clamp(18px,2.4vw,26px); color:var(--teal-dark); text-align:center; margin:.6vh 0 .4vh;}
+  .sub{font-size:14px; color:#4c6b66; text-align:center; margin-bottom:1vh;}
   .card{
-    background:var(--card); border-radius:16px; padding:14px 16px;
-    box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:14px;
+    background:var(--card); border-radius:16px; padding:12px 14px;
+    box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:10px;
   }
   .card h4{font-size:12.5px; text-transform:uppercase; letter-spacing:1px; color:#7a8f8b; margin-bottom:8px;}
 
   .sprite{
-    background-image:url(assets/snacks.jpg);
+    background-image:url(assets/snacks.png);
     background-size:500% 400%; background-repeat:no-repeat;
     border-radius:10px; aspect-ratio:1/1;
   }
-  .sprite.n{background-image:url(assets/non-snacks.jpg);}
+  .sprite.n{background-image:url(assets/non-snacks.png);}
 
   /* ---------- role choice ---------- */
   .role-btns{display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin-top:3vh;}
@@ -70,7 +74,8 @@
     padding:6px 16px; font-size:14px; font-weight:700; color:#5c7671;
   }
   .shelf-tabs button.active{border-color:var(--teal); background:#e3f4f0; color:var(--teal-dark);}
-  .shelf{display:none; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px;}
+  .shelf{display:none; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px;
+         max-height:46vh; overflow-y:auto; padding:2px;}
   .shelf.on{display:grid;}
   .shelf button{
     border:3px solid transparent; border-radius:14px; background:#fbfdfc; padding:6px;
@@ -80,8 +85,9 @@
   .shelf button.sel{border-color:var(--good); background:#eaf7ec;}
   .shelf button .nm{font-size:11px; font-weight:700; color:#5c7671; margin-top:4px; display:block;}
   #stockDone{
-    display:block; margin:14px auto 0; border:0; border-radius:12px;
+    display:block; margin:12px auto 0; border:0; border-radius:12px;
     background:var(--good); color:#fff; font-size:16px; font-weight:800; padding:12px 30px;
+    position:sticky; bottom:10px; z-index:6; box-shadow:0 6px 16px rgba(26,90,40,.45);
   }
   #stockDone:hover{background:#217a29;}
 
@@ -97,7 +103,7 @@
   /* the rule, written in black on the stripe-free tummy */
   #zRule{
     position:absolute; left:39.5%; top:44%; width:27.5%; height:16%;
-    display:flex; align-items:center; justify-content:center;
+    display:flex; align-items:center; justify-content:flex-start; padding-left:2%;
     font-weight:800; color:#111; white-space:nowrap; overflow:hidden;
     font-size:clamp(10px,2.9vw,34px); z-index:4;
   }
@@ -109,11 +115,11 @@
   /* the keeper is a big foreground figure on the RIGHT, boots on the grass,
      whose pen follows the writing: three stops sliding right as you type,
      ending at the right edge of the zebra's tummy */
-  #manImg{position:absolute; left:45%; top:32%; width:53%; z-index:5; pointer-events:none;
+  /* width 44% of a 3/2 stage → height 52.8%; top 43% puts the boots on the
+     grass line (~96%). left is set from JS so the pen tip rides the caret. */
+  #manImg{position:absolute; left:31.5%; top:43%; width:44%; z-index:5; pointer-events:none;
           filter:drop-shadow(0 6px 10px rgba(0,0,0,.3));
           transition:left .45s ease;}
-  #manImg.pos2{left:52%;}
-  #manImg.pos3{left:60%;}
   /* the carrot in front of the mouth (tip points at the zebra) */
   #carrot{
     position:absolute; left:1.5%; top:27%; width:19%; z-index:4;
@@ -173,7 +179,10 @@
   .rulepad button:active, .rulepad button.press{transform:translateY(2px) scale(.94); background:var(--cream);}
   .rulepad button.op{background:#f4f0fd; color:#5b3fa8;}
   .rulepad button.xkey{background:var(--yellow); color:#6b5c00;}
-  .rule-side{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin-top:14px;}
+  /* rule screen: zebra stage left, pad + help right — fits one laptop screen */
+  .rule-flex{display:flex; gap:18px; justify-content:center; align-items:flex-start; flex-wrap:wrap;}
+  .rule-flex .zoo-stage{flex:1 1 480px; max-width:640px; min-width:330px; margin:0;}
+  .rule-side{display:flex; flex-direction:column; gap:12px; align-items:center; flex:0 1 330px; margin-top:0;}
   .rule-help{max-width:330px; font-size:13.5px; color:#4c6b66; line-height:1.55; text-align:left;}
   .rule-help b{color:var(--teal-dark);}
   #rewardLine{
@@ -220,6 +229,13 @@
     background:#eef1f0; color:#5c7671; font-size:14px; font-weight:700; padding:9px 20px;
   }
 
+  /* match screen: stage + timer left, players + calculator + results right */
+  .game-flex{display:flex; gap:18px; justify-content:center; align-items:flex-start; flex-wrap:wrap;}
+  .game-left{flex:1 1 500px; max-width:660px; min-width:330px;}
+  .game-left .zoo-stage{max-width:none; margin:0;}
+  .game-right{flex:0 1 340px; min-width:300px;}
+  .game-right .players{margin:0 0 8px;}
+  .game-right .card{margin:10px 0 0;}
   /* answer calculator */
   #probLine{text-align:center; font-size:16.5px; font-weight:800; color:var(--teal-dark); margin:10px 0 6px; min-height:22px;}
   .calc{max-width:340px; margin:0 auto;}
@@ -291,14 +307,13 @@
 
 <header>
   <button id="backBtn">← Back</button>
-  <h1>🦓 Al-Zebra</h1>
   <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
 </header>
 
 <main>
   <!-- role -->
   <section class="screen on" id="scrRole">
-    <h2>Welcome to the algebra zoo!</h2>
+    <h2>Pick Your Role</h2>
     <div class="role-btns">
       <button id="roleKeeper">
         <span class="big">🧑‍🌾</span><span class="t">Zookeeper</span>
@@ -331,6 +346,7 @@
   <section class="screen" id="scrRule">
     <h2>🖌️ Paint the rule on your zebra</h2>
     <p class="sub">It goes right on the stripe-free tummy. 𝑥 is the carrot number.</p>
+    <div class="rule-flex">
     <div class="zoo-stage" id="stageRule">
       <div id="zRule"></div>
       <img id="manImg" src="assets/man.png" alt="zookeeper painting">
@@ -353,6 +369,7 @@
         You and your tourist race the same 6 problems — fastest answers score
         <b>Perfect! 50</b> · Great 40 · Good 30 · Nice 20 · Oops 10.
       </div>
+    </div>
     </div>
     <button id="openPen">🦓 Open my pen!</button>
   </section>
@@ -377,7 +394,8 @@
 
   <!-- the match -->
   <section class="screen" id="scrGame">
-    <div class="players" id="gamePlayers"></div>
+    <div class="game-flex">
+    <div class="game-left">
     <div class="zoo-stage" id="stageGame">
       <img class="face" id="faceHappy" src="assets/zebra1.jpg" alt="">
       <img class="face" id="faceSad" src="assets/zebra2.jpg" alt="">
@@ -392,6 +410,9 @@
     </div>
     <div id="timerWrap2"><div id="timerBar2"></div></div>
     <div id="probLine"></div>
+    </div>
+    <div class="game-right">
+    <div class="players" id="gamePlayers"></div>
     <div class="calc" id="ansCalc">
       <div class="calc-disp" id="ansDisp"><span class="ph">your answer…</span></div>
       <div class="calc-keys" id="ansPad">
@@ -401,7 +422,7 @@
         <button data-k="0">0</button><button data-k="." class="fn">.</button><button data-k="go" class="go" style="grid-column:span 2">🥕 Feed!</button>
       </div>
     </div>
-    <div class="card" style="max-width:640px;margin:14px auto 0">
+    <div class="card">
       <h4>Results</h4>
       <div class="tbl-wrap">
         <table>
@@ -409,6 +430,8 @@
           <tbody id="zHist"></tbody>
         </table>
       </div>
+    </div>
+    </div>
     </div>
   </section>
 
@@ -572,8 +595,8 @@
       while(picked.length < G.MAX_PICK && snacks.length) picked.push(snacks.pop());
       toast('The pen topped itself up to 7 prizes!');
     }
-    renderZRule();
     show('scrRule');
+    renderZRule();
   });
 
   /* ================= KEEPER : rule on the zebra ================= */
@@ -588,10 +611,24 @@
     $('zRule').innerHTML = '<span>' + html + '<span class="caret"></span></span>';
     $('stageRule').classList.toggle('small-rule', tokens.length > 6);
     $('rewardLine').textContent = 'Winner\'s prize money: ' + G.reward(tokens) + ' Whare';
-    /* the keeper's pen roughly tracks the caret: three stops across the rule */
-    var manCls = tokens.length <= 2 ? '' : tokens.length <= 5 ? 'pos2' : 'pos3';
-    $('manImg').classList.toggle('pos2', manCls === 'pos2');
-    $('manImg').classList.toggle('pos3', manCls === 'pos3');
+    placeMan();
+  }
+  /* the keeper's pen tip keeps pointing at the caret: measure where the caret
+     sits inside the stage and slide the keeper so his pen tip (≈22% in from
+     his left edge) lands on it — right as the rule grows, back on delete */
+  var MAN_W = 44; /* keep in sync with the #manImg width above */
+  function placeMan(){
+    var stage = $('stageRule'), caret = stage.querySelector('.caret');
+    var left = null, sr = stage.getBoundingClientRect();
+    if(caret && sr.width > 0){
+      var cr = caret.getBoundingClientRect();
+      left = (cr.left - sr.left) / sr.width * 100 - MAN_W * .22;
+    }
+    if(left === null || !isFinite(left)){
+      /* hidden stage (jsdom, pre-show): rough per-token advance */
+      left = 41.5 - MAN_W * .22 + tokens.length * 3.2;
+    }
+    $('manImg').style.left = Math.max(28, Math.min(58, left)) + '%';
   }
   /* every keystroke makes the keeper wiggle: man.png ↔ man1.png each 0.5 s */
   function pokeMan(){

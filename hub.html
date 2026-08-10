@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Charlie's Class — Games</title>
+<title>Games — Wharenui Maths</title>
+<meta name="description" content="Game hub for Charlie's class at Wharenui School — pick a maths game, visit your room, feed your pet.">
+<link rel="canonical" href="https://bluemuple.github.io/charlies-class/hub.html">
 <style>
   :root{
     --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
@@ -92,11 +94,11 @@
 
   /* items won in games (sprites from the two product sheets) */
   .sprite{
-    background-image:url(assets/snacks.jpg);
+    background-image:url(assets/snacks.png);
     background-size:500% 400%; background-repeat:no-repeat;
     border-radius:8px; aspect-ratio:1/1;
   }
-  .sprite.n{background-image:url(assets/non-snacks.jpg);}
+  .sprite.n{background-image:url(assets/non-snacks.png);}
   .stuff-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
   .stuff-grid button{
     border:2px solid #e2edeb; border-radius:12px; background:#fbfdfc; padding:6px;
@@ -137,10 +139,17 @@
   .pet-stage.fed img.happy{opacity:1;}
   .pet-hint{font-size:12.5px; color:#8aa19c; margin-top:6px;}
   .pet-powers{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:8px;}
-  .pet-powers span{
+  .pet-powers button{
     background:#f4f0fd; color:#5b3fa8; border:1.5px solid #d9cff2;
     border-radius:14px; padding:3px 10px; font-size:12px; font-weight:700;
   }
+  .pet-powers button.open{background:#5b3fa8; color:#fff; border-color:#5b3fa8;}
+  .pet-power-story{
+    margin-top:7px; font-size:12.5px; line-height:1.5; color:#4c4368;
+    background:#f8f6fe; border:1.5px solid #e4dcf6; border-radius:10px; padding:8px 12px;
+    text-align:left;
+  }
+  .pet-power-story b{color:#5b3fa8;}
   .snack-fly{position:fixed; z-index:80; pointer-events:none; width:56px;}
 
   /* pet shop grid (silhouettes until they come home) */
@@ -446,15 +455,30 @@
       +   '<img class="happy" src="' + petImg(pet.type, true) + '" alt="">'
       + '</div>'
       + ((pet.powers && pet.powers.length)
-          ? '<div class="pet-powers">' + pet.powers.map(function(pw){
-              return '<span>' + esc(pw.split(' — ')[0]) + '</span>';
-            }).join('') + '</div>' : '')
+          ? '<div class="pet-powers">' + pet.powers.map(function(pw, i){
+              return '<button data-pow="' + i + '"'
+                + (i === openPower ? ' class="open"' : '') + '>'
+                + esc(pw.split(' — ')[0]) + '</button>';
+            }).join('') + '</div>'
+            + (openPower >= 0 && pet.powers[openPower]
+                ? '<div class="pet-power-story"><b>'
+                  + esc(pet.powers[openPower].split(' — ')[0]) + '</b> — '
+                  + esc(pet.powers[openPower].split(' — ').slice(1).join(' — ') || '…')
+                  + '</div>' : '')
+          : '')
       + '<div class="pet-hint">Feed snacks from My stuff — every 10 ❤️ unlocks a superpower!</div>'
       + '</div>';
   }
+  var openPower = -1;   /* which capsule's story is showing (-1 = none) */
   $('petBox').addEventListener('click', function(e){
     if(e.target.closest('#shopOpenBtn')){ renderShop(); showView('shop'); return; }
     if(e.target.closest('#petNameBtn')){ namePet(); return; }
+    var cap = e.target.closest('.pet-powers button');
+    if(cap){
+      var i = parseInt(cap.getAttribute('data-pow'), 10);
+      openPower = (i === openPower) ? -1 : i;   /* tap again to close */
+      renderPet();
+    }
   });
 
   function namePet(){

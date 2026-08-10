@@ -621,6 +621,7 @@ async function testAlZebra(){
   await w.CharlieStore.init();
   await sleep(120);
 
+  ok(/Pick Your Role/.test(d.querySelector("#scrRole h2").textContent), "role screen says Pick Your Role");
   $("roleKeeper").click();
   ok($("scrStock").classList.contains("on"), "keeper picks prizes first");
   [...d.querySelectorAll("#shelfS button[data-k]")].slice(0, 2).forEach(b => b.click());
@@ -637,8 +638,14 @@ async function testAlZebra(){
   ["back","back","back"].forEach(rk);
 
   // paint x + 2 — it appears in black on the tummy, and the keeper wiggles
+  const manLeft0 = parseFloat($("manImg").style.left) || 0;
   ["x","+","2"].forEach(rk);
   ok(/𝑥/.test($("zRule").textContent) && /2/.test($("zRule").textContent), "rule shows on the tummy");
+  const manLeft3 = parseFloat($("manImg").style.left);
+  ok(manLeft3 > manLeft0, "keeper slides right as the rule grows");
+  rk("back");
+  ok(parseFloat($("manImg").style.left) < manLeft3, "delete pulls the pen back left");
+  rk("2");
   ok(/12|3 Whare/.test($("rewardLine").textContent + " 3 Whare"), "reward line updates");
   await sleep(650);
   ok(/man1?\.png/.test($("manImg").src), "keeper animation frames swap while typing");
@@ -853,7 +860,15 @@ async function testHub(){
       return s.pet.powers.length === 1;
     });
   }, "the chosen superpower sticks", 5000);
-  await waitFor(() => d.querySelectorAll("#petBox .pet-powers span").length === 1, "the power shows as a badge");
+  await waitFor(() => d.querySelectorAll("#petBox .pet-powers button").length === 1, "the power shows as a badge");
+  // tapping the capsule opens the full story below; tapping again closes it
+  d.querySelector("#petBox .pet-powers button").click();
+  await waitFor(() => !!d.querySelector("#petBox .pet-power-story"), "tapping the capsule shows the full description");
+  ok(d.querySelector("#petBox .pet-power-story").textContent.length >
+     d.querySelector("#petBox .pet-powers button").textContent.length,
+     "the story holds more than the capsule title");
+  d.querySelector("#petBox .pet-powers button").click();
+  await waitFor(() => !d.querySelector("#petBox .pet-power-story"), "tapping again hides the description");
 
   const cards = d.querySelectorAll(".games .game");
   ok(/Al-Zebra/.test(cards[0].textContent) && /beginners/.test(cards[0].textContent),

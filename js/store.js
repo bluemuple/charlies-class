@@ -348,10 +348,15 @@ window.CharlieStore = (function(){
 
     onChange: function(fn){
       listeners.push(fn);
-      /* another tab on the same computer edited the demo store */
+      /* another tab on the same computer edited the demo store — drop the
+         memory mirrors so the next read picks up the other tab's write */
       try{
         window.addEventListener('storage', function(e){
-          if(e.key === LS_KEY || e.key === LS_MACHINES) fn();
+          if(e.key === LS_KEY || e.key === LS_MACHINES){
+            if(e.key === LS_MACHINES) memMachines = null;
+            else memory = null;
+            fn();
+          }
         });
       }catch(e){}
     }
