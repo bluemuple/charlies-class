@@ -102,8 +102,8 @@
   .zoo-stage img.face.on{opacity:1;}
   /* the rule, written in black on the stripe-free tummy */
   #zRule{
-    position:absolute; left:39.5%; top:44%; width:27.5%; height:16%;
-    display:flex; align-items:center; justify-content:flex-start; padding-left:2%;
+    position:absolute; left:39.5%; top:42.6%; width:27.5%; height:16%;
+    display:flex; align-items:center; justify-content:center;
     font-weight:800; color:#111; white-space:nowrap; overflow:hidden;
     font-size:clamp(10px,2.9vw,34px); z-index:4;
   }
@@ -111,15 +111,10 @@
   #zRule i{font-family:Georgia,serif; padding:0 1px;}
   #zRule .caret{display:inline-block; width:2.5px; height:1.05em; background:#111; margin-left:2px; animation:blink 1s steps(1) infinite;}
   @keyframes blink{50%{opacity:0}}
-  /* the keeper, painting the rule (rule screen only) */
-  /* the keeper is a big foreground figure on the RIGHT, boots on the grass,
-     whose pen follows the writing: three stops sliding right as you type,
-     ending at the right edge of the zebra's tummy */
-  /* width 44% of a 3/2 stage → height 52.8%; top 43% puts the boots on the
-     grass line (~96%). left is set from JS so the pen tip rides the caret. */
-  #manImg{position:absolute; left:31.5%; top:43%; width:44%; z-index:5; pointer-events:none;
-          filter:drop-shadow(0 6px 10px rgba(0,0,0,.3));
-          transition:left .45s ease;}
+  /* the zebra blinks: the eyes-closed frame flashes over the stage */
+  #zBlink{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+          display:none; z-index:2; pointer-events:none;}
+  #zBlink.on{display:block;}
   /* the carrot in front of the mouth (tip points at the zebra) */
   #carrot{
     position:absolute; left:1.5%; top:27%; width:19%; z-index:4;
@@ -171,6 +166,45 @@
 
   /* rule keypad (keeper) */
   .rulepad{display:grid; grid-template-columns:repeat(4,64px); gap:8px;}
+  .rulepad .wide{grid-column:span 2;}
+  .rulepad .numswrap{grid-column:1 / -1; display:none; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .rulepad .numswrap.open{display:grid;}
+  .rulepad .numswrap .zero{grid-column:span 2;}
+  .rulepad button.xkey img{height:22px; vertical-align:middle;}
+  .rulepad button.numsbtn{font-size:15px;}
+  .rulepad button.numsbtn.open{background:#e3f4f0; color:var(--teal-dark);}
+  #idkBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:9px 16px; font-size:14px; font-weight:700;
+  }
+  #idkBtn:hover{background:var(--cream);}
+  #exBox{
+    display:none; background:var(--yellow); color:#6b5c00; border-radius:12px;
+    padding:9px 18px; font-size:19px; font-weight:800; text-align:center;
+  }
+  #exBox.on{display:block;}
+  #exBox i{font-family:Georgia,serif;}
+  .reward-row{display:flex; align-items:center; gap:8px;}
+  .ibtn{
+    width:24px; height:24px; border-radius:50%; border:0; flex:none;
+    background:var(--teal); color:#fff; font-weight:800; font-size:13px;
+    font-family:Georgia,serif; font-style:italic; line-height:1;
+  }
+  .ibtn:hover{filter:brightness(1.15);}
+  #helpWrap{
+    position:fixed; inset:0; z-index:70; display:none; align-items:center;
+    justify-content:center; background:rgba(10,30,28,.55); padding:20px;
+  }
+  #helpWrap.open{display:flex;}
+  #helpCard{
+    background:#fff; border-radius:18px; max-width:440px; padding:20px 24px;
+    box-shadow:0 14px 40px rgba(0,0,0,.35); font-size:14px; color:#4c6b66; line-height:1.6;
+  }
+  #helpCard b{color:var(--teal-dark);}
+  #helpClose{
+    display:block; margin:14px auto 0; border:0; border-radius:10px;
+    background:var(--teal); color:#fff; font-weight:800; font-size:14px; padding:8px 22px;
+  }
   .rulepad button{
     height:52px; border:0; border-radius:12px; background:var(--card);
     font-size:21px; font-weight:800; color:var(--ink); box-shadow:0 2px 6px rgba(31,90,84,.16);
@@ -328,8 +362,8 @@
 
   <!-- keeper: prizes -->
   <section class="screen" id="scrStock">
-    <h2>🥕 Pick 7 prizes for your pen</h2>
-    <p class="sub">Whoever answers a problem correctly wins one of these — at most <b>3</b> non-snacks.</p>
+    <h2>🥕 Pick 7 prizes</h2>
+    <p class="sub">Whoever answers a problem correctly wins one of these.</p>
     <div class="card">
       <span id="pickCount">0 / 7</span>
       <div class="shelf-tabs">
@@ -348,31 +382,43 @@
     <p class="sub">It goes right on the stripe-free tummy. 𝑥 is the carrot number.</p>
     <div class="rule-flex">
     <div class="zoo-stage" id="stageRule">
+      <img id="zBlink" src="assets/zebra0.jpg" alt="">
       <div id="zRule"></div>
-      <img id="manImg" src="assets/man.png" alt="zookeeper painting">
     </div>
     <div class="rule-side">
-      <div>
-        <div class="rulepad" id="rulePad">
-          <button class="xkey" data-k="x">𝑥</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
-          <button class="op" data-k="+">+</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
-          <button class="op" data-k="-">−</button><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
-          <button class="op" data-k="*">×</button><button class="op" data-k="/">÷</button><button data-k="0">0</button><button data-k="back">⌫</button>
+      <div class="rulepad" id="rulePad">
+        <button class="op" data-k="+">+</button><button class="op" data-k="-">−</button><button class="op" data-k="*">×</button><button class="op" data-k="/">÷</button>
+        <button class="xkey wide" id="xKey" data-k="x"><i>𝑥</i></button>
+        <button class="numsbtn wide" id="numsToggle">🔢 numbers</button>
+        <div class="numswrap" id="numsPanel">
+          <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+          <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+          <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+          <button data-k="0" class="zero">0</button><button data-k="back">⌫</button>
         </div>
+      </div>
+      <button id="idkBtn">🤷 I don't know what to write</button>
+      <div id="exBox"></div>
+      <div class="reward-row">
         <div id="rewardLine">Winner's prize money: 0 Whare</div>
+        <button class="ibtn" id="rewardInfo" title="How prize money works">i</button>
       </div>
-      <div class="rule-help">
-        <b>How it works</b><br>
-        Example rule: <b>𝑥 + 3</b> — when the carrot says 2, the zebra wants <b>5</b>.<br><br>
-        Harder rules mean <b>more prize money</b> (÷ beats ×, × beats −, − beats +,
-        two operations pay extra) and <b>more thinking time</b> for each problem.
-        You and your tourist race the same 6 problems — fastest answers score
-        <b>Perfect! 50</b> · Great 40 · Good 30 · Nice 20 · Oops 10.
-      </div>
+      <button id="openPen">🦓 Open My Zoo</button>
     </div>
     </div>
-    <button id="openPen">🦓 Open my pen!</button>
   </section>
+
+  <div id="helpWrap">
+    <div id="helpCard">
+      <b>How it works</b><br>
+      Example rule: <b>𝑥 + 3</b> — when the carrot says 2, the zebra wants <b>5</b>.<br><br>
+      Harder rules mean <b>more prize money</b> (÷ beats ×, × beats −, − beats +,
+      two operations pay extra) and <b>more thinking time</b> for each problem.
+      You and your tourist race the same 6 problems — fastest answers score
+      <b>Perfect! 50</b> · Great 40 · Good 30 · Nice 20 · Oops 10.
+      <button id="helpClose">Got it!</button>
+    </div>
+  </div>
 
   <!-- keeper lobby -->
   <section class="screen" id="scrPen">
@@ -601,7 +647,6 @@
 
   /* ================= KEEPER : rule on the zebra ================= */
   var tokens = [];
-  var manTimer = null, manFrame = 0, lastKeyAt = 0;
   function renderZRule(){
     var html = tokens.map(function(t){
       if(t.t==='var') return '<i>𝑥</i>';
@@ -611,41 +656,44 @@
     $('zRule').innerHTML = '<span>' + html + '<span class="caret"></span></span>';
     $('stageRule').classList.toggle('small-rule', tokens.length > 6);
     $('rewardLine').textContent = 'Winner\'s prize money: ' + G.reward(tokens) + ' Whare';
-    placeMan();
   }
-  /* the keeper's pen tip keeps pointing at the caret: measure where the caret
-     sits inside the stage and slide the keeper so his pen tip (≈22% in from
-     his left edge) lands on it — right as the rule grows, back on delete */
-  var MAN_W = 44; /* keep in sync with the #manImg width above */
-  function placeMan(){
-    var stage = $('stageRule'), caret = stage.querySelector('.caret');
-    var left = null, sr = stage.getBoundingClientRect();
-    if(caret && sr.width > 0){
-      var cr = caret.getBoundingClientRect();
-      left = (cr.left - sr.left) / sr.width * 100 - MAN_W * .22;
-    }
-    if(left === null || !isFinite(left)){
-      /* hidden stage (jsdom, pre-show): rough per-token advance */
-      left = 41.5 - MAN_W * .22 + tokens.length * 3.2;
-    }
-    $('manImg').style.left = Math.max(28, Math.min(58, left)) + '%';
-  }
-  /* every keystroke makes the keeper wiggle: man.png ↔ man1.png each 0.5 s */
-  function pokeMan(){
-    lastKeyAt = Date.now();
-    if(manTimer) return;
-    manTimer = setInterval(function(){
-      if(Date.now() - lastKeyAt > 1000){
-        clearInterval(manTimer); manTimer = null;
-        manFrame = 0; $('manImg').src = 'assets/man.png';
-        return;
-      }
-      manFrame = 1 - manFrame;
-      $('manImg').src = manFrame ? 'assets/man1.png' : 'assets/man.png';
-    }, 500);
-  }
+  /* the zebra blinks now and then: flash the eyes-closed frame */
+  (function blinkLoop(){
+    setTimeout(function(){
+      if(current() === 'scrRule'){
+        $('zBlink').classList.add('on');
+        setTimeout(function(){ $('zBlink').classList.remove('on'); blinkLoop(); }, 180);
+      } else blinkLoop();
+    }, 2600 + Math.random()*3400);
+  })();
+  /* the 𝑥 key introduces itself: carrot → the word input → 𝑥, every 5 s */
+  var X_FACES = ['<img src="assets/carrot1.png" alt="carrot">',
+                 '<span style="font-size:15px">input</span>', '<i>𝑥</i>'];
+  var xFace = 2;
+  setInterval(function(){
+    xFace = (xFace + 1) % X_FACES.length;
+    $('xKey').innerHTML = X_FACES[xFace];
+  }, 5000);
+  $('numsToggle').addEventListener('click', function(){
+    var open = $('numsPanel').classList.toggle('open');
+    $('numsToggle').classList.toggle('open', open);
+  });
+  /* stuck? show example rules, easy first, harder each press */
+  var EXAMPLES = ['𝑥 + 2', '𝑥 − 1', '𝑥 + 10', '𝑥 × 2', '𝑥 × 5', '𝑥 ÷ 2',
+                  '10 − 𝑥', '𝑥 × 2 + 1', '𝑥 × 3 − 2', '𝑥 ÷ 2 + 4'];
+  var exIdx = -1;
+  $('idkBtn').addEventListener('click', function(){
+    exIdx = (exIdx + 1) % EXAMPLES.length;
+    $('exBox').innerHTML = 'ex) ' + EXAMPLES[exIdx].split('𝑥').join('<i>𝑥</i>');
+    $('exBox').classList.add('on');
+    $('idkBtn').textContent = '🤔 More examples?';
+  });
+  $('rewardInfo').addEventListener('click', function(){ $('helpWrap').classList.add('open'); });
+  $('helpClose').addEventListener('click', function(){ $('helpWrap').classList.remove('open'); });
+  $('helpWrap').addEventListener('click', function(e){
+    if(e.target === $('helpWrap')) $('helpWrap').classList.remove('open');
+  });
   function addTok(k){
-    pokeMan();
     var last = tokens[tokens.length-1];
     if(k === 'back'){
       if(!last) return;
@@ -1278,7 +1326,7 @@
 
   /* ---------------- navigation ---------------- */
   $('roleKeeper').addEventListener('click', function(){
-    picked = []; tokens = [];
+    picked = []; tokens = [{t:'var'}];   // 𝑥 starts on the tummy, deletable
     renderPick(); renderZRule();
     show('scrStock');
   });

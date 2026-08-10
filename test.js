@@ -383,13 +383,15 @@ async function testGamePlay(){
   ok($("scrRole").classList.contains("on"), "role choice first");
   $("roleSeller").click();
   ok($("scrStock").classList.contains("on"), "seller goes to the shelves");
-  ok($("timerBar") && $("timerLeft"), "the 90-second bar is there");
+  ok(!!$("fillBar") && !$("timerBar"), "the countdown is gone — a fill bar instead");
   ok(!!$("stockVend"), "the little vending machine waits on the right");
+  ok(!$("stockVendCount"), "no n/7 under the little machine");
 
   // pick limits: 8 snacks → only 7 stick; 4 non-snacks → only 3
   const shelfBtns = sel => Array.from(d.querySelectorAll(sel + " button[data-k]"));
   shelfBtns("#shelfS").slice(0, 8).forEach(b => b.click());
   ok(d.querySelectorAll("#shelfS .sel").length === 7, "8th product is refused (7 max)");
+  ok($("fillBar").style.width === "100%", "the bar fills up with the picks");
   // clear and mix: 4 snacks + try 4 non-snacks
   shelfBtns("#shelfS").forEach(b => { if(b.classList.contains("sel")) b.click(); });
   shelfBtns("#shelfS").slice(0, 4).forEach(b => b.click());
@@ -401,12 +403,31 @@ async function testGamePlay(){
 
   const rk = k => d.querySelector('#rulePad button[data-k="' + k + '"]').click();
 
-  // x is pre-typed; deleting it leaves the grey example, typing x brings it back
+  // x is pre-typed alone (no grey example), and it can be deleted
   ok(/𝑥/.test($("ruleScreen").textContent), "x starts on the laptop screen");
-  ok(/\+\s*2|\+.2/.test($("ruleScreen").textContent), "the example continues in grey");
+  ok(!/ex\)|\+\s*2/.test($("ruleScreen").textContent), "no grey example beside it");
   rk("back");
-  ok(/ex\)/.test($("ruleScreen").textContent), "deleting x leaves the grey example");
+  ok(!/𝑥/.test($("ruleScreen").textContent), "the pre-typed x can be deleted");
   rk("x");
+
+  // the new pad: ops on top, x + numbers below, digits fold out
+  ok(!!$("numsToggle") && !!$("numsPanel"), "the numbers key is there");
+  ok(!$("numsPanel").classList.contains("open"), "digits start folded away");
+  $("numsToggle").click();
+  ok($("numsPanel").classList.contains("open"), "numbers unfolds the digits");
+  $("numsToggle").click();
+  ok(!$("numsPanel").classList.contains("open"), "and folds them back");
+
+  // stuck? the idk button ladders through examples but types nothing
+  ok(/I don't know what to write/.test($("idkBtn").textContent), "the shrug button waits");
+  $("idkBtn").click();
+  ok($("exBox").classList.contains("on") && /ex\)/.test($("exBox").textContent),
+     "an example appears below it");
+  ok(/More examples\?/.test($("idkBtn").textContent), "the button now offers more");
+  const firstEx = $("exBox").textContent;
+  $("idkBtn").click();
+  ok($("exBox").textContent !== firstEx, "another press, another example");
+  ok(/𝑥$/.test($("ruleScreen").textContent.trim()), "examples never type themselves");
 
   // an unplayable rule (x ÷ 0) is refused at Open my shop
   ["/","0"].forEach(rk);
@@ -423,6 +444,9 @@ async function testGamePlay(){
   ["*","3","+","2"].forEach(rk);
   ok(/𝑥/.test($("ruleScreen").textContent), "rule shows on the laptop screen");
   ok(/10 Whare/.test($("rewardLine").textContent), "reward reads 10 Whare for ×…+");
+  await waitFor(() => /𝑥.*3.*2/.test($("machineEcho").textContent),
+     "a second later the machine's yellow panel echoes it", 3000);
+  ok(/No\. of Customers/.test($("scrRule").textContent), "the customers label says No. of");
   $("howInfo").click();
   ok($("infoWrap").classList.contains("open") && /How it works/.test($("infoTitle").textContent),
      "the ⓘ on the laptop opens How it works");
@@ -482,19 +506,23 @@ async function testGamePlay(){
   ok(/Cute Rabbit/.test(sec.textContent) && !/Willow/.test(sec.textContent),
      "shop shows the alias, never the real name");
   sec.click();
-  await waitFor(() => $2("scrPlay").classList.contains("on"), "joining enters the machine room");
-  await waitFor(() => /Waiting for Cute Rabbit/.test($2("turnLine").textContent), "waiting for the seller to start");
+  await waitFor(() => $2("scrWait").classList.contains("on"), "joining enters the waiting room");
+  await waitFor(() => /Cute Rabbit's Shop/.test($2("waitTitle").textContent),
+     "the room is titled with the seller's alias");
+  ok(!/You are/.test($2("scrWait").textContent), "no 'You are…' line for a customer");
+  ok(!/Your rule/.test($2("scrWait").textContent) && !d2.querySelector("#scrWait .sprite"),
+     "the products and the rule stay hidden");
+  ok(/1\/1 customers here/.test($2("waitLine").textContent), "the room counts its customers");
 
-  // the machine screen is the classic vending machine
-  ok(!!d2.querySelector("#machineWrap img.machine"), "the vending machine picture is there");
-  ok(/\?/.test($2("ruleBox").textContent), "the rule box keeps the rule secret");
-  ok($2("trayName").textContent.trim() === "y", "the tray says y");
-  ok($2("numIn").disabled, "the money input sleeps until the game starts");
-
-  // seller presses start (simulated through the store)
+  // seller presses start (simulated through the store) → onto the machine
   const m1 = await w2.CharlieStore.getMachine("m-test01");
   m1.state = "playing"; m1.turn = 0;
   await w2.CharlieStore.saveMachine(m1);
+  await waitFor(() => $2("scrPlay").classList.contains("on"),
+     "the start moves the customer to the vending machine", 6000);
+  ok(!!d2.querySelector("#machineWrap img.machine"), "the vending machine picture is there");
+  ok(/\?/.test($2("ruleBox").textContent), "the rule box keeps the rule secret");
+  ok($2("trayName").textContent.trim() === "y", "the tray says y");
   await waitFor(() => !$2("numIn").disabled, "my turn wakes the money input");
 
   // the machine's own keypad types onto the money
@@ -589,10 +617,9 @@ async function testGamePlay(){
 }
 
 async function testStockAutofill(){
-  console.log("\nalgebra.html — the machine stocks itself at 0 s");
+  console.log("\nalgebra.html — short baskets top themselves up on Done");
   const dom = await load("algebra.html", w => {
     w.CHARLIE_TEST_SESSION = { id: "jason-lin", name: "Jason" };
-    w.ALGEBRA_STOCK_SECONDS = 1;
   });
   const w = dom.window, d = w.document;
   const $ = id => d.getElementById(id);
@@ -601,11 +628,12 @@ async function testStockAutofill(){
   await sleep(120);
   $("roleSeller").click();
   ok($("scrStock").classList.contains("on"), "seller reaches the shelves");
-  // touch nothing: at zero the machine fills itself and moves on
-  await waitFor(() => d.querySelectorAll(".shelf button.sel").length === 7,
-     "seven products picked themselves", 6000);
-  ok(d.querySelectorAll("#shelfN button.sel").length === 3, "exactly 3 random non-snacks included");
-  await waitFor(() => $("scrRule").classList.contains("on"), "then straight on to the rule screen", 6000);
+  // pick just two, press Done: the machine quietly fills itself to 7
+  [...d.querySelectorAll("#shelfS button[data-k]")].slice(0, 2).forEach(b => b.click());
+  $("stockDone").click();
+  await waitFor(() => /topped itself up/.test($("toast").textContent), "the machine tops itself up");
+  ok(d.querySelectorAll(".shelf button.sel").length === 7, "seven products loaded");
+  ok($("scrRule").classList.contains("on"), "then straight on to the rule screen");
   try{ dom.window.close(); }catch(e){}
 }
 
@@ -628,27 +656,43 @@ async function testAlZebra(){
   $("stockDone").click();
   await waitFor(() => /topped itself up/.test($("toast").textContent), "short baskets top up to 7");
   ok($("scrRule").classList.contains("on"), "on to the zebra");
-  ok(!!$("manImg"), "the keeper stands beside the zebra");
+  ok(!$("manImg"), "the keeper image is gone");
+  ok(!!$("zBlink") && /zebra0/.test($("zBlink").src), "the eyes-closed blink frame waits over the stage");
+  ok(/𝑥/.test($("zRule").textContent), "x starts on the tummy, ready to build on");
 
-  // no x → friendly refusal
+  // the new pad: ops on top, x + numbers below, digits folded away
+  ok(!!$("numsToggle") && !$("numsPanel").classList.contains("open"), "digits start folded");
+  $("numsToggle").click();
+  ok($("numsPanel").classList.contains("open"), "numbers unfolds the digits");
+
+  // delete the preset x → a rule without x is refused
   const rk = k => d.querySelector('#rulePad button[data-k="' + k + '"]').click();
+  rk("back");
+  ok(!/𝑥/.test($("zRule").textContent), "the preset x can be deleted");
   ["3","+","1"].forEach(rk);
   $("openPen").click();
   await waitFor(() => /needs 𝑥/.test($("toast").textContent), "a rule without x is refused");
   ["back","back","back"].forEach(rk);
 
-  // paint x + 2 — it appears in black on the tummy, and the keeper wiggles
-  const manLeft0 = parseFloat($("manImg").style.left) || 0;
+  // stuck? the shrug button ladders examples but never types
+  $("idkBtn").click();
+  ok($("exBox").classList.contains("on") && /ex\)/.test($("exBox").textContent),
+     "an example appears under the shrug button");
+  ok(/More examples\?/.test($("idkBtn").textContent), "the button now offers more");
+  ok(!/𝑥/.test($("zRule").textContent), "the example types nothing by itself");
+
+  // the ⓘ beside the prize money opens the how-it-works panel
+  $("rewardInfo").click();
+  ok($("helpWrap").classList.contains("open") && /Harder rules mean/.test($("helpWrap").textContent),
+     "the prize-money ⓘ explains harder rules");
+  $("helpClose").click();
+  ok(!$("helpWrap").classList.contains("open"), "Got it! closes the panel");
+
+  // paint x + 2 — it appears in black on the tummy
   ["x","+","2"].forEach(rk);
   ok(/𝑥/.test($("zRule").textContent) && /2/.test($("zRule").textContent), "rule shows on the tummy");
-  const manLeft3 = parseFloat($("manImg").style.left);
-  ok(manLeft3 > manLeft0, "keeper slides right as the rule grows");
-  rk("back");
-  ok(parseFloat($("manImg").style.left) < manLeft3, "delete pulls the pen back left");
-  rk("2");
   ok(/12|3 Whare/.test($("rewardLine").textContent + " 3 Whare"), "reward line updates");
-  await sleep(650);
-  ok(/man1?\.png/.test($("manImg").src), "keeper animation frames swap while typing");
+  ok(/Open My Zoo/.test($("openPen").textContent), "the button says Open My Zoo");
 
   $("openPen").click();
   await waitFor(() => $("scrPen").classList.contains("on"), "the pen opens");

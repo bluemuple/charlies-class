@@ -71,10 +71,9 @@
   /* ---------- seller: stock the machine ---------- */
   #pickBar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;}
   #pickCount{font-weight:800; color:var(--teal-dark); font-size:15px;}
-  #timerWrap{flex:1; min-width:160px; height:14px; background:#e2edeb; border-radius:8px; overflow:hidden;}
-  #timerBar{height:100%; width:100%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .25s linear;}
-  #timerBar.low{background:linear-gradient(90deg,#e63946,#f4a261);}
-  #timerLeft{font-weight:800; font-size:14px; color:#4c6b66; min-width:36px; text-align:right;}
+  /* the bar fills gently as products are picked (0 → 7) */
+  #fillWrap{flex:1; min-width:160px; height:14px; background:#e2edeb; border-radius:8px; overflow:hidden;}
+  #fillBar{height:100%; width:0%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .5s ease;}
   .shelf-tabs{display:flex; gap:8px; margin-bottom:10px;}
   .shelf-tabs button{
     border:2px solid #d7e5e2; background:#f6fbfa; border-radius:20px;
@@ -153,6 +152,34 @@
   .ibtn.mini{position:absolute; right:5px; top:50%; transform:translateY(-50%); width:22px; height:22px; font-size:13px;}
   .ibtn.mini:hover{transform:translateY(-50%) scale(1.1);}
   #howInfo{position:absolute; left:85%; top:41.7%; z-index:4;}
+  /* what you type echoes, a second later, on the machine's yellow panel */
+  #machineEcho{
+    position:absolute; left:7%; top:5.7%; width:28.4%; height:8.6%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; color:#5b4a00; white-space:nowrap; overflow:hidden;
+    font-size:clamp(11px,2.1vw,22px); z-index:3; pointer-events:none;
+  }
+  #machineEcho i{font-family:Georgia,serif;}
+  #machineEcho.flick{animation:echoFlick .7s steps(1);}
+  @keyframes echoFlick{0%{opacity:0} 25%{opacity:1} 50%{opacity:0} 75%{opacity:1}}
+  .rulepad .wide{grid-column:span 2;}
+  .rulepad .numswrap{grid-column:1 / -1; display:none; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .rulepad .numswrap.open{display:grid;}
+  .rulepad .numswrap .zero{grid-column:span 2;}
+  .rulepad button.xkey img{height:20px; vertical-align:middle;}
+  .rulepad button.numsbtn{font-size:15px;}
+  .rulepad button.numsbtn.open{background:#e3f4f0; color:var(--teal-dark);}
+  #idkBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:9px 16px; font-size:14px; font-weight:700;
+  }
+  #idkBtn:hover{background:var(--cream);}
+  #exBox{
+    display:none; background:var(--yellow); color:#6b5c00; border-radius:12px;
+    padding:9px 18px; font-size:19px; font-weight:800; text-align:center;
+  }
+  #exBox.on{display:block;}
+  #exBox i{font-family:Georgia,serif;}
   /* the grey worked example on the laptop screen */
   #ruleScreen .ghosttxt{color:#3d6b52; text-shadow:none;}
   /* info popup */
@@ -514,12 +541,11 @@
   <!-- seller: stock -->
   <section class="screen" id="scrStock">
     <h2>🏪 Stock your machine</h2>
-    <p class="sub">Pick up to <b>7 products</b> — at most <b>3</b> from the non-snacks shelf. You have <b>90 seconds!</b></p>
+    <p class="sub">Pick up to <b>7 products</b>.</p>
     <div class="card">
       <div id="pickBar">
         <span id="pickCount">0 / 7</span>
-        <div id="timerWrap"><div id="timerBar"></div></div>
-        <span id="timerLeft">90s</span>
+        <div id="fillWrap"><div id="fillBar"></div></div>
       </div>
       <div class="stock-grid">
         <div class="stock-left">
@@ -532,7 +558,6 @@
         </div>
         <div class="stock-right">
           <img id="stockVend" src="assets/vending.png" alt="your vending machine">
-          <div id="stockVendCount">empty</div>
         </div>
       </div>
       <button id="stockDone">✓ Done — write my rule</button>
@@ -548,21 +573,29 @@
         <div class="rule-wrap">
           <img src="assets/rule2.jpg" alt="laptop plugged into the vending machine">
           <div id="ruleScreen"></div>
+          <div id="machineEcho"></div>
           <button id="howInfo" class="ibtn" title="How it works">i</button>
         </div>
         <div class="rule-right">
           <div class="rulepad" id="rulePad">
-            <button class="xkey" data-k="x">𝑥</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
-            <button class="op" data-k="+">+</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
-            <button class="op" data-k="-">−</button><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
-            <button class="op" data-k="*">×</button><button class="op" data-k="/">÷</button><button data-k="0">0</button><button data-k="back">⌫</button>
+            <button class="op" data-k="+">+</button><button class="op" data-k="-">−</button><button class="op" data-k="*">×</button><button class="op" data-k="/">÷</button>
+            <button class="xkey wide" id="xKey" data-k="x"><i>𝑥</i></button>
+            <button class="numsbtn wide" id="numsToggle">🔢 numbers</button>
+            <div class="numswrap" id="numsPanel">
+              <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+              <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+              <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+              <button data-k="0" class="zero">0</button><button data-k="back">⌫</button>
+            </div>
           </div>
+          <button id="idkBtn">🤷 I don't know what to write</button>
+          <div id="exBox"></div>
           <div id="rewardBox">
             <span id="rewardLine">Crack-reward: 0 Whare</span>
             <button id="rewardInfo" class="ibtn mini" title="How rewards work">i</button>
           </div>
           <div class="cap-row">
-            <span style="font-weight:700;color:#4c6b66">Customers:</span>
+            <span style="font-weight:700;color:#4c6b66">No. of Customers:</span>
             <div class="seg" id="capSeg">
               <button data-c="1" class="active">1</button>
               <button data-c="2">2</button>
@@ -604,6 +637,16 @@
       <div id="mallTitle">🏬 Algebra Machine Mall</div>
       <div id="mallSub">Tap a shop to go in!</div>
       <div id="sections"></div>
+    </div>
+  </section>
+
+  <!-- buyer: the waiting room — like the seller's lobby, minus the secrets -->
+  <section class="screen" id="scrWait">
+    <h2 id="waitTitle">🎪 Shop</h2>
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <div class="players" id="waitPlayers"></div>
+      <div id="waitLine" style="text-align:center;font-weight:700;color:#4c6b66"></div>
+      <button class="quietbtn" id="leaveWait">Leave the shop</button>
     </div>
   </section>
 
@@ -799,8 +842,6 @@
 
   /* ================= SELLER : stock ================= */
   var picked = [];
-  var timerIv = null, timeLeft = G.PICK_SECONDS;
-
   function buildShelves(){
     var s = [], n = [];
     Object.keys(G.PRODUCTS).forEach(function(k){
@@ -819,20 +860,18 @@
   }
   function renderPick(){
     $('pickCount').textContent = picked.length + ' / ' + G.MAX_PICK;
+    $('fillBar').style.width = (picked.length / G.MAX_PICK * 100) + '%';
     $('nsCount').textContent = '(' + nonSnackCount() + '/' + G.MAX_NONSNACK + ')';
     Array.prototype.forEach.call(document.querySelectorAll('.shelf button'), function(b){
       b.classList.toggle('sel', picked.indexOf(b.dataset.k) !== -1);
     });
-  }
-  function renderVendCount(){
-    $('stockVendCount').textContent = picked.length ? picked.length + ' / 7 loaded' : 'empty';
   }
   /* a ghost of the product flies into the little machine, which trembles */
   function ghostFly(k, fromEl){
     var vend = $('stockVend');
     var from = fromEl ? fromEl.getBoundingClientRect() : null;
     var to = vend.getBoundingClientRect();
-    if(!from || !from.width || !to.width){ renderVendCount(); return; }
+    if(!from || !from.width || !to.width) return;
     var g = document.createElement('div');
     g.className = 'ghost-fly sprite' + (G.PRODUCTS[k].sheet==='n' ? ' n' : '');
     g.style.cssText += ';' + spriteStyle(k);
@@ -846,7 +885,6 @@
       if(cleaned) return; cleaned = true;
       if(g.parentNode) g.remove();
       vend.classList.remove('tremble'); void vend.offsetWidth; vend.classList.add('tremble');
-      renderVendCount();
     }
     try{
       var anim = g.animate([
@@ -858,9 +896,8 @@
     setTimeout(land, 600);
   }
   function togglePick(k, fromEl){
-    if(autoFilling) return;
     var i = picked.indexOf(k);
-    if(i !== -1){ picked.splice(i,1); renderPick(); renderVendCount(); return; }
+    if(i !== -1){ picked.splice(i,1); renderPick(); return; }
     if(picked.length >= G.MAX_PICK){ toast('Your machine holds 7 products — take one out first!'); return; }
     if(G.PRODUCTS[k].sheet==='n' && nonSnackCount() >= G.MAX_NONSNACK){
       toast('Only 3 non-snacks allowed — they\'re expensive!'); return;
@@ -881,102 +918,47 @@
   function shelfClick(e){
     var b = e.target.closest('button[data-k]'); if(b) togglePick(b.dataset.k, b);
   }
-  var autoFilling = false;
-  function startTimer(){
-    timeLeft = window.ALGEBRA_STOCK_SECONDS || G.PICK_SECONDS;
-    var total = timeLeft;
-    clearInterval(timerIv);
-    timerIv = setInterval(function(){
-      timeLeft--;
-      var pct = Math.max(0, timeLeft / total * 100);
-      $('timerBar').style.width = pct + '%';
-      $('timerBar').classList.toggle('low', timeLeft <= 15);
-      $('timerLeft').textContent = Math.max(0,timeLeft) + 's';
-      if(timeLeft <= 0){
-        clearInterval(timerIv);
-        autoFillStock();
-      }
-    }, 1000);
-  }
-  /* time's up: the machine stocks itself — 3 non-snacks (switching to that
-     shelf so the seller sees it), then snacks to 7, each flying in — then on */
-  function autoFillStock(){
-    if(autoFilling || current() !== 'scrStock') return;
-    autoFilling = true;
-    toast('⏰ Time\'s up! The machine is stocking itself…');
-    var queue = [];
-    var ns = Object.keys(G.PRODUCTS).filter(function(k){
-      return G.PRODUCTS[k].sheet==='n' && picked.indexOf(k)===-1;
-    });
-    var sn = Object.keys(G.PRODUCTS).filter(function(k){
-      return G.PRODUCTS[k].sheet==='s' && picked.indexOf(k)===-1;
-    });
-    G.shuffle(ns); G.shuffle(sn);
-    var nsWanted = Math.max(0, G.MAX_NONSNACK - nonSnackCount());
-    while(nsWanted-- > 0 && ns.length && picked.length + queue.length < G.MAX_PICK)
-      queue.push({k:ns.pop(), shelf:'n'});
-    while(picked.length + queue.length < G.MAX_PICK && sn.length)
-      queue.push({k:sn.pop(), shelf:'s'});
-    var step = window.ALGEBRA_STOCK_SECONDS ? 80 : 380;
-    (function next(){
-      if(current() !== 'scrStock'){ autoFilling = false; return; }
-      if(!queue.length){
-        autoFilling = false;
-        setTimeout(function(){ if(current()==='scrStock') finishStock(); }, step * 2);
-        return;
-      }
-      var it = queue.shift();
-      showShelf(it.shelf);
-      var btn = document.querySelector('.shelf button[data-k="' + it.k + '"]');
-      picked.push(it.k); renderPick();
-      ghostFly(it.k, btn);
-      setTimeout(next, step);
-    })();
-  }
-  function showShelf(which){
-    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
-      x.classList.toggle('active', x.dataset.shelf === which);
-    });
-    $('shelfS').classList.toggle('on', which==='s');
-    $('shelfN').classList.toggle('on', which==='n');
-  }
   function finishStock(){
-    clearInterval(timerIv);
-    if(picked.length < G.MAX_PICK){
+    var short = picked.length < G.MAX_PICK;
+    if(short){
       var snacks = Object.keys(G.PRODUCTS).filter(function(k){
         return G.PRODUCTS[k].sheet==='s' && picked.indexOf(k)===-1;
       });
       G.shuffle(snacks);
       while(picked.length < G.MAX_PICK && snacks.length) picked.push(snacks.pop());
+      renderPick();
     }
+    if(short) toast('The machine topped itself up to 7 products!');
     renderRuleScreen();
     show('scrRule');
   }
-  $('stockDone').addEventListener('click', function(){
-    if(autoFilling) return;
-    finishStock();
-  });
+  $('stockDone').addEventListener('click', function(){ finishStock(); });
 
   /* ================= SELLER : rule ================= */
   var tokens = [{t:'var'}], capacity = 1;   // 𝑥 starts on the screen, ready to build on
   function renderRuleScreen(){
-    var html;
-    if(tokens.length === 0){
-      /* the whole example in grey until something is typed */
-      html = '<span class="caret"></span><span class="ghosttxt">&nbsp;ex)&nbsp;<i>𝑥</i>&nbsp;+&nbsp;2</span>';
-    } else {
-      html = tokens.map(function(t){
-        if(t.t==='var') return '<i>𝑥</i>';
-        if(t.t==='num') return esc(t.v);
-        return '&nbsp;' + G.opGlyph(t.v) + '&nbsp;';
-      }).join('') + '<span class="caret"></span>';
-      if(tokens.length === 1 && tokens[0].t === 'var'){
-        html += '<span class="ghosttxt">&nbsp;+&nbsp;2</span>';   // the example carries on in grey
-      }
-    }
+    var html = tokens.map(function(t){
+      if(t.t==='var') return '<i>𝑥</i>';
+      if(t.t==='num') return esc(t.v);
+      return '&nbsp;' + G.opGlyph(t.v) + '&nbsp;';
+    }).join('') + '<span class="caret"></span>';
     /* one single flex item, so the spaces inside survive the flex layout */
     $('ruleScreen').innerHTML = '<span>' + html + '</span>';
     $('rewardLine').textContent = 'Crack-reward: ' + G.reward(tokens) + ' Whare';
+    scheduleEcho();
+  }
+  /* a second after each keystroke the machine's yellow panel blinks and
+     mirrors the laptop screen — deleting blinks it away the same way */
+  var echoTimer = null;
+  function scheduleEcho(){
+    clearTimeout(echoTimer);
+    echoTimer = setTimeout(function(){
+      var el = $('machineEcho');
+      var now = tokens.length ? prettyRule(tokens) : '';
+      if(el.innerHTML === now) return;
+      el.innerHTML = now;
+      el.classList.remove('flick'); void el.offsetWidth; el.classList.add('flick');
+    }, 1000);
   }
 
   /* ⓘ popups */
@@ -1038,6 +1020,28 @@
     }
     renderRuleScreen();
   }
+  /* the 𝑥 key introduces itself: the money note → the word input → 𝑥 */
+  var X_FACES = ['<img src="assets/money.png" alt="money">',
+                 '<span style="font-size:15px">input</span>', '<i>𝑥</i>'];
+  var xFace = 2;
+  setInterval(function(){
+    xFace = (xFace + 1) % X_FACES.length;
+    $('xKey').innerHTML = X_FACES[xFace];
+  }, 5000);
+  $('numsToggle').addEventListener('click', function(){
+    var open = $('numsPanel').classList.toggle('open');
+    $('numsToggle').classList.toggle('open', open);
+  });
+  /* stuck? show example rules, easy first, harder each press */
+  var EXAMPLES = ['𝑥 + 2', '𝑥 − 1', '𝑥 + 10', '𝑥 × 2', '𝑥 × 5', '𝑥 ÷ 2',
+                  '10 − 𝑥', '𝑥 × 2 + 1', '𝑥 × 3 − 2', '𝑥 ÷ 2 + 4'];
+  var exIdx = -1;
+  $('idkBtn').addEventListener('click', function(){
+    exIdx = (exIdx + 1) % EXAMPLES.length;
+    $('exBox').innerHTML = 'ex) ' + EXAMPLES[exIdx].split('𝑥').join('<i>𝑥</i>');
+    $('exBox').classList.add('on');
+    $('idkBtn').textContent = '🤔 More examples?';
+  });
   $('rulePad').addEventListener('click', function(e){
     var b = e.target.closest('button[data-k]'); if(b) addTok(b.dataset.k);
   });
@@ -1219,9 +1223,32 @@
     winShown = false;
     $('guessIn').value = ''; $('guessMsg').textContent = ''; $('guessPreview').innerHTML = '';
     $('numIn').value = '';
-    show('scrPlay');
+    show('scrWait');           /* the machine page comes when the seller starts */
     refresh();
   }
+  function renderWait(){
+    var m = machine; if(!m) return;
+    $('waitTitle').textContent = '🎪 ' + m.alias + '\'s Shop';
+    $('waitPlayers').innerHTML = m.buyers.map(function(b){
+      return '<span class="pl"><span class="em">'+esc(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>';
+    }).join('') || '<span class="pl empty">🪑 nobody yet</span>';
+    $('waitLine').textContent = m.buyers.length + '/' + m.capacity
+      + ' customers here — the game starts when it\'s full.';
+  }
+  function leaveRoom(){
+    var id = machineId;
+    machineId = null; role = null;
+    cancelRound();
+    show('scrMall');
+    if(!id){ refresh(); return; }
+    store.getMachine(id).then(function(m){
+      if(m && m.state === 'open'){
+        m.buyers = m.buyers.filter(function(b){ return b.id !== me.id; });
+        return store.saveMachine(m);
+      }
+    }).catch(function(){}).then(function(){ refresh(); });
+  }
+  $('leaveWait').addEventListener('click', leaveRoom);
   /* kill any in-flight fly/shake/popup so it can't hit the wrong room */
   function cancelRound(){
     roundSeq++;
@@ -1700,13 +1727,22 @@
     var scr = current();
     if(scr === 'scrSell') renderSell();
     else if(scr === 'scrPlay') renderPlay();
+    else if(scr === 'scrWait'){
+      var m = machine;
+      if(m && m.state === 'playing'){ show('scrPlay'); renderPlay(); }
+      else if(m && m.state === 'done'){
+        toast('That shop closed its doors!');
+        machineId = null; role = null; show('scrMall'); refresh();
+      }
+      else renderWait();
+    }
   }
   function refresh(){
     var scr = current();
     if(scr === 'scrMall'){
       return store.listMachines().then(renderMall);
     }
-    if(machineId && (scr === 'scrSell' || scr === 'scrPlay')){
+    if(machineId && (scr === 'scrSell' || scr === 'scrPlay' || scr === 'scrWait')){
       return store.getMachine(machineId).then(function(m){
         if(m){ machine = m; rerender(); }
       });
@@ -1722,25 +1758,24 @@
 
   /* ---------------- navigation ---------------- */
   $('roleSeller').addEventListener('click', function(){
-    picked = []; tokens = [{t:'var'}]; capacity = 1; autoFilling = false;
+    picked = []; tokens = [{t:'var'}]; capacity = 1;
     Array.prototype.forEach.call($('capSeg').children, function(x){
       x.classList.toggle('active', x.dataset.c === '1');
     });
-    renderPick(); renderVendCount(); renderRuleScreen();
+    renderPick(); renderRuleScreen();
     show('scrStock');
-    startTimer();
-    toast('⏱ 90 seconds to stock your machine — go!');
+    toast('🛒 Pick your products, then write your rule!');
   });
   $('roleBuyer').addEventListener('click', function(){
     show('scrMall'); refresh();
   });
   $('backBtn').addEventListener('click', function(){
-    clearInterval(timerIv);
     var scr = current();
     if(scr === 'scrRole'){ window.location.href = 'hub.html'; return; }
     if(scr === 'scrStock' || scr === 'scrRule'){ show('scrRole'); return; }
     if(scr === 'scrMall'){ show('scrRole'); return; }
     if(scr === 'scrPlay'){ cancelRound(); show('scrMall'); machineId = null; role = null; refresh(); return; }
+    if(scr === 'scrWait'){ leaveRoom(); return; }
     if(scr === 'scrSell'){ toast('Close your shop first (button below) or leave it running!'); return; }
     show('scrRole');
   });
