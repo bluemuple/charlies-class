@@ -159,6 +159,11 @@
   #poop{position:absolute; left:71%; top:44%; width:19.5%; z-index:4; pointer-events:none;
         transition:opacity .6s;}
   #poop.faded{opacity:0;}
+  #poopEmoji{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    font-size:clamp(34px,6.5vw,64px); z-index:3;
+  }
+  #carrot.fadeout{opacity:0; transition:opacity .8s ease;}
   #poop .sprite{filter:brightness(0); transition:filter .45s;}
   #poop.reveal .sprite{filter:none;}
   #poopNum{
@@ -527,7 +532,7 @@
         <img id="carrotImg" src="assets/carrot1.png" alt="carrot">
         <span id="carrotNum">1</span>
       </div>
-      <div id="poop"><div id="poopSil"></div><span id="poopNum"></span></div>
+      <div id="poop"><div id="poopSil"></div><span id="poopNum"></span><span id="poopEmoji">💩</span></div>
       <div id="prizeFly"></div>
       <div id="splash"></div>
     </div>
@@ -1437,12 +1442,46 @@
           }
         }, DUR.glow);
       }, DUR.carrot);
+    } else if(h.ans === null){
+      /* no answer in time: the carrot and its number simply melt away */
+      $('carrot').classList.add('fadeout');
+      setTimeout(function(){
+        $('carrot').style.visibility = 'hidden';
+        $('carrot').classList.remove('fadeout');
+        $('poop').classList.add('faded');
+        $('faceSad').classList.add('on');
+        splash(h.rating);
+        setTimeout(wrapUp, DUR.sad);
+      }, DUR.carrot);
     } else {
-      /* sad zebra; the silhouette and the number sink away */
-      $('poop').classList.add('faded');
-      $('faceSad').classList.add('on');
-      splash(h.rating);
-      setTimeout(wrapUp, DUR.sad);
+      /* a wrong answer: the carrot is eaten anyway, but the silhouette
+         turns into 💩, drops to the grass and fades — no prize today */
+      $('carrot').classList.add('eaten');
+      setTimeout(function(){
+        $('carrot').style.visibility = 'hidden';
+        $('faceSad').classList.add('on');
+        splash(h.rating);
+        if(pen && pen.prizeQ){
+          $('poopSil').style.visibility = 'hidden';
+          $('poopNum').textContent = '';
+          var pe = $('poopEmoji');
+          pe.style.display = 'flex';
+          var fall = (($('stageGame').getBoundingClientRect().height) || 400) * .24;
+          try{
+            pe.animate([
+              { transform:'translateY(0)', opacity:1 },
+              { transform:'translateY(' + Math.round(fall) + 'px)', opacity:0 }
+            ], {duration: Math.max(DUR.sad * .7, 50), easing:'cubic-bezier(.3,.1,.6,1)'});
+          }catch(e){}
+          setTimeout(function(){
+            pe.style.display = 'none';
+            $('poopSil').style.visibility = '';
+          }, Math.max(DUR.sad * .7, 50));
+        } else {
+          $('poop').classList.add('faded');
+        }
+        setTimeout(wrapUp, DUR.sad);
+      }, DUR.carrot);
     }
     function flyPrizeTo(hh){
       /* the prize heads for the scorer's name box; the scene's frame clips
@@ -1467,6 +1506,9 @@
     function wrapUp(){
       $('faceHappy').classList.remove('on');
       $('faceSad').classList.remove('on');
+      $('carrot').classList.remove('fadeout');
+      $('poopEmoji').style.display = 'none';
+      $('poopSil').style.visibility = '';
       /* snap the carrot back without the reverse glide */
       var c = $('carrot');
       c.classList.add('notrans');
