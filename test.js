@@ -234,14 +234,18 @@ async function testAdmin(){
     const s = await w.CharlieStore.getMachine("game-settings");
     return s && s.friends && s.friends.showNames === true && s.friends.hidden === false;
   }, "the Friends real-name switch lands in the blob", 5000);
+  ok(!$("setAlgMusic").checked, "background music starts switched off");
+  $("setAlgMusic").checked = true;
+  $("setAlgMusic").dispatchEvent(new w.Event("change"));
   $("setAlgSkip").checked = true;
   $("setAlgSkip").dispatchEvent(new w.Event("change"));
   $("setZebraSkip").checked = true;
   $("setZebraSkip").dispatchEvent(new w.Event("change"));
   await waitFor(async () => {
     const s = await w.CharlieStore.getMachine("game-settings");
-    return s && s.algebra.skipStock === true && s.alzebra.skipStock === true;
-  }, "skip-the-shelves switches land for both games", 5000);
+    return s && s.algebra.skipStock === true && s.alzebra.skipStock === true
+        && s.algebra.music === true;
+  }, "skip-the-shelves and music switches land", 5000);
   ok(/No code yet/.test($("boyList").textContent), "roster shows 'No code yet'");
   ok(!/Show codes/.test(d.body.textContent), "no 'show codes' button — codes are private now");
 
@@ -415,6 +419,8 @@ async function testGamePlay(){
   ok(!!$("fillBar") && !$("timerBar"), "the countdown is gone — a fill bar instead");
   ok(!!$("stockVend"), "the little vending machine waits on the right");
   ok(!$("stockVendCount"), "no n/7 under the little machine");
+  ok($("muteBtn").style.display === "none",
+     "no music button while the teacher has the soundtrack off");
 
   // 🎲 fills a legal basket, and again for a different one
   $("randomBtn").click();

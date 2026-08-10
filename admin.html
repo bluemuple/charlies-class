@@ -257,6 +257,8 @@
           <input type="checkbox" id="setAlgOn" checked> Visible to students</label>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setAlgSkip"> Skip product picking (random stock)</label>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setAlgMusic"> 🎵 Background music</label>
         <label style="font-size:14px;color:#4c6b66;font-weight:700">Seconds per turn
           <input type="number" id="setTurnSecs" min="10" max="180" style="width:64px;margin-left:6px"></label>
       </div>
@@ -598,6 +600,7 @@
       document.getElementById('setTurnSecs').value =
         (g.algebra && g.algebra.turnSecs) || GAME_DEFAULTS.algebra.turnSecs;
       document.getElementById('setAlgSkip').checked = !!(g.algebra && g.algebra.skipStock);
+      document.getElementById('setAlgMusic').checked = !!(g.algebra && g.algebra.music);
       document.getElementById('setZebraSkip').checked = !!(g.alzebra && g.alzebra.skipStock);
     }).catch(function(){});
   }
@@ -610,7 +613,8 @@
         hidden:{alzebra: !document.getElementById('setZebraOn').checked,
                 algebra: !document.getElementById('setAlgOn').checked},
         algebra:{turnSecs: n('setTurnSecs', 40),
-                 skipStock: document.getElementById('setAlgSkip').checked},
+                 skipStock: document.getElementById('setAlgSkip').checked,
+                 music: document.getElementById('setAlgMusic').checked},
         friends:{hidden: !document.getElementById('setFriendsOn').checked,
                  showNames: document.getElementById('setFriendsNames').checked},
         alzebra:{skipStock: document.getElementById('setZebraSkip').checked,
@@ -628,7 +632,7 @@
     }, 350);
   }
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
-   'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip']
+   'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);
     });

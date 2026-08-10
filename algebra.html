@@ -968,6 +968,7 @@
   function sndTurn(){ beep(740, .1); beep(988, .16, .11); }
   /* -------- a soft shop soundtrack, built from the same little synth ----
      Four bars of a warm major loop, very quiet, muteable and remembered. */
+  var musicAllowed = false;          /* the teacher turns this on in the admin page */
   var musicOn = true, musicTimer = null;
   try{ musicOn = localStorage.getItem('charlie-music-off') !== '1'; }catch(e){}
   var CHORDS = [
@@ -1000,14 +1001,17 @@
     pad(ch[0] * 2, 1.3, 1.1);          /* a gentle top note halfway through */
   }
   function musicStart(){
-    if(musicTimer || !musicOn) return;
+    if(musicTimer || !musicOn || !musicAllowed) return;
     playBar();
     musicTimer = setInterval(playBar, 3000);
   }
   function musicStop(){
     if(musicTimer){ clearInterval(musicTimer); musicTimer = null; }
   }
-  function renderMute(){ $('muteBtn').textContent = musicOn ? '🔊' : '🔇'; }
+  function renderMute(){
+    $('muteBtn').style.display = musicAllowed ? '' : 'none';
+    $('muteBtn').textContent = musicOn ? '🔊' : '🔇';
+  }
   $('muteBtn').addEventListener('click', function(){
     musicOn = !musicOn;
     try{ localStorage.setItem('charlie-music-off', musicOn ? '' : '1'); }catch(e){}
@@ -2423,6 +2427,9 @@
   store.init().then(function(){
     store.getMachine('game-settings').then(function(s){
       if(s) SETTINGS = s;
+      musicAllowed = !!(s && s.algebra && s.algebra.music);
+      renderMute();
+      if(musicAllowed && musicOn) musicStart();
       if(s && s.hidden && s.hidden.algebra){
         toast('🥤 Your teacher has closed the Algebra Machine for now.');
         setTimeout(function(){ window.location.href = 'hub.html'; }, 1600);
