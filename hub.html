@@ -407,6 +407,7 @@
         </label>
         <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:0 0 10px;cursor:pointer">
           <input type="checkbox" id="showFriendsName"> 👥 Show my name in Friends
+          <button id="goFriends" style="margin-left:8px;border:0;background:var(--teal);color:#fff;border-radius:10px;padding:3px 12px;font-size:12px;font-weight:800;cursor:pointer">Go</button>
         </label>
         <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
         <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
@@ -414,7 +415,10 @@
       <div class="prof-right">
         <div id="profTalk" style="display:none">
           <div class="prof-sec">
-            <h3 id="talkTitle" style="font-size:14px">💬 To my pet</h3>
+            <div style="display:flex;align-items:center;margin-bottom:8px">
+              <button class="prof-btn quiet" id="talkBack" style="margin:0;width:auto;padding:6px 14px;font-size:13px">← Back</button>
+              <h3 id="talkTitle" style="font-size:14px;flex:1;text-align:center;margin:0 44px 0 0">💬 To my pet</h3>
+            </div>
             <div id="talkPowers" style="display:none">
               <div id="talkGuide" style="font-size:13px;color:#8a6d00;background:var(--yellow);border-radius:10px;padding:6px 12px;margin-bottom:7px;text-align:center;font-weight:700"></div>
               <div class="pet-powers" id="talkPowerRow" style="justify-content:flex-start;margin:0 0 10px"></div>
@@ -424,7 +428,6 @@
               <input id="talkIn" maxlength="200" placeholder="Say something kind…">
               <button id="talkSend">Send</button>
             </div>
-            <button class="prof-btn quiet" id="talkBack" style="margin-top:10px">← Back to my stuff</button>
           </div>
         </div>
         <div id="profOwn">
@@ -1319,6 +1322,11 @@
     try{ localStorage.setItem('charlie-hide-real', this.checked ? '' : '1'); }catch(e){}
   });
   /* friends-name: off by default; lives on the profile so classmates see it */
+  document.getElementById('goFriends').addEventListener('click', function(e){
+    e.preventDefault();
+    closeProf();
+    document.getElementById('friendsBtn').click();
+  });
   document.getElementById('showFriendsName').addEventListener('change', function(){
     var on = this.checked;
     var p = Object.assign({}, (me && me.profile) || {}, {showFriends: on});

@@ -82,6 +82,7 @@
     text-shadow:0 8px 34px rgba(0,0,0,.55);
   }
   #countNum.pop{animation:cpop .66s ease;}
+  #countNum.vs{font-size:clamp(24px,5vw,50px); line-height:1.4; text-align:center; padding:0 20px;}
   @keyframes cpop{0%{transform:scale(1.7);opacity:0} 35%{transform:scale(1);opacity:1} 100%{transform:scale(.94)}}
   #turnFlash{pointer-events:none; transition:opacity .35s; opacity:0; display:flex; visibility:hidden;}
   #turnFlash.on{opacity:1; visibility:visible;}
@@ -689,6 +690,7 @@
         <tbody></tbody>
       </table>
       <button class="bigbtn" id="startBtn" disabled>▶ Start the game</button>
+      <label class="hidereal"><input type="checkbox" id="sellShowName" checked> 🙋 Show my name after the game.</label>
       <div class="rematch-row" id="sellRematch" style="display:none">
         <button class="bigbtn" id="rematchBtnS">🔁 Play again with this group</button>
         <div class="sub" id="rematchLineS"></div>
@@ -724,7 +726,7 @@
       </div>
       <div class="players" id="waitPlayers"></div>
       <div id="waitLine" style="text-align:center;font-weight:700;color:#4c6b66"></div>
-      <label class="hidereal"><input type="checkbox" id="hideRealCk"> 🙈 Don't reveal my real name after the game</label>
+      <label class="hidereal"><input type="checkbox" id="hideRealCk" checked> 🙋 Show my name after the game.</label>
       <button class="quietbtn" id="leaveWait">Leave the shop</button>
     </div>
   </section>
@@ -952,19 +954,41 @@
   function sndCount(isGo){ beep(isGo ? 880 : 660, isGo ? .4 : .12, 0, isGo ? .22 : .14); }
   function sndTurn(){ beep(740, .1); beep(988, .16, .11); }
   /* -------- 3 · 2 · 1 · Go! -------- */
-  function countdown(cb){
+  function countdown(cb, vsHtml){
     if(window.CHARLIE_TEST_FAST){ cb(); return; }
     var seq = ['3','2','1','Go!'], i = 0, el = $('countNum');
     $('countWrap').classList.add('on');
-    (function step(){
+    function numbers(){
+      el.classList.remove('vs');
+      step();
+    }
+    (function intro(){
+      if(!vsHtml){ numbers(); return; }
+      el.classList.add('vs');
+      el.innerHTML = vsHtml;
+      el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+      setTimeout(numbers, 1500);
+    })();
+    function step(){
       if(i >= seq.length){ $('countWrap').classList.remove('on'); cb(); return; }
       el.textContent = seq[i++];
       sndCount(i === seq.length);
       el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
       setTimeout(step, i === seq.length ? 560 : 700);
-    })();
+    }
   }
   var counting = false;
+  /* the pre-count face-off: customers only, two per line */
+  function vsLine(m){
+    if(!m || !m.buyers.length) return null;
+    var names = m.buyers.map(function(b){
+      return esc(b.emoji || '🙂') + ' ' + esc(dispName(m, b, false));
+    });
+    var sep = ' <span style="opacity:.7">vs</span> ';
+    if(names.length <= 2) return names.join(sep);
+    return names.slice(0, 2).join(sep) + sep.replace('</span> ', '</span><br>')
+         + names.slice(2).join(sep);
+  }
   /* -------- the 40-second turn clock: drain the top bar, then move on ---- */
   var skippingTurn = false;
   setInterval(function(){
@@ -1469,6 +1493,7 @@
       winShown = true;   /* the cracker won — the seller just gets the news */
       toast('🎉 ' + dispName(m, m.winner, true) + ' cracked your rule — you earned ' + m.reward + ' Whare!');
     }
+    $('sellShowName').checked = !m.seller.hideReal;
     if(m.state==='done'){ tickRematch(m); }
   }
 
@@ -1505,13 +1530,22 @@
     refresh();
     toast('🏬 Back to the mall!');
   }
+  $('sellShowName').addEventListener('change', function(){
+    var show = $('sellShowName').checked;
+    try{ localStorage.setItem('charlie-hide-real', show ? '' : '1'); }catch(e){}
+    withMachine(function(m){
+      if(!!m.seller.hideReal === !show) return null;
+      m.seller.hideReal = !show;
+      return m;
+    }).catch(function(){});
+  });
   $('startBtn').addEventListener('click', function(){
     withMachine(function(m){
       if(m.state!=='open' || m.buyers.length < MIN_START) return null;
       m.state = 'playing'; m.turn = 0; m.turnStartAt = Date.now();
       return m;
     }).then(function(m){
-      if(m) countdown(function(){});   /* the seller counts down too */
+      if(m) countdown(function(){}, vsLine(m));   /* the seller counts down too */
     });
   });
   $('closeShop').addEventListener('click', function(){
@@ -1633,7 +1667,7 @@
       return '<span class="pl"><span class="em">'+esc(b.emoji||'🙂')+'</span>'+esc(dispName(m, b, false))+'</span>';
     }).join('') || '<span class="pl empty">🪑 nobody yet</span>';
     var mineB = m.buyers.filter(function(b){ return b.id === me.id; })[0];
-    if(mineB) $('hideRealCk').checked = !!mineB.hideReal;
+    if(mineB) $('hideRealCk').checked = !mineB.hideReal;
     $('waitLine').textContent = m.buyers.length + '/' + m.capacity
       + ' customers here — the seller can start once 2 or more are in.';
   }
@@ -1652,12 +1686,12 @@
   }
   $('leaveWait').addEventListener('click', leaveRoom);
   $('hideRealCk').addEventListener('change', function(){
-    var on = $('hideRealCk').checked;
-    try{ localStorage.setItem('charlie-hide-real', on ? '1' : ''); }catch(e){}
+    var show = $('hideRealCk').checked;
+    try{ localStorage.setItem('charlie-hide-real', show ? '' : '1'); }catch(e){}
     withMachine(function(m){
       var b = m.buyers.filter(function(x){ return x.id === me.id; })[0];
-      if(!b || !!b.hideReal === on) return null;
-      b.hideReal = on;
+      if(!b || !!b.hideReal === !show) return null;
+      b.hideReal = !show;
       return m;
     }).catch(function(){});
   });
@@ -2210,7 +2244,7 @@
       if(m && m.state === 'playing'){
         if(counting) return;
         counting = true;
-        countdown(function(){ counting = false; show('scrPlay'); renderPlay(); });
+        countdown(function(){ counting = false; show('scrPlay'); renderPlay(); }, vsLine(m));
       }
       else if(m && m.state === 'done'){
         toast('That shop closed its doors!');

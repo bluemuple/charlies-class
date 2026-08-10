@@ -763,6 +763,7 @@ async function testAlZebra(){
   const pen = pens.find(m => m.type === "zebra");
   ok(!!pen && pen.capacity === 1 && pen.probs.length === 6 && pen.limit === 18,
      "pen saved: 1 visitor, 6 problems, 18 s limit");
+  ok(pen.prizeQ && pen.prizeQ.length === 6, "six prizes pre-drawn, one per problem");
   ok(pen.products.length === 7 && pen.pool.length === 7, "7 prizes in the pen");
 
   // a tourist arrives (simulated through the store) → keeper can start
@@ -805,7 +806,9 @@ async function testAlZebra(){
      "the pen tile shows an alias, never the keeper's name");
   d2.querySelector("#pens .pen").click();
   await waitFor(() => $2("scrGame").classList.contains("on"), "tourist steps into the pen");
-  await waitFor(() => /your go/.test($2("probLine").textContent), "tourist goes first");
+  await waitFor(() => $2("ansCalc").style.visibility !== "hidden", "tourist goes first");
+  ok(d2.querySelectorAll("#probDots .dot").length === 6, "six problem dots line up");
+  ok(!!d2.querySelector("#probDots .dot.cur"), "the current problem's dot pulses");
   ok(/𝑥/.test($2("zRuleGame").textContent), "the rule is painted on the zebra for everyone");
   ok($2("carrotNum").textContent === "1", "the first carrot says 1");
   ok(/carrot1\.png/.test($2("carrotImg").src), "the real carrot art is on screen");
@@ -820,6 +823,8 @@ async function testAlZebra(){
   }, "fast right answer scores Perfect!", 5000);
   let m1 = await w2.CharlieStore.getMachine("m-zoo1");
   ok(m1.history[0].ok === true && m1.history[0].points === 50, "row recorded: correct, 50 points");
+  await waitFor(() => !!d2.querySelector("#probDots .dot.yes"),
+     "the first dot turns green with a tick", 5000);
   ok(!!m1.history[0].item, "a prize left the pool");
   ok(m1.pool.length === 6, "pool is down to 6");
 
@@ -831,7 +836,8 @@ async function testAlZebra(){
      "keeper's missed turn is an Oops");
 
   // my second go: answer wrongly on purpose (wait for MY problem, not stale text)
-  await waitFor(() => /3 of 6/.test($2("probLine").textContent) && /your go/.test($2("probLine").textContent),
+  await waitFor(async () => (await w2.CharlieStore.getMachine("m-zoo1")).prob === 2
+     && $2("ansCalc").style.visibility !== "hidden",
      "back to the tourist", 8000);
   ak("9"); ak("9"); ak("go");
   await waitFor(async () => (await w2.CharlieStore.getMachine("m-zoo1")).prob >= 3,
@@ -841,7 +847,8 @@ async function testAlZebra(){
      "wrong answer: Oops, 10 points, no prize");
 
   // let the rest of the race run: keeper auto-Oops, I answer my last one right
-  await waitFor(() => /5 of 6/.test($2("probLine").textContent) && /your go/.test($2("probLine").textContent),
+  await waitFor(async () => (await w2.CharlieStore.getMachine("m-zoo1")).prob === 4
+     && $2("ansCalc").style.visibility !== "hidden",
      "my final go arrives", 15000);
   m1 = await w2.CharlieStore.getMachine("m-zoo1");
   ok(m1.prob === 4, "it really is my problem (index 4)");
