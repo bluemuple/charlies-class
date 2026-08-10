@@ -71,6 +71,20 @@
   /* ---------- seller: stock the machine ---------- */
   #pickBar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;}
   #pickCount{font-weight:800; color:var(--teal-dark); font-size:15px;}
+  /* the customer's waiting room: the seller's rule, painted over in black */
+  .wait-rule{display:flex; align-items:center; justify-content:center; gap:12px;
+             flex-wrap:wrap; margin-bottom:10px;}
+  .wait-rule .redact{
+    background:#fdf6d8; border-radius:10px; padding:8px 14px;
+    font-weight:800; font-size:20px; color:var(--teal-dark); white-space:nowrap;
+  }
+  .wait-rule .redact i{font-family:Georgia,serif;}
+  .wait-rule .ink{
+    display:inline-block; width:96px; height:20px; border-radius:5px;
+    background:repeating-linear-gradient(105deg,#16211f 0 12px,#22302d 12px 22px);
+    vertical-align:middle;
+  }
+  .wait-rule .wait-mission{font-size:13.5px; color:#7a8f8b; font-weight:600; max-width:210px; text-align:left;}
   /* the bar fills gently as products are picked (0 → 7) */
   #fillWrap{flex:1; min-width:160px; height:14px; background:#e2edeb; border-radius:8px; overflow:hidden;}
   #fillBar{height:100%; width:0%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .5s ease;}
@@ -200,10 +214,6 @@
     margin-top:16px; width:100%; border:0; border-radius:10px; padding:10px 0;
     font-size:15px; font-weight:700; background:var(--teal); color:#fff;
   }
-  .cap-row{display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap;}
-  .cap-row .seg{display:flex; border:2px solid #d7e5e2; border-radius:10px; overflow:hidden;}
-  .cap-row .seg button{border:0; background:#f6fbfa; padding:8px 18px; font-size:15px; font-weight:700; color:#5c7671;}
-  .cap-row .seg button.active{background:var(--teal); color:#fff;}
   #openShop{
     border:0; border-radius:12px; background:var(--accent); color:#fff;
     font-size:16px; font-weight:800; padding:12px 26px;
@@ -594,14 +604,6 @@
             <span id="rewardLine">Crack-reward: 0 Whare</span>
             <button id="rewardInfo" class="ibtn mini" title="How rewards work">i</button>
           </div>
-          <div class="cap-row">
-            <span style="font-weight:700;color:#4c6b66">No. of Customers:</span>
-            <div class="seg" id="capSeg">
-              <button data-c="1" class="active">1</button>
-              <button data-c="2">2</button>
-              <button data-c="3">3</button>
-            </div>
-          </div>
           <button id="openShop">🎪 Open my shop!</button>
         </div>
       </div>
@@ -644,6 +646,10 @@
   <section class="screen" id="scrWait">
     <h2 id="waitTitle">🎪 Shop</h2>
     <div class="card" style="max-width:560px;margin:0 auto">
+      <div class="wait-rule">
+        <span class="redact"><i>𝑥</i> → <span class="ink"></span></span>
+        <span class="wait-mission">Your mission: crack the seller's secret rule and win the goodies!</span>
+      </div>
       <div class="players" id="waitPlayers"></div>
       <div id="waitLine" style="text-align:center;font-weight:700;color:#4c6b66"></div>
       <button class="quietbtn" id="leaveWait">Leave the shop</button>
@@ -935,7 +941,8 @@
   $('stockDone').addEventListener('click', function(){ finishStock(); });
 
   /* ================= SELLER : rule ================= */
-  var tokens = [{t:'var'}], capacity = 1;   // 𝑥 starts on the screen, ready to build on
+  var tokens = [{t:'var'}];   // 𝑥 starts on the screen, ready to build on
+  var MAX_CUST = 5, MIN_START = 2;   // rooms hold 5; the seller may start at 2
   function renderRuleScreen(){
     var html = tokens.map(function(t){
       if(t.t==='var') return '<i>𝑥</i>';
@@ -1058,13 +1065,6 @@
       addTok(pad);
     }
   });
-  $('capSeg').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-c]'); if(!b) return;
-    capacity = parseInt(b.dataset.c, 10);
-    Array.prototype.forEach.call($('capSeg').children, function(x){
-      x.classList.toggle('active', x === b);
-    });
-  });
   $('openShop').addEventListener('click', function(){
     if(!G.validRule(tokens)){ toast('Your rule needs 𝑥 in it and can\'t end on + − × ÷'); return; }
     if(G.ruleOps(tokens).length < 1){ toast('Add at least one operation — 𝑥 alone is too easy!'); return; }
@@ -1075,7 +1075,7 @@
       seller: {id:me.id, name:me.name, emoji:me.emoji || '🙂'},
       alias: G.alias(),
       state: 'open',
-      capacity: capacity,
+      capacity: MAX_CUST,
       products: picked.slice(),
       rule: tokens.slice(),
       reward: G.reward(tokens),
@@ -1099,19 +1099,28 @@
     $('sellProducts').innerHTML = m.products.map(function(k){
       return '<div class="slot">' + spriteDiv(k) + '<div class="nm">'+esc(G.PRODUCTS[k].name)+'</div></div>';
     }).join('');
-    $('sellRule').innerHTML = 'Your rule: <i style="font-family:Georgia,serif">𝑥</i> → ' + prettyRule(m.rule);
-    var ph = [];
-    for(var i=0;i<m.capacity;i++){
-      var b = m.buyers[i];
-      if(b) ph.push('<span class="pl'+(m.state==='playing' && i===m.turn%m.buyers.length?' now':'')+'"><span class="em">'+esc(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>');
-      else ph.push('<span class="pl empty">🪑 waiting…</span>');
-    }
+    $('sellRule').innerHTML = 'Your rule: <i style="font-family:Georgia,serif">𝑥</i> → ' + prettyRule(m.rule)
+      + ' <span style="color:#a8bbb7;font-weight:600;font-size:13.5px;margin-left:8px">'
+      + 'the customers\' mission: crack this rule!</span>';
+    var ph = m.buyers.map(function(b, i){
+      return '<span class="pl'+(m.state==='playing' && i===m.turn%m.buyers.length?' now':'')+'"><span class="em">'+esc(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>';
+    });
+    if(m.state==='open' && m.buyers.length < m.capacity) ph.push('<span class="pl empty">🪑 waiting…</span>');
     $('sellPlayers').innerHTML = ph.join('');
-    $('startBtn').disabled = !(m.state==='open' && m.buyers.length === m.capacity);
+    $('startBtn').disabled = !(m.state==='open' && m.buyers.length >= MIN_START);
     $('startBtn').style.display = m.state==='open' ? '' : 'none';
-    $('turnLineSell').textContent =
-      m.state==='open' ? (m.buyers.length + '/' + m.capacity + ' customers here — the game starts when it\'s full.') :
-      m.state==='playing' ? ('It\'s ' + (m.buyers[m.turn % m.buyers.length]||{}).name + '\'s turn.') : '';
+    var line = '';
+    if(m.state==='open'){
+      line = m.buyers.length + '/' + m.capacity + ' customers here — the game starts with '
+           + MIN_START + ' or more.';
+      if(m.buyers.length >= MIN_START && m.buyers.length < m.capacity){
+        line += '<div style="color:#b6c8c4;font-weight:600;font-size:13px;margin-top:3px">'
+              + 'You can start now — or wait for a few more to join.</div>';
+      }
+    } else if(m.state==='playing'){
+      line = 'It\'s ' + ((m.buyers[m.turn % m.buyers.length]||{}).name || '') + '\'s turn.';
+    }
+    $('turnLineSell').innerHTML = line;
     renderHist($('sellHist'), m);
     if(m.state==='done' && m.winner && !winShown){
       winShown = true;   /* the cracker won — the seller just gets the news */
@@ -1142,7 +1151,7 @@
   }
   $('startBtn').addEventListener('click', function(){
     withMachine(function(m){
-      if(m.state!=='open' || m.buyers.length !== m.capacity) return null;
+      if(m.state!=='open' || m.buyers.length < MIN_START) return null;
       m.state = 'playing'; m.turn = 0;
       return m;
     });
@@ -1233,7 +1242,7 @@
       return '<span class="pl"><span class="em">'+esc(b.emoji||'🙂')+'</span>'+esc(b.name)+'</span>';
     }).join('') || '<span class="pl empty">🪑 nobody yet</span>';
     $('waitLine').textContent = m.buyers.length + '/' + m.capacity
-      + ' customers here — the game starts when it\'s full.';
+      + ' customers here — the seller can start once 2 or more are in.';
   }
   function leaveRoom(){
     var id = machineId;
@@ -1758,10 +1767,7 @@
 
   /* ---------------- navigation ---------------- */
   $('roleSeller').addEventListener('click', function(){
-    picked = []; tokens = [{t:'var'}]; capacity = 1;
-    Array.prototype.forEach.call($('capSeg').children, function(x){
-      x.classList.toggle('active', x.dataset.c === '1');
-    });
+    picked = []; tokens = [{t:'var'}];
     renderPick(); renderRuleScreen();
     show('scrStock');
     toast('🛒 Pick your products, then write your rule!');

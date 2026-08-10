@@ -446,7 +446,7 @@ async function testGamePlay(){
   ok(/10 Whare/.test($("rewardLine").textContent), "reward reads 10 Whare for ×…+");
   await waitFor(() => /𝑥.*3.*2/.test($("machineEcho").textContent),
      "a second later the machine's yellow panel echoes it", 3000);
-  ok(/No\. of Customers/.test($("scrRule").textContent), "the customers label says No. of");
+  ok(!d.getElementById("capSeg"), "the seller no longer picks a customer count");
   $("howInfo").click();
   ok($("infoWrap").classList.contains("open") && /How it works/.test($("infoTitle").textContent),
      "the ⓘ on the laptop opens How it works");
@@ -457,11 +457,27 @@ async function testGamePlay(){
   rk("/");  // third operation must bounce
   ok(/10 Whare/.test($("rewardLine").textContent), "a third operation is refused");
 
-  d.querySelector('#capSeg button[data-c="1"]').click();
   $("openShop").click();
   await waitFor(() => $("scrSell").classList.contains("on"), "shop opens into the lobby");
   const ms = await w.CharlieStore.listMachines();
   ok(ms.length === 1 && ms[0].state === "open", "machine saved and open");
+  ok(ms[0].capacity === 5, "every room holds up to 5 customers");
+  await waitFor(() => /mission: crack this rule/.test($("sellRule").textContent),
+     "the rule line tells the seller what customers are trying to do");
+  ok($("startBtn").disabled, "Start sleeps while the shop is empty");
+
+  // one customer is not enough; the second lights the button up
+  const room = await w.CharlieStore.getMachine(ms[0].id);
+  room.buyers.push({id:"kiean-oabel", name:"Kiean", emoji:"🦊"});
+  await w.CharlieStore.saveMachine(room);
+  await waitFor(() => /1\/5 customers/.test($("turnLineSell").textContent), "the lobby counts 1/5");
+  ok($("startBtn").disabled, "one customer is never enough");
+  const room2 = await w.CharlieStore.getMachine(ms[0].id);
+  room2.buyers.push({id:"jason-lin", name:"Jason", emoji:"🐸"});
+  await w.CharlieStore.saveMachine(room2);
+  await waitFor(() => !$("startBtn").disabled, "two customers light up Start");
+  ok(/start now|wait for a few more/.test($("turnLineSell").textContent),
+     "a faint note says: start now, or wait for more");
   ok(ms[0].products.length === 7 && ms[0].ranges.length === 7, "7 products on 7 ranges");
   ok(/^[A-Z][a-z]+ [A-Z][a-z]+$/.test(ms[0].alias), "seller got an animal alias");
   ok(ms[0].reward === 10, "reward stored");
@@ -483,7 +499,7 @@ async function testGamePlay(){
   const machine = {
     id:"m-test01", created: Date.now(),
     seller:{id:"willow-kolo", name:"Willow", emoji:"🐰"},
-    alias:"Cute Rabbit", state:"open", capacity:1,
+    alias:"Cute Rabbit", state:"open", capacity:5,
     products:["cola","chips","cookie","gummies","popcorn","phone","car"],
     rule:[{t:"var"},{t:"op",v:"*"},{t:"num",v:"3"},{t:"op",v:"+"},{t:"num",v:"2"}],
     reward:10,
@@ -512,7 +528,10 @@ async function testGamePlay(){
   ok(!/You are/.test($2("scrWait").textContent), "no 'You are…' line for a customer");
   ok(!/Your rule/.test($2("scrWait").textContent) && !d2.querySelector("#scrWait .sprite"),
      "the products and the rule stay hidden");
-  ok(/1\/1 customers here/.test($2("waitLine").textContent), "the room counts its customers");
+  ok(/1\/5 customers here/.test($2("waitLine").textContent), "the room counts its customers");
+  ok(!!d2.querySelector("#scrWait .redact .ink"), "the seller's rule sits blacked out");
+  ok(/crack the seller's secret rule/.test(d2.querySelector("#scrWait .wait-mission").textContent),
+     "with the mission written beside it");
 
   // seller presses start (simulated through the store) → onto the machine
   const m1 = await w2.CharlieStore.getMachine("m-test01");
