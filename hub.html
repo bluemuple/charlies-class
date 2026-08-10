@@ -264,6 +264,17 @@
     border-radius:10px; padding:1px 6px;
   }
   .frbar .likes{font-size:12px; color:#5c7671; line-height:1.5; margin-left:auto; text-align:right;}
+  #friendsCard h3{text-align:left; font-size:15px;}
+  .frboard .brow{
+    display:flex; align-items:center; gap:10px; border:1.5px solid #e2edeb;
+    border-radius:10px; background:#fbfdfc; padding:5px 12px; margin-bottom:5px;
+    font-size:13.5px; font-weight:700; color:#4c6b66;
+  }
+  .frboard .brow .rk{flex:0 0 22px; text-align:center; color:#8a6d00; font-weight:800;}
+  .frboard .brow:first-child .rk{font-size:16px;}
+  .frboard .brow .ct{margin-left:auto; background:var(--yellow); color:#6b5c00;
+    border-radius:12px; padding:1px 10px; font-weight:800;}
+  .frboard .empty{font-size:13px; color:#8aa19c; padding:6px 2px;}
   #friendsClose{border:0; background:none; color:#8aa19c; font-size:13px; font-weight:700; margin:12px auto 0; display:block;}
   .likes-in{
     width:100%; border:2px solid #cfe3df; border-radius:10px; padding:7px 10px;
@@ -466,6 +477,12 @@
   <div id="friendsCard">
     <h3>👥 Class pets</h3>
     <div id="frGrid"></div>
+    <h3 style="margin-top:16px">🏅 Top Solvers</h3>
+    <div class="frboard" id="frSolvers"></div>
+    <h3 style="margin-top:14px">🕵️ Top Rule Breakers</h3>
+    <div class="frboard" id="frBreakers"></div>
+    <h3 style="margin-top:14px">🛠 Top Rule Makers</h3>
+    <div class="frboard" id="frMakers"></div>
     <button id="friendsClose">Close</button>
   </div>
 </div>
@@ -1232,6 +1249,23 @@
     if(!p) return [];
     return Array.isArray(p) ? p : [p];
   }
+  function frName(s){
+    return (FR_SETTINGS.showNames || (s.profile && s.profile.showFriends))
+      ? esc(s.name) : '🎈 ' + esc(G.aliasFor(s.id));
+  }
+  function renderBoard(el, all, statKey){
+    var rows = all.map(function(s){
+      return {s: s, n: ((s.profile && s.profile.stats) || {})[statKey] || 0};
+    }).filter(function(r){ return r.n > 0; })
+      .sort(function(a, b){ return b.n - a.n; })
+      .slice(0, 10);
+    el.innerHTML = rows.length ? rows.map(function(r, i){
+      var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+      return '<div class="brow"><span class="rk">' + medal + '</span>'
+        + '<span>' + frName(r.s) + '</span>'
+        + '<span class="ct">' + r.n + '</span></div>';
+    }).join('') : '<div class="empty">Nobody on the board yet — go play!</div>';
+  }
   $('friendsBtn').addEventListener('click', function(){
     store.list().then(function(all){
       var n = 0;
@@ -1245,7 +1279,7 @@
         /* more pets → a beefier bar */
         var pad = 8 + Math.min(4, pets.length) * 4;
         return '<div class="frbar" style="padding-top:' + pad + 'px;padding-bottom:' + pad + 'px">'
-          + '<span class="own">' + ((FR_SETTINGS.showNames || prof.showFriends) ? esc(s.name) : '🎈 ' + esc(G.aliasFor(s.id))) + '</span>'
+          + '<span class="own">' + frName(s) + '</span>'
           + pets.map(function(p){
               return '<span class="petchip"><img src="' + petImg(p.type, false) + '" alt="">'
                 + '<span class="pn">' + esc(p.name || PETS[p.type].name) + '</span>'
@@ -1256,6 +1290,9 @@
       }).join('');
       $('frGrid').innerHTML = rows
         || '<div style="text-align:center;color:#8aa19c;padding:20px 0">No pets yet — the Pet Shop awaits! 🐾</div>';
+      renderBoard($('frSolvers'), all, 'solved');
+      renderBoard($('frBreakers'), all, 'cracked');
+      renderBoard($('frMakers'), all, 'made');
       $('friendsWrap').classList.add('open');
     }).catch(function(){ toast('Could not fetch the pets — try again!'); });
   });

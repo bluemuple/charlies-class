@@ -484,6 +484,10 @@ async function testGamePlay(){
   ok(ms.length === 1 && ms[0].state === "open", "machine saved and open");
   ok(ms[0].capacity === 5, "every room holds up to 5 customers");
   ok(ms[0].turnSecs === 40, "each turn gets the default 40-second clock");
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.profile && s.profile.stats && s.profile.stats.made === 1;
+  }, "opening a shop counts one on the rule-maker board", 5000);
   await waitFor(() => /mission: crack this rule/.test($("sellRule").textContent),
      "the rule line tells the seller what customers are trying to do");
   ok($("startBtn").disabled, "Start sleeps while the shop is empty");
@@ -622,6 +626,10 @@ async function testGamePlay(){
   ok(done.winner.prizes.length === 7, "cracked on 2nd turn → all 7 prizes");
   kiean = (await w2.CharlieStore.list()).find(s => s.id === "kiean-oabel");
   ok(kiean.items.length === 7, "prizes landed in my stuff");
+  await waitFor(async () => {
+    const s = (await w2.CharlieStore.list()).find(x => x.id === "kiean-oabel");
+    return s.profile && s.profile.stats && s.profile.stats.cracked === 1;
+  }, "the crack counts one on the rule-breaker board", 5000);
   ok(kiean.guesses.length === 2 && kiean.guesses[1].ok === true, "winning attempt recorded");
   const willow = (await w2.CharlieStore.list()).find(s => s.id === "willow-kolo");
   ok(willow.money === 10, "seller earned the machine's stored reward");
@@ -825,6 +833,10 @@ async function testAlZebra(){
   ok(m1.history[0].ok === true && m1.history[0].points === 50, "row recorded: correct, 50 points");
   await waitFor(() => !!d2.querySelector("#probDots .dot.yes"),
      "the first dot turns green with a tick", 5000);
+  await waitFor(async () => {
+    const s = (await w2.CharlieStore.list()).find(x => x.id === "kiean-oabel");
+    return s.profile && s.profile.stats && s.profile.stats.solved >= 1;
+  }, "the correct answer counts on the solver board", 5000);
   ok(!!m1.history[0].item, "a prize left the pool");
   ok(m1.pool.length === 6, "pool is down to 6");
 
@@ -1128,6 +1140,18 @@ async function testHub(){
      "the owner hides behind a stable animal pseudonym by default");
   ok(/Taylor Swift/.test($("frGrid").textContent) && /football/.test($("frGrid").textContent),
      "favourite music and hobby show on the card");
+  await w.CharlieStore.update("cj-rapata", {profile:{stats:{solved:9, cracked:2, made:1}}});
+  await w.CharlieStore.update("jason-lin", {profile:{stats:{solved:4, made:3}}});
+  $("friendsClose").click();
+  $("friendsBtn").click();
+  await waitFor(() => d.querySelectorAll("#frSolvers .brow").length === 2, "two solvers on the board");
+  const solverRows = d.querySelectorAll("#frSolvers .brow");
+  ok(/🥇/.test(solverRows[0].textContent) && /9/.test(solverRows[0].textContent),
+     "rank one wears the gold with the biggest count");
+  ok(!/CJ|Jason/.test($("frSolvers").textContent), "solver names stay anonymous");
+  ok(d.querySelectorAll("#frBreakers .brow").length === 1
+     && d.querySelectorAll("#frMakers .brow").length === 2,
+     "breaker and maker boards fill from the same stats");
   $("friendsClose").click();
 
   // pets are collectable: a second goldfish joins, arrows slide between them

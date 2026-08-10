@@ -1340,11 +1340,21 @@
         }).catch(function(){});
       }
       machineId = m.id; role = 'seller'; winShown = false;
+      bumpStat('made');
       resetRematchUI();
       refresh();
       show('scrSell');
     }).catch(function(){ toast('Could not open the shop — check the connection.'); });
   });
+
+  /* lifetime counters for the Friends leaderboards, kept on the profile */
+  function bumpStat(key){
+    var p = Object.assign({}, (me && me.profile) || {});
+    var s = Object.assign({}, p.stats || {});
+    s[key] = (s[key] || 0) + 1;
+    p.stats = s;
+    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
+  }
 
   /* -------- stage names: alias during play, real name at the results --------
      (unless the player asked to stay hidden — hub option or the lobby tick) */
@@ -1758,7 +1768,7 @@
       $('predictMsg').textContent = right
         ? '🎯 Spot on! It was ' + fmt(predictState.out) + ' — you cracked the maths!'
         : 'You said ' + fmt(guess) + ' — it was ' + fmt(predictState.out) + '. Great try!';
-      if(right) beep(1047, .18, 0, .2);
+      if(right){ beep(1047, .18, 0, .2); bumpStat('solved'); }
     }
     if(machine) renderHist(document.querySelector('.vm-right .tbl-wrap table'), machine);
     setTimeout(function(){
@@ -2114,6 +2124,7 @@
       if(m.state === 'done' && m.winner && m.winner.id === me.id){
         $('guessMsg').style.color = '#2a9d34';
         $('guessMsg').textContent = '✅ Correct!';
+        bumpStat('cracked');
         payOut(m, tried);
       } else {
         $('guessMsg').style.color = '#c3323f';

@@ -413,11 +413,11 @@
     <div class="role-btns">
       <button id="roleKeeper">
         <span class="big">🧑‍🌾</span><span class="t">Zookeeper</span>
-        <span class="d">Paint a rule on your zebra, pick 7 prizes, and race a visitor at your own puzzle.</span>
+        <span class="d">Make a rule</span>
       </button>
       <button id="roleTourist">
         <span class="big">📸</span><span class="t">Tourist</span>
-        <span class="d">Visit a pen and race the zookeeper: feed the zebra the right outputs, fast!</span>
+        <span class="d">Compete with the zookeeper</span>
       </button>
     </div>
   </section>
@@ -986,6 +986,7 @@
         }).catch(function(){});
       }
       penId = m.id; role = 'keeper';
+      bumpStat('made');
       resetMatchState();
       refresh();
       show('scrPen');
@@ -1303,6 +1304,8 @@
       return store.saveMachineIf(mm, expected).then(function(won){
         answering = false;
         if(!won){ refresh(); return; }
+        var mine = mm.history[mm.history.length - 1];
+        if(mine && mine.b === me.id && mine.ok) bumpStat('solved');
         pen = mm; rerender();
         ansVal = ''; renderAnsDisp();
         localStart = null;
@@ -1569,6 +1572,15 @@
     if(iWon){ confetti(); play(sndVictory); }
     claimIfMine(m);
   }
+  /* lifetime counters for the Friends leaderboards, kept on the profile */
+  function bumpStat(key){
+    var p = Object.assign({}, (me && me.profile) || {});
+    var s = Object.assign({}, p.stats || {});
+    s[key] = (s[key] || 0) + 1;
+    p.stats = s;
+    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
+  }
+
   /* -------- stage names: alias during play, real name at the results --------
      (unless the player asked to stay hidden — hub option or the lobby tick) */
   function hidePref(){ try{ return localStorage.getItem('charlie-hide-real') === '1'; }catch(e){ return false; } }
