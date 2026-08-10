@@ -578,8 +578,8 @@
   var claimedLocal = false;
   var doneShown = false;
 
-  var sndPop = null, sndMoney = null;
-  try{ sndPop = new Audio('assets/pop.mp3'); sndMoney = new Audio('assets/money.mp3'); }catch(e){}
+  var sndPop = null, sndMoney = null, sndVictory = null;
+  try{ sndPop = new Audio('assets/pop.mp3'); sndMoney = new Audio('assets/money.mp3'); sndVictory = new Audio('assets/victory.mp3'); }catch(e){}
   function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
 
   var toastTimer = null;
@@ -658,7 +658,6 @@
   }
   function sndCount(isGo){ beep(isGo ? 880 : 660, isGo ? .4 : .12, 0, isGo ? .22 : .14); }
   function sndTurn(){ beep(740, .1); beep(988, .16, .11); }
-  function sndWin(){ [523, 659, 784, 1047].forEach(function(f, i){ beep(f, .18, i * .13, .2); }); }
   /* -------- 3 · 2 · 1 · Go! -------- */
   function countdown(cb){
     if(window.ALZEBRA_TEST_FAST || window.CHARLIE_TEST_FAST){ cb(); return; }
@@ -1400,7 +1399,7 @@
     }
     show('scrDone');
     /* confetti falls only on the winner's screen (both screens on a tie) */
-    if(iWon){ confetti(); sndWin(); play(sndMoney); }
+    if(iWon){ confetti(); play(sndVictory); }
     claimIfMine(m);
   }
   /* -------- stage names: alias during play, real name at the results --------

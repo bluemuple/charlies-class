@@ -870,8 +870,8 @@
   function turnUsed(m){ return !!(m && m.turnInserted); }
 
   /* ---------------- sounds (same ones as the teaching game) ------------- */
-  var sndMoney = null, sndPop = null;
-  try{ sndMoney = new Audio('assets/money.mp3'); sndPop = new Audio('assets/pop.mp3'); }catch(e){}
+  var sndMoney = null, sndPop = null, sndVictory = null;
+  try{ sndMoney = new Audio('assets/money.mp3'); sndPop = new Audio('assets/pop.mp3'); sndVictory = new Audio('assets/victory.mp3'); }catch(e){}
   function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
 
   var toastTimer = null;
@@ -951,7 +951,6 @@
   }
   function sndCount(isGo){ beep(isGo ? 880 : 660, isGo ? .4 : .12, 0, isGo ? .22 : .14); }
   function sndTurn(){ beep(740, .1); beep(988, .16, .11); }
-  function sndWin(){ [523, 659, 784, 1047].forEach(function(f, i){ beep(f, .18, i * .13, .2); }); }
   /* -------- 3 · 2 · 1 · Go! -------- */
   function countdown(cb){
     if(window.CHARLIE_TEST_FAST){ cb(); return; }
@@ -2141,7 +2140,7 @@
         + '</div></div><div class="nm"></div></div>';
     }).join('');
     $('winWrap').classList.add('on');
-    sndWin();
+    play(sndVictory);
     confetti();
     var wins = document.querySelectorAll('.slotwin');
     prizes.forEach(function(k, i){
