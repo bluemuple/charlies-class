@@ -153,22 +153,12 @@
     position:absolute; inset:0; opacity:0; transition:opacity 1.2s ease;
   }
   .pet-stage.fed img.happy{opacity:1;}
-  .pet-stage.sparkle::before, .pet-stage.sparkle::after{
-    content:'✨'; position:absolute; font-size:26px; z-index:3;
-    animation:spark 1.6s ease-in-out; opacity:0;
-  }
-  .pet-stage.sparkle::before{top:8%; left:8%;}
-  .pet-stage.sparkle::after{bottom:12%; right:10%; animation-delay:.25s;}
-  .pet-stage.sparkle img{animation:shine 1.8s ease-in-out;}
-  @keyframes spark{
-    0%{opacity:0; transform:scale(.4) rotate(-20deg);}
-    35%{opacity:1; transform:scale(1.25) rotate(10deg);}
-    100%{opacity:0; transform:scale(.6) rotate(30deg) translateY(-14px);}
-  }
-  @keyframes shine{
-    0%,100%{filter:brightness(1);}
-    30%{filter:brightness(1.35) saturate(1.25) drop-shadow(0 0 18px rgba(255,220,90,.9));}
-    65%{filter:brightness(1.2) drop-shadow(0 0 10px rgba(255,220,90,.6));}
+  /* the glow lives OUTSIDE the picture: a warm halo around the frame only */
+  .pet-stage.sparkle{animation:halo 2.2s ease-in-out; border-radius:16px;}
+  @keyframes halo{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,220,90,0);}
+    25%{box-shadow:0 0 34px 14px rgba(255,220,90,.85);}
+    60%{box-shadow:0 0 22px 9px rgba(255,214,64,.55);}
   }
   .pet-hint{font-size:12.5px; color:#8aa19c; margin-top:6px;}
   .pet-powers{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:8px;}
@@ -201,7 +191,17 @@
     display:flex; flex-direction:column;
   }
   #talkCard h3{color:var(--teal-dark); font-size:17px; text-align:center; margin-bottom:10px;}
-  #talkLog{flex:1; overflow-y:auto; min-height:120px; max-height:46vh; padding:4px 2px; margin-bottom:10px;}
+  #talkLog{overflow-y:auto; min-height:140px; max-height:52vh; padding:4px 2px; margin-bottom:10px;}
+  .bub.pet{
+    background:var(--yellow); color:#6b5c00; border-radius:14px 14px 14px 3px;
+    margin:0 auto 7px 0;
+  }
+  .bub.pet .when{text-align:left;}
+  #talkPowerRow button.glowcap{animation:capglow 1.4s ease-in-out infinite;}
+  @keyframes capglow{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,214,64,.0);}
+    50%{box-shadow:0 0 14px 5px rgba(255,214,64,.9);}
+  }
   .bub{
     background:#e3f4f0; color:#1f5a54; border-radius:14px 14px 3px 14px;
     padding:8px 12px; margin:0 0 7px auto; max-width:85%; width:fit-content;
@@ -401,6 +401,21 @@
         <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
       </div>
       <div class="prof-right">
+        <div id="profTalk" style="display:none">
+          <div class="prof-sec">
+            <h3 id="talkTitle" style="font-size:14px">💬 To my pet</h3>
+            <div id="talkPowers" style="display:none">
+              <div id="talkGuide" style="font-size:13px;color:#8a6d00;background:var(--yellow);border-radius:10px;padding:6px 12px;margin-bottom:7px;text-align:center;font-weight:700"></div>
+              <div class="pet-powers" id="talkPowerRow" style="justify-content:flex-start;margin:0 0 10px"></div>
+            </div>
+            <div id="talkLog"></div>
+            <div id="talkRow">
+              <input id="talkIn" maxlength="200" placeholder="Say something kind…">
+              <button id="talkSend">Send</button>
+            </div>
+            <button class="prof-btn quiet" id="talkBack" style="margin-top:10px">← Back to my stuff</button>
+          </div>
+        </div>
         <div id="profOwn">
         <div class="prof-sec">
           <h3>My stuff</h3>
@@ -438,17 +453,6 @@
     <h3>👥 Class pets</h3>
     <div class="fr-grid" id="frGrid"></div>
     <button id="friendsClose">Close</button>
-  </div>
-</div>
-<div id="talkWrap">
-  <div id="talkCard">
-    <h3 id="talkTitle">💬 To my pet</h3>
-    <div id="talkLog"></div>
-    <div id="talkRow">
-      <input id="talkIn" maxlength="200" placeholder="Say something kind…">
-      <button id="talkSend">Send</button>
-    </div>
-    <button id="talkClose">Close</button>
   </div>
 </div>
 <div id="fbWrap">
@@ -524,6 +528,7 @@
       + (p.col*25) + '% ' + (p.row*100/3) + '%"></div>';
   }
   function renderStuff(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
     var items = me.items || [];
     if(!items.length){
       $('stuffBox').innerHTML = '<div class="prof-empty">Snacks and prizes you win in the games will show up here. 🍪🧸</div>';
@@ -577,7 +582,7 @@
      One pet per student. Feeding a snack = +5 affection; every 10 affection
      the student picks one superpower from the animal's list. */
   var PETS = {
-    1:{name:'Goldfish', price:10, powers:[
+    1:{name:'Goldfish', price:15, powers:[
       '🫧 Bubble of Calm — one deep breath fixes a wobbly moment',
       '📚 Goldfish Memory — never forgets homework due dates',
       '💧 Deep-Water Focus — 10 quiet minutes of pure concentration',
@@ -586,7 +591,7 @@
       '🐚 Treasure Sense — spots the good idea hiding in your draft',
       '🎏 School of Friends — turns group work into smooth swimming',
       '🌀 Whirl of Ideas — stirs up three fresh ideas when you\'re stuck']},
-    2:{name:'Axolotl', price:12, powers:[
+    2:{name:'Axolotl', price:24, powers:[
       '🩹 Regrow — bounce back fast from any mistake',
       '😊 Forever Smile — instant cheer-up on grey days',
       '🔬 Lab Partner — makes science homework feel easy',
@@ -595,7 +600,7 @@
       '🌱 Grow-Back Grit — try again energy after every flop',
       '🫂 Gentle Cheer — quiet encouragement exactly when needed',
       '🔦 Deep-Cave Courage — lights the way through scary new things']},
-    3:{name:'Cat', price:14, powers:[
+    3:{name:'Cat', price:28, powers:[
       '🧶 Stress Pounce — pounces on your stress so you don\'t have to',
       '😴 Power-Nap Coach — perfect 20-minute recharges',
       '🔍 Curiosity Boost — turns boring study into exploring',
@@ -604,7 +609,7 @@
       '🐾 Silent Focus — pads so quietly distractions give up',
       '🌤️ Windowsill Wisdom — finds the sunny side of any day',
       '🎁 Surprise Reflex — lands on your feet when plans change']},
-    4:{name:'Dog', price:16, powers:[
+    4:{name:'Dog', price:32, powers:[
       '🎾 Fact Fetcher — fetches the answer you almost remembered',
       '🏃 Walk Buddy — gets you outside and moving every day',
       '🛡️ Mood Guard — barks bad moods right out of the room',
@@ -613,7 +618,7 @@
       '🦴 Loyalty Shield — sticks with you through the tricky bits',
       '🌟 Trick Learner — makes practising new skills feel like play',
       '🚀 Zoomies Boost — a burst of energy for the last lap']},
-    5:{name:'Budgie', price:18, powers:[
+    5:{name:'Budgie', price:36, powers:[
       '🗣️ Vocab Parrot — repeats your spelling words till they stick',
       '🎵 Happy Whistle — whistles your favourite song when you\'re down',
       '🎤 Speech Coach — practise presentations to a kind audience',
@@ -622,7 +627,7 @@
       '🪞 Mirror Pep-Talk — teaches you the kindest self-talk',
       '🌻 Seed of Patience — small daily practice grows big wins',
       '📣 Brave Announcer — helps your ideas be heard in class']},
-    6:{name:'Triceratops', price:20, powers:[
+    6:{name:'Triceratops', price:70, powers:[
       '🛡️ Triple Shield — blocks three worries at once',
       '🪨 Homework Crusher — stomps big tasks into little pieces',
       '💪 Brave Horns — lends courage for tests and try-outs',
@@ -641,6 +646,7 @@
   function petLevel(pet){ return Math.min(7, 1 + ((pet && pet.powers) || []).length); }
 
   function renderPet(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
     var box = $('petBox');
     if(!me.pet){
       box.innerHTML = '<div class="prof-empty">No pet yet — pets eat your spare snacks and learn superpowers as they grow!</div>'
@@ -743,6 +749,7 @@
     var newPet = Object.assign({}, pet, {affection: (pet.affection || 0) + 5});
     store.update(me.id, {items: items, pet: newPet}).then(function(){
       me.pet = newPet; me.items = items;   /* keep the local copy honest */
+      recentFeeds.push(p.name);            /* the pet will say thanks in chat */
       /* the snack flies over to the pet */
       var stage = $('petStage');
       if(fromBtn && stage){
@@ -767,10 +774,10 @@
       toast('😋 ' + petCallName(pet) + ' loved the ' + p.name + '! +5 ❤️');
       return refresh();
     }).then(function(){
-      /* only once the snack LANDS (700 ms flight): happy face + sparkle —
+      /* one second after the snack lands: happy face + a halo round the frame —
          fedUntil lets renderPet re-apply the class if a realtime refresh
          rebuilds the stage mid-glow */
-      fedUntil = Date.now() + 700 + 2400;
+      fedUntil = Date.now() + 1000 + 2400;
       setTimeout(function(){
         var stage = $('petStage');
         if(stage){
@@ -778,13 +785,13 @@
           stage.classList.remove('sparkle'); void stage.offsetWidth;
           stage.classList.add('sparkle');
         }
-      }, 700);
+      }, 1000);
       setTimeout(function(){
         fedUntil = 0;
         var s2 = $('petStage');
         if(s2) s2.classList.remove('fed');
         if(s2) s2.classList.remove('sparkle');
-      }, 3100);   /* 700 ms flight + 2.4 s of glowing */
+      }, 3400);   /* 1 s flight-and-land + 2.4 s of glowing */
       stuffBusy = false;
       /* let the munching moment land before the superpower knock */
       setTimeout(maybeOfferPower, 2000);
@@ -835,6 +842,7 @@
      Right answers sparkle for 3 s. A wrong try only reveals the real rule
      once that game is over — no cheating by peeking mid-game! */
   function renderAttempts(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
     var atts = (me.guesses || []).slice().reverse().slice(0, 12);
     if(!atts.length){
       $('attemptsBox').innerHTML = '<div class="prof-empty">Every rule you try to crack in the Algebra Machine lands here. 🕵️</div>';
@@ -853,6 +861,7 @@
     }).join('');
   }
   function refresh(){
+    if(typeof document === 'undefined' || !document || !document.body) return Promise.resolve();
     if(!sess) return Promise.resolve();
     return store.listMachines().then(function(ms){
       machineState = {};
@@ -881,11 +890,12 @@
 
   /* the profile popup has three faces: the room, the emoji picker, the shop */
   function showView(which){
-    /* the shop lives in the RIGHT column; the picker still takes the page */
+    /* shop + talk live in the RIGHT column; the picker still takes the page */
     $('profMain').style.display = which === 'picker' ? 'none' : '';
     $('profPicker').style.display = which === 'picker' ? '' : 'none';
-    $('profOwn').style.display = which === 'shop' ? 'none' : '';
+    $('profOwn').style.display = (which === 'shop' || which === 'talk') ? 'none' : '';
     $('profShop').style.display = which === 'shop' ? '' : 'none';
+    $('profTalk').style.display = which === 'talk' ? '' : 'none';
   }
   function showPicker(on){ showView(on ? 'picker' : 'main'); }
   $('shopBack').addEventListener('click', function(){ showView('main'); });
@@ -916,24 +926,127 @@
     window.location.href = 'index.html';
   });
 
-  /* ---------------- talking to the pet (saved on the pet itself) -------- */
-  var talkBusy = false;
+  /* ---------------- talking to the pet (saved on the pet itself) --------
+     The chat lives in the RIGHT column. Pets answer: a thank-you when a
+     snack just landed, and per-superpower pep talks (2 each, random). */
+  var talkBusy = false, recentFeeds = [];
+  var THANKS = [
+    'Mmm, {s}! You are the best. 😋',
+    'Thank you for the {s} — my tummy is doing a happy dance! 🎉',
+    '{s}?! For me?! I am the luckiest pet in the class. 🥹',
+    'The {s} — delicious! You always know what I like. 💛',
+    'Chomp chomp… thank you for the {s}, friend. 😊'
+  ];
+  var PROMPTS = [
+    'Tell {p} about your day…',
+    'Ask {p} a question…',
+    'Share a worry — {p} is listening…',
+    'Say something kind to {p}…'
+  ];
+  var POWER_TALK = {
+    '🫧 Bubble of Calm': ['Take one deep breath with me… in… out. See? You have got this. 🫧','When things wobble, we blow a calm bubble. Whoosh — all steady now!'],
+    '📚 Goldfish Memory': ['Your brain saved everything you practised — trust it today! 📚','I remember YOUR birthday, so I know you can remember your maths facts.'],
+    '💧 Deep-Water Focus': ['Ten quiet minutes, you and me — watch how much you get done. 💧','Dive deep like me: one thing at a time, and the noise stays at the surface.'],
+    '✨ Shiny Scales': ['Shoulders back, sparkle on — you shine brighter than my scales! ✨','Before you speak up, remember: I already think you are brilliant.'],
+    '🌊 Cool Current': ['Let that argument float away — you are too cool to carry it. 🌊','Deep breath, kind words, and the storm turns into ripples.'],
+    '🐚 Treasure Sense': ['There is a great idea hiding in your work — I can smell treasure! 🐚','Your first draft is a treasure map. Keep digging, captain!'],
+    '🎏 School of Friends': ['Swim WITH your group today — together you are unstoppable. 🎏','Every fish in the school matters. Especially you.'],
+    '🌀 Whirl of Ideas': ['Stuck? Give it a stir — three new ideas coming right up! 🌀','Spin the problem around and look from the other side. Whoosh!'],
+    '🩹 Regrow': ['A mistake just means you get to grow a shiny new try. 🩹','I regrow legs; you regrow confidence. We are both amazing.'],
+    '😊 Forever Smile': ['Borrow my smile today — I never run out. 😊','Grey day? Not with a face like mine looking at a kid like you.'],
+    '🔬 Lab Partner': ['Science time! Hypothesis: you are going to nail this. 🔬','Every great scientist started out confused. Keep experimenting!'],
+    '🌙 Soft Glow': ['Rest well tonight — big brains need soft pillows. 🌙','I will keep the glow on. You just dream the good stuff.'],
+    '🧘 Chill Champion': ['Breathe in for 4, out for 4 — champion-level chill. 🧘','Nothing today is bigger than your calm. I promise.'],
+    '🌱 Grow-Back Grit': ['Flopped? Fantastic — that is just try-again fuel. 🌱','Every retry makes your roots deeper. Grow on!'],
+    '🫂 Gentle Cheer': ['Psst — you are doing better than you think. Much better. 🫂','A quiet cheer, just for you: go, go, go! (softly) 🎉'],
+    '🔦 Deep-Cave Courage': ['New things look dark until you step in — I brought the light. 🔦','Scary is just exciting before you say hello to it.'],
+    '🧶 Stress Pounce': ['I pounced on your stress. It is under my paw now. You are free. 🧶','See a worry? POUNCE. Mine now. Go be great.'],
+    '😴 Power-Nap Coach': ['Rest is part of the plan. Twenty minutes, then conquer. 😴','Even champions recharge. That is why I nap 16 times a day.'],
+    '🔍 Curiosity Boost': ['Boring? Impossible. Look closer — everything has a secret. 🔍','Ask one more why — that is where the fun hides.'],
+    '💜 Purr Engine': ['Purrrr… feel that? That is your focus frequency. 💜','Lean in, I will purr while you work. Instant concentration.'],
+    '🚪 Confident Strut': ['Walk in like a cat: head high, tail up, own the room. 🚪','That room is lucky to have you walk into it.'],
+    '🐾 Silent Focus': ['Pad quietly past the distractions — they cannot hear us coming. 🐾','Soft paws, sharp mind. Let us sneak up on this homework.'],
+    '🌤️ Windowsill Wisdom': ['From my windowsill I can see it: today has a sunny side. 🌤️','Find the warm spot in the day and stretch out in it.'],
+    '🎁 Surprise Reflex': ['Plans changed? Twist, flip, land on your feet. You always do. 🎁','Surprises are just presents with weird wrapping.'],
+    '🎾 Fact Fetcher': ['Throw me that question — I will fetch the answer you already know! 🎾','It is in your head somewhere. Sniff… sniff… found it!'],
+    '🏃 Walk Buddy': ['Outside! Fresh air! Best idea ever! Race you there. 🏃','A little walk makes big thoughts. Let us go!'],
+    '🛡️ Mood Guard': ['Bad mood spotted. BARK BARK. It ran away. You are safe. 🛡️','No gloomy cloud gets past me. Not on my watch.'],
+    '🤝 Friend Magnet': ['Just say hi and wag — works for me every time. 🤝','You are the kind of friend I would fetch a thousand sticks for.'],
+    '👂 Best Listener': ['Tell me everything. My ears are ready, no judging. 👂','Your worries are safe with me. Always.'],
+    '🦴 Loyalty Shield': ['Tricky day? I am right beside you. Every step. 🦴','You and me — a team through anything.'],
+    '🌟 Trick Learner': ['New skills are just tricks — one treat at a time. 🌟','I learned to roll over. You can learn ANYTHING.'],
+    '🚀 Zoomies Boost': ['Last lap? ZOOMIES TIME. Full speed, big grin! 🚀','Borrow my zoomies — finish strong!'],
+    '🗣️ Vocab Parrot': ['Say it once, I will repeat it till it sticks. Deal? 🗣️','Spelling words? Easy. We will sing them till they behave.'],
+    '🎵 Happy Whistle': ['Here is your song — whistled with love. Feel better? 🎵','Sad days cannot survive a good whistle. Tweet-tweet!'],
+    '🎤 Speech Coach': ['Practise on me — I am the kindest audience in the world. 🎤','Say it loud, say it proud. I will cheer every word.'],
+    '🌈 Colour Splash': ['Boring afternoon? SPLASH — I painted it rainbow. 🌈','You add colour to my day. Share some with yours!'],
+    '🪽 Big-Picture View': ['Fly up with me — see? Today\'s problem is tiny from here. 🪽','From up high you can see the way through. Trust the view.'],
+    '🪞 Mirror Pep-Talk': ['Look in the mirror and say: I have got this. Because you do. 🪞','Talk to yourself the way you talk to me: kindly.'],
+    '🌻 Seed of Patience': ['A little practice every day — that is how seeds become sunflowers. 🌻','Slow is fine. Growing is growing.'],
+    '📣 Brave Announcer': ['Your idea deserves the microphone. Take it! 📣','Speak up — I will be the loudest bird in your cheer squad.'],
+    '🛡️ Triple Shield': ['Three horns, three worries blocked. Send the next ones! 🛡️','Nothing gets through my shield to my favourite human.'],
+    '🪨 Homework Crusher': ['Big task? STOMP. Now it is little tasks. Crush one at a time. 🪨','We do not fear big rocks. We make gravel.'],
+    '💪 Brave Horns': ['Borrow my horns for the test — point them at question one and charge! 💪','Brave is not "not scared". It is charging anyway.'],
+    '🥦 Veggie Power': ['Eat the green stuff — that is 66 million years of good advice. 🥦','Broccoli is just tiny trees for mighty dinosaurs like us.'],
+    '⛰️ Unshakeable': ['Wobbly day? Stand next to me. I do not wobble. ⛰️','Mountains do not move for little storms. Neither do you.'],
+    '🦕 Ancient Patience': ['Take your time. I have 66 million years to spare. 🦕','Slow and steady built the dinosaurs. It will build your skills too.'],
+    '🌋 Thick-Skin Mode': ['Unkind words? Bounce. Right off the armour. 🌋','My skin is thick so your heart can stay soft.'],
+    '🥁 Stomp of Joy': ['Small win? STOMP STOMP STOMP. Victory dance! 🥁','Every win counts. Stomp with me!']
+  };
+  function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+  function petSay(text){
+    var pet = Object.assign({}, me.pet);
+    pet.chat = ((pet.chat || []).concat([{t: Date.now(), text: text.slice(0, 220), who: 'pet'}])).slice(-50);
+    me.pet = pet;
+    renderTalkLog();
+    store.update(me.id, {pet: pet}).catch(function(){});
+  }
   function renderTalkLog(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
     var chat = (me.pet && me.pet.chat) || [];
     $('talkLog').innerHTML = chat.length
       ? chat.map(function(c){
-          return '<div class="bub">' + esc(c.text)
+          return '<div class="bub' + (c.who === 'pet' ? ' pet' : '') + '">' + esc(c.text)
             + '<span class="when">' + new Date(c.t).toLocaleDateString() + '</span></div>';
         }).join('')
       : '<div id="talkEmpty">Nothing yet — say hello! 👋</div>';
     $('talkLog').scrollTop = $('talkLog').scrollHeight;
+    renderTalkPowers();
   }
+  function renderTalkPowers(){
+    var pet = me.pet;
+    var powers = (pet && pet.powers) || [];
+    var saidSomething = ((pet && pet.chat) || []).some(function(c){ return c.who !== 'pet'; });
+    var show = powers.length > 0 && saidSomething;
+    $('talkPowers').style.display = show ? '' : 'none';
+    if(!show) return;
+    $('talkGuide').textContent = '✨ Tap a superpower — ' + petCallName(pet) + ' has something to say!';
+    $('talkPowerRow').innerHTML = powers.map(function(pw, i){
+      return '<button class="glowcap" data-tp="' + i + '">' + esc(pw.split(' — ')[0]) + '</button>';
+    }).join('');
+  }
+  $('talkPowerRow').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-tp]'); if(!b || !me.pet) return;
+    var pw = (me.pet.powers || [])[parseInt(b.dataset.tp, 10)]; if(!pw) return;
+    var key = pw.split(' — ')[0];
+    var lines = POWER_TALK[key];
+    petSay(lines ? pick(lines) : ('Remember my ' + key + '? ' + (pw.split(' — ')[1] || '') + ' — and today, that is you! 💪'));
+  });
   function openTalk(){
     if(!me.pet) return;
     $('talkTitle').textContent = '💬 To ' + petCallName(me.pet);
     $('talkIn').value = '';
+    $('talkIn').placeholder = pick(PROMPTS).split('{p}').join(petCallName(me.pet));
+    showView('talk');
     renderTalkLog();
-    $('talkWrap').classList.add('open');
+    /* a snack just landed? say thank you (once per batch of snacks) */
+    if(recentFeeds.length){
+      var snacks = recentFeeds.slice();
+      recentFeeds = [];
+      var list = snacks.length === 1 ? snacks[0]
+        : snacks.slice(0, -1).join(', ') + ' and ' + snacks[snacks.length - 1];
+      petSay(pick(THANKS).split('{s}').join(list));
+    }
     $('talkIn').focus();
   }
   function sendTalk(){
@@ -954,25 +1067,24 @@
   }
   $('talkSend').addEventListener('click', sendTalk);
   $('talkIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') sendTalk(); });
-  $('talkClose').addEventListener('click', function(){ $('talkWrap').classList.remove('open'); });
-  $('talkWrap').addEventListener('click', function(e){
-    if(e.target === $('talkWrap')) $('talkWrap').classList.remove('open');
-  });
+  $('talkBack').addEventListener('click', function(){ showView('main'); });
 
   /* ---------------- about me: favourite music + hobby ---------------- */
   var likesTimer = null;
   function fillLikes(){
+    if(likesTimer) return;   /* a save is pending — don't clobber the typing */
     var p = me.profile || {};
     if(document.activeElement !== $('likeMusic')) $('likeMusic').value = p.music || '';
     if(document.activeElement !== $('likeHobby')) $('likeHobby').value = p.hobby || '';
   }
   function saveLikes(){
+    /* capture NOW — a refresh between keystroke and debounce can't erase it */
+    var music = $('likeMusic').value.trim().slice(0, 60);
+    var hobby = $('likeHobby').value.trim().slice(0, 60);
     clearTimeout(likesTimer);
     likesTimer = setTimeout(function(){
-      var p = Object.assign({}, me.profile || {}, {
-        music: $('likeMusic').value.trim().slice(0, 60),
-        hobby: $('likeHobby').value.trim().slice(0, 60)
-      });
+      likesTimer = null;
+      var p = Object.assign({}, me.profile || {}, {music: music, hobby: hobby});
       store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
     }, 600);
   }

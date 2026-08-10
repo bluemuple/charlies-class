@@ -464,7 +464,7 @@ async function testGamePlay(){
   // build x × 3 + 2 on the pad
   ["*","3","+","2"].forEach(rk);
   ok(/𝑥/.test($("ruleScreen").textContent), "rule shows on the laptop screen");
-  ok(/10 Whare/.test($("rewardLine").textContent), "reward reads 10 Whare for ×…+");
+  ok(/50 Whare/.test($("rewardLine").textContent), "reward reads 50 Whare for ×…+ (5× boost)");
   await waitFor(() => /𝑥.*3.*2/.test($("machineEcho").textContent),
      "a second later the machine's yellow panel echoes it", 3000);
   ok(!d.getElementById("capSeg"), "the seller no longer picks a customer count");
@@ -476,7 +476,7 @@ async function testGamePlay(){
   ok(/Crack-rewards/.test($("infoTitle").textContent), "the reward ⓘ explains the money");
   $("infoClose").click();
   rk("/");  // third operation must bounce
-  ok(/10 Whare/.test($("rewardLine").textContent), "a third operation is refused");
+  ok(/50 Whare/.test($("rewardLine").textContent), "a third operation is refused");
 
   $("openShop").click();
   await waitFor(() => $("scrSell").classList.contains("on"), "shop opens into the lobby");
@@ -502,7 +502,7 @@ async function testGamePlay(){
      "a faint note says: start now, or wait for more");
   ok(ms[0].products.length === 7 && ms[0].ranges.length === 7, "7 products on 7 ranges");
   ok(/^[A-Z][a-z]+ [A-Z][a-z]+$/.test(ms[0].alias), "seller got an animal alias");
-  ok(ms[0].reward === 10, "reward stored");
+  ok(ms[0].reward === 50, "reward stored at five-fold");
   try{ dom.window.close(); }catch(e){}
 
   /* ---- buyer joins, plays, cracks it ---- */
@@ -585,6 +585,7 @@ async function testGamePlay(){
   const row = $2("histBody").querySelector("tr");
   ok(/2/.test(row.children[1].textContent) && /8/.test(row.children[2].textContent),
      "Results row holds x and y");
+  ok(row.children.length === 3, "no item column in the results");
 
   await waitFor(() => !$2("canOverlay").classList.contains("open"),
      "the product tidies itself away after 3 s", 4600);
@@ -623,7 +624,7 @@ async function testGamePlay(){
   ok(kiean.items.length === 7, "prizes landed in my stuff");
   ok(kiean.guesses.length === 2 && kiean.guesses[1].ok === true, "winning attempt recorded");
   const willow = (await w2.CharlieStore.list()).find(s => s.id === "willow-kolo");
-  ok(willow.money === 10, "seller earned the 10 Whare reward");
+  ok(willow.money === 10, "seller earned the machine's stored reward");
   $2("winClose").click();
   await waitFor(() => $2("scrMall").classList.contains("on"), "after the game it's back to the mall");
   try{ dom2.window.close(); }catch(e){}
@@ -874,8 +875,8 @@ async function testHub(){
   ok($("profWrap").classList.contains("open"), "profile room opens");
   ok($("profMoney").textContent === "0", "money starts at 0 Whare");
 
-  await w.CharlieStore.update("willow-kolo", { money: 7 });
-  await waitFor(() => $("profMoney").textContent === "7", "money updates live");
+  await w.CharlieStore.update("willow-kolo", { money: 12 });
+  await waitFor(() => $("profMoney").textContent === "12", "money updates live");
 
   $("editEmojiBtn").click();
   const pk = $("profPickerBox");
@@ -890,7 +891,7 @@ async function testHub(){
   d.querySelector('#stuffBox button[data-i="0"]').click();   // the cookie
   await waitFor(() => /pet food/.test($("toast").textContent), "snacks are kept for pets");
   d.querySelector('#stuffBox button[data-i="1"]').click();   // the phone (confirm = yes)
-  await waitFor(() => $("profMoney").textContent === "13", "selling the phone pays 6 Whare");
+  await waitFor(() => $("profMoney").textContent === "18", "selling the phone pays 6 Whare");
   await waitFor(() => d.querySelectorAll("#stuffBox .stuff-grid button").length === 1, "sold item leaves My stuff");
 
   // rule attempts panel: one wrong (finished game) + one cracked → sparkle
@@ -913,7 +914,7 @@ async function testHub(){
   ok(/Goldfish/.test(shopTxt) && /Axolotl/.test(shopTxt) && /Triceratops/.test(shopTxt),
      "pets are named in English");
   const prices = [...d.querySelectorAll("#petGrid .pp")].map(x => parseInt(x.textContent));
-  ok(prices.join(",") === "10,12,14,16,18,20", "prices climb gently with level");
+  ok(prices.join(",") === "15,24,28,32,36,70", "prices: goldfish 15 … triceratops 70");
 
   // too expensive first (willow has 13), then the goldfish comes home
   d.querySelector('#petGrid button[data-t="6"]').click();
@@ -924,7 +925,7 @@ async function testHub(){
       const s = l.find(x => x.id === "willow-kolo");
       return s.pet && s.pet.type === 1 && s.money === 3;
     });
-  }, "goldfish bought — 10 Whare paid", 5000);
+  }, "goldfish bought — 15 Whare paid", 5000);
   await waitFor(() => /❤️ 0/.test($("petBox").textContent), "the pet is home with 0 hearts");
   ok(/Name me/.test($("petBox").textContent), "it asks for a name");
 
@@ -1036,18 +1037,34 @@ async function testHub(){
   ok($("profShop").style.display === "none" && $("profOwn").style.display !== "none",
      "Never mind brings the loot back");
 
-  // talking to the pet: bubbles land on the pet record itself
+  // talking to the pet: the chat opens in the RIGHT column, and after all
+  // those snacks the pet says thank you first (a saved pet bubble)
   d.querySelector("#talkBtn").click();
-  await waitFor(() => $("talkWrap").classList.contains("open"), "the talk popup opens");
+  await waitFor(() => $("profTalk").style.display !== "none" && $("profOwn").style.display === "none",
+     "the chat replaces the right column");
   ok(/To Bubbles/.test($("talkTitle").textContent), "it is addressed to the pet by name");
+  await waitFor(() => d.querySelectorAll("#talkLog .bub.pet").length === 1
+     && /Cookie/.test($("talkLog").textContent), "the pet says thanks for the snacks by name");
   $("talkIn").value = "You are the best goldfish!";
   $("talkSend").click();
   await waitFor(async () => {
     const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
-    return s.pet.chat && s.pet.chat.length === 1 && /best goldfish/.test(s.pet.chat[0].text);
-  }, "the message is saved on the pet", 5000);
-  await waitFor(() => d.querySelectorAll("#talkLog .bub").length === 1, "it shows as a speech bubble");
-  $("talkClose").click();
+    return s.pet.chat && s.pet.chat.length === 2 && /best goldfish/.test(s.pet.chat[1].text);
+  }, "my message lands after the thank-you", 5000);
+  await waitFor(() => d.querySelectorAll("#talkLog .bub").length === 2, "both bubbles show");
+
+  // with a message sent and powers learned, the pep-talk guide lights up
+  await waitFor(() => $("talkPowers").style.display !== "none"
+     && d.querySelectorAll("#talkPowerRow button").length === 3,
+     "the superpower capsules glow with a tap-me guide");
+  ok(/something to say/.test($("talkGuide").textContent), "the guide invites a tap");
+  d.querySelector("#talkPowerRow button").click();
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.pet.chat.length === 3 && s.pet.chat[2].who === "pet";
+  }, "tapping a power makes the pet give a pep talk", 5000);
+  $("talkBack").click();
+  ok($("profOwn").style.display !== "none", "back returns to the loot column");
 
   // about me: music + hobby save into the profile column
   $("likeMusic").value = "Taylor Swift";

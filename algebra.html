@@ -678,7 +678,6 @@
           <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px">who</th>
           <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px"><i>x</i></th>
           <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px"><i>y</i></th>
-          <th style="background:var(--teal);color:#fff;padding:6px;font-size:13px">item</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -777,7 +776,7 @@
           <div id="ruleLine"></div>
           <div class="tbl-wrap">
             <table>
-              <thead><tr><th>who</th><th><i>x</i></th><th><i>y</i></th><th>item</th></tr></thead>
+              <thead><tr><th>who</th><th><i>x</i></th><th><i>y</i></th></tr></thead>
               <tbody id="histBody"></tbody>
             </table>
           </div>
@@ -1015,6 +1014,7 @@
 
   /* ---------------- header chip ---------------- */
   function renderChip(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
     if(!me) return;
     $('meEmoji').textContent = me.emoji || '🙂';
     $('meName').textContent = me.name;
@@ -1128,7 +1128,7 @@
     }).join('') + '<span class="caret"></span>';
     /* one single flex item, so the spaces inside survive the flex layout */
     $('ruleScreen').innerHTML = '<span>' + html + '</span>';
-    $('rewardLine').textContent = 'Crack-reward: ' + G.reward(tokens) + ' Whare';
+    $('rewardLine').textContent = 'Crack-reward: ' + (G.reward(tokens) * 5) + ' Whare';
     scheduleEcho();
   }
   /* a second after each keystroke the machine's yellow panel blinks and
@@ -1258,7 +1258,7 @@
       capacity: MAX_CUST,
       products: picked.slice(),
       rule: tokens.slice(),
-      reward: G.reward(tokens),
+      reward: G.reward(tokens) * 5,   /* crack-rewards pay five-fold */
       ranges: G.assignRanges(picked),
       turnSecs: (SETTINGS && SETTINGS.algebra && SETTINGS.algebra.turnSecs > 0) ? +SETTINGS.algebra.turnSecs : 40,
       buyers: [], history: [], turn: 0, turnInserted: false, turnStartAt: 0, winner: null
@@ -1346,6 +1346,17 @@
       else els.line.textContent = '🛠 ' + nameIn(m, rm.sellerId) + ' is building the new shop…';
       return;
     }
+    /* everyone else slipped away without pressing? break it gently */
+    var others = [m.seller].concat(m.buyers).filter(function(p){ return p && p.id !== me.id; });
+    var allGone = others.length && others.every(function(p){
+      return rm.ids.indexOf(p.id) === -1 && (m.left || []).indexOf(p.id) !== -1;
+    });
+    if(allGone){
+      rematchOn = false;
+      els.line.textContent = '💨 Looks like the others had to head off — it happens! '
+        + 'You were great. Back for a new game whenever you like. 💙';
+      return;
+    }
     els.line.textContent = '⏳ Waiting for the group… (' + rm.ids.length + ' in)';
     if(rm.ids[0] === me.id && Date.now() - rematchPressAt > 6000){
       var pick = rm.ids[Math.floor(Math.random() * rm.ids.length)];
@@ -1413,7 +1424,7 @@
       winShown = true;   /* the cracker won — the seller just gets the news */
       toast('🎉 ' + dispName(m, m.winner, true) + ' cracked your rule — you earned ' + m.reward + ' Whare!');
     }
-    if(m.state==='done'){ tickRematch(m); scheduleMallExit('scrSell'); }
+    if(m.state==='done'){ tickRematch(m); }
   }
 
   /* when a game finishes, everyone — seller included — heads back to the mall */
@@ -1429,7 +1440,18 @@
       goToMall();
     }, 12000);
   }
+  function markLeft(){
+    var id = machineId; if(!id) return;
+    store.getMachine(id).then(function(m){
+      if(!m || m.state !== 'done') return;
+      var rm = m.rematch || {ids:[]};
+      if(rm.ids.indexOf(me.id) !== -1) return;   /* rematch pressers aren't leaving */
+      m.left = m.left || [];
+      if(m.left.indexOf(me.id) === -1){ m.left.push(me.id); return store.saveMachine(m); }
+    }).catch(function(){});
+  }
   function goToMall(){
+    markLeft();
     cancelRound();
     resetRematchUI();
     machineId = null; role = 'buyer';
@@ -1450,6 +1472,7 @@
   $('closeShop').addEventListener('click', function(){
     if(machine && machine.state === 'playing' &&
        !window.confirm('The game is still running — close the shop anyway?')) return;
+    markLeft();
     withMachine(function(m){
       if(m.state === 'done') return null;    // someone just won — keep their result
       m.state = 'done';
@@ -1462,6 +1485,7 @@
 
   /* ================= BUYER : mall ================= */
   function renderMall(machines){
+    if(typeof document === 'undefined' || !document || !document.body) return;
     var open = machines.filter(function(m){
       return !m.type && (m.state==='open' || m.state==='playing');
     });
@@ -1639,7 +1663,6 @@
         }
       }
       tickRematch(m);
-      scheduleMallExit('scrPlay');
     }
 
     /* rule line + results table (who did what) */
@@ -1652,7 +1675,7 @@
     var body = tbl.querySelector('tbody');
     if(!m.history.length){
       if(tbl.id === 'sellHist'){ tbl.style.display = 'none'; return; }
-      body.innerHTML = '<tr><td colspan="4" class="empty-msg">No numbers yet — every try is a clue!</td></tr>';
+      body.innerHTML = '<tr><td colspan="3" class="empty-msg">No numbers yet — every try is a clue!</td></tr>';
       return;
     }
     if(tbl.id === 'sellHist') tbl.style.display = '';
@@ -1663,7 +1686,6 @@
         + '<td><span class="who">'+(b?esc(b.emoji||'🙂')+' '+esc(dispName(m, b, m.state==='done')):'?')+'</span></td>'
         + '<td>'+esc(fmt(h.v))+'</td>'
         + '<td class="outv">'+esc(fmt(h.out))+'</td>'
-        + '<td><span class="mini">'+spriteDiv(h.p)+'</span></td>'
         + '</tr>';
     }).join('');
     var wrap = body.parentElement.parentElement;
@@ -2053,6 +2075,7 @@
     });
   }
   function rerender(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
     var scr = current();
     if(scr === 'scrSell') renderSell();
     else if(scr === 'scrPlay') renderPlay();
@@ -2071,6 +2094,7 @@
     }
   }
   function refresh(){
+    if(typeof document === 'undefined' || !document || !document.body) return Promise.resolve();
     var scr = current();
     if(scr === 'scrMall'){
       return store.listMachines().then(renderMall);
@@ -2104,7 +2128,7 @@
     if(scr === 'scrRole'){ window.location.href = 'hub.html'; return; }
     if(scr === 'scrStock' || scr === 'scrRule'){ show('scrRole'); return; }
     if(scr === 'scrMall'){ show('scrRole'); return; }
-    if(scr === 'scrPlay'){ cancelRound(); show('scrMall'); machineId = null; role = null; refresh(); return; }
+    if(scr === 'scrPlay'){ markLeft(); cancelRound(); show('scrMall'); machineId = null; role = null; refresh(); return; }
     if(scr === 'scrWait'){ leaveRoom(); return; }
     if(scr === 'scrSell'){ toast('Close your shop first (button below) or leave it running!'); return; }
     show('scrRole');
