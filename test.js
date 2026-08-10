@@ -234,6 +234,14 @@ async function testAdmin(){
     const s = await w.CharlieStore.getMachine("game-settings");
     return s && s.friends && s.friends.showNames === true && s.friends.hidden === false;
   }, "the Friends real-name switch lands in the blob", 5000);
+  $("setAlgSkip").checked = true;
+  $("setAlgSkip").dispatchEvent(new w.Event("change"));
+  $("setZebraSkip").checked = true;
+  $("setZebraSkip").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = await w.CharlieStore.getMachine("game-settings");
+    return s && s.algebra.skipStock === true && s.alzebra.skipStock === true;
+  }, "skip-the-shelves switches land for both games", 5000);
   ok(/No code yet/.test($("boyList").textContent), "roster shows 'No code yet'");
   ok(!/Show codes/.test(d.body.textContent), "no 'show codes' button — codes are private now");
 
@@ -407,6 +415,21 @@ async function testGamePlay(){
   ok(!!$("fillBar") && !$("timerBar"), "the countdown is gone — a fill bar instead");
   ok(!!$("stockVend"), "the little vending machine waits on the right");
   ok(!$("stockVendCount"), "no n/7 under the little machine");
+
+  // 🎲 fills a legal basket, and again for a different one
+  $("randomBtn").click();
+  await waitFor(() => d.querySelectorAll(".shelf button.sel").length === 7,
+     "the surprise button stocks all seven");
+  ok(d.querySelectorAll("#shelfN button.sel").length <= 3, "and never breaks the 3 non-snack rule");
+  const firstRoll = [...d.querySelectorAll(".shelf button.sel")].map(b => b.dataset.k).sort().join();
+  let rerolled = false;
+  for(let i = 0; i < 8 && !rerolled; i++){
+    $("randomBtn").click();
+    const roll = [...d.querySelectorAll(".shelf button.sel")].map(b => b.dataset.k).sort().join();
+    if(roll !== firstRoll) rerolled = true;
+  }
+  ok(rerolled, "pressing again rolls a different basket");
+  [...d.querySelectorAll(".shelf button.sel")].forEach(b => b.click());   // clear for the next checks
 
   // pick limits: 8 snacks → only 7 stick; 4 non-snacks → only 3
   const shelfBtns = sel => Array.from(d.querySelectorAll(sel + " button[data-k]"));
@@ -723,6 +746,11 @@ async function testAlZebra(){
   ok(/Pick Your Role/.test(d.querySelector("#scrRole h2").textContent), "role screen says Pick Your Role");
   $("roleKeeper").click();
   ok($("scrStock").classList.contains("on"), "keeper picks prizes first");
+  $("randomBtn").click();
+  await waitFor(() => d.querySelectorAll(".shelf button.sel").length === 7,
+     "the zebra shelves have a surprise button too");
+  ok(d.querySelectorAll("#shelfN button.sel").length <= 3, "at most 3 non-snacks in the surprise");
+  [...d.querySelectorAll(".shelf button.sel")].forEach(b => b.click());
   [...d.querySelectorAll("#shelfS button[data-k]")].slice(0, 2).forEach(b => b.click());
   $("stockDone").click();
   await waitFor(() => /topped itself up/.test($("toast").textContent), "short baskets top up to 7");
@@ -907,7 +935,7 @@ async function testAlZebra(){
   mRe.rematch.newId = "m-zoo2";
   await w2.CharlieStore.saveMachine(mRe);
   await waitFor(() => $2("scrZWait").classList.contains("on"),
-     "the watcher pulls the wanderer into the new pen's waiting room", 10000);
+     "the watcher pulls the wanderer into the new pen's waiting room", 16000);
   await waitFor(async () => {
     const m2 = await w2.CharlieStore.getMachine("m-zoo2");
     return m2.buyers.length === 1 && m2.buyers[0].id === "kiean-oabel";

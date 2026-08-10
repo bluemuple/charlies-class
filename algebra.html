@@ -100,6 +100,17 @@
   #hintCard b{color:var(--teal-dark);}
   #hintCard .up{position:absolute; top:-11px; right:34px; font-size:22px;}
   #scrPlay{padding-top:38px;}   /* room for the floating Back button */
+  #muteBtn{
+    position:fixed; right:16px; bottom:16px; z-index:40;
+    border:2px solid #cfe3df; background:rgba(255,255,255,.95); border-radius:50%;
+    width:44px; height:44px; font-size:19px; line-height:1;
+    box-shadow:0 3px 10px rgba(31,90,84,.2);
+  }
+  #randomBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:8px 16px; font-size:14px; font-weight:800; margin-left:auto;
+  }
+  #randomBtn:hover{background:var(--cream);}
   /* each turn: a hair-thin bar across the very top drains to the left */
   #turnBarWrap{
     position:fixed; top:0; left:0; right:0; height:3px; z-index:60;
@@ -579,6 +590,7 @@
 <body>
 
 <div id="toast"></div>
+<button id="muteBtn" title="Music on/off">🔊</button>
 <div id="turnBarWrap"><div id="turnBar"></div></div><span id="turnCount"></span>
 <div class="veil" id="countWrap"><div id="countNum"></div></div>
 <div class="veil" id="turnFlash"><div class="who" id="turnWho"></div></div>
@@ -618,6 +630,7 @@
       <div id="pickBar">
         <span id="pickCount">0 / 7</span>
         <div id="fillWrap"><div id="fillBar"></div></div>
+        <button id="randomBtn">🎲 Surprise me!</button>
       </div>
       <div class="stock-grid">
         <div class="stock-left">
@@ -953,6 +966,61 @@
   }
   function sndCount(isGo){ beep(isGo ? 880 : 660, isGo ? .4 : .12, 0, isGo ? .22 : .14); }
   function sndTurn(){ beep(740, .1); beep(988, .16, .11); }
+  /* -------- a soft shop soundtrack, built from the same little synth ----
+     Four bars of a warm major loop, very quiet, muteable and remembered. */
+  var musicOn = true, musicTimer = null;
+  try{ musicOn = localStorage.getItem('charlie-music-off') !== '1'; }catch(e){}
+  var CHORDS = [
+    [261.63, 329.63, 392.00],   /* C  */
+    [220.00, 261.63, 329.63],   /* Am */
+    [174.61, 220.00, 261.63],   /* F  */
+    [196.00, 246.94, 293.66]    /* G  */
+  ];
+  var bar = 0;
+  function pad(freq, when, dur){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      if(!audioCtx) audioCtx = new AC();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      var t = audioCtx.currentTime + when;
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(.035, t + .4);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + dur + .1);
+    }catch(e){}
+  }
+  function playBar(){
+    if(!musicOn) return;
+    var ch = CHORDS[bar++ % CHORDS.length];
+    ch.forEach(function(f, i){ pad(f, i * .06, 2.6); });
+    pad(ch[0] * 2, 1.3, 1.1);          /* a gentle top note halfway through */
+  }
+  function musicStart(){
+    if(musicTimer || !musicOn) return;
+    playBar();
+    musicTimer = setInterval(playBar, 3000);
+  }
+  function musicStop(){
+    if(musicTimer){ clearInterval(musicTimer); musicTimer = null; }
+  }
+  function renderMute(){ $('muteBtn').textContent = musicOn ? '🔊' : '🔇'; }
+  $('muteBtn').addEventListener('click', function(){
+    musicOn = !musicOn;
+    try{ localStorage.setItem('charlie-music-off', musicOn ? '' : '1'); }catch(e){}
+    renderMute();
+    if(musicOn) musicStart(); else musicStop();
+  });
+  renderMute();
+  /* the first tap anywhere unlocks audio (browser autoplay rules) */
+  document.addEventListener('click', function once(){
+    document.removeEventListener('click', once);
+    musicStart();
+  });
+
   /* -------- 3 · 2 · 1 · Go! -------- */
   function countdown(cb, vsHtml){
     if(window.CHARLIE_TEST_FAST){ cb(); return; }
@@ -1170,6 +1238,25 @@
   function shelfClick(e){
     var b = e.target.closest('button[data-k]'); if(b) togglePick(b.dataset.k, b);
   }
+  /* a fresh random basket: 7 products, never more than 3 non-snacks */
+  function randomBasket(){
+    var snacks = [], nons = [];
+    Object.keys(G.PRODUCTS).forEach(function(k){
+      (G.PRODUCTS[k].sheet === 'n' ? nons : snacks).push(k);
+    });
+    G.shuffle(snacks); G.shuffle(nons);
+    var wantN = Math.floor(Math.random() * (G.MAX_NONSNACK + 1));   /* 0-3 non-snacks */
+    var out = nons.slice(0, wantN);
+    while(out.length < G.MAX_PICK && snacks.length) out.push(snacks.pop());
+    G.shuffle(out);
+    return out;
+  }
+  $('randomBtn').addEventListener('click', function(){
+    picked = randomBasket();
+    renderPick();
+    showShelf('s');
+    toast('🎲 Here is a surprise basket — press again for another!');
+  });
   function finishStock(){
     var short = picked.length < G.MAX_PICK;
     if(short){
@@ -2202,7 +2289,9 @@
         + '</div></div><div class="nm"></div></div>';
     }).join('');
     $('winWrap').classList.add('on');
+    musicStop();
     play(sndVictory);
+    if(musicOn) setTimeout(musicStart, 6000);
     confetti();
     var wins = document.querySelectorAll('.slotwin');
     prizes.forEach(function(k, i){
@@ -2305,6 +2394,14 @@
   $('roleSeller').addEventListener('click', function(){
     picked = []; tokens = [{t:'var'}];
     renderPick(); renderRuleScreen();
+    /* the teacher can send the class straight to the rule screen */
+    if(SETTINGS && SETTINGS.algebra && SETTINGS.algebra.skipStock){
+      picked = randomBasket();
+      renderPick(); renderRuleScreen();
+      show('scrRule');
+      toast('🎲 Your machine is stocked — now write your rule!');
+      return;
+    }
     show('scrStock');
     toast('🛒 Pick your products, then write your rule!');
   });

@@ -456,6 +456,7 @@
     <div class="card">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <span id="pickCount">0 / 7</span>
+        <button id="randomBtn" style="order:3;border:2px solid #cfe3df;background:#fff;color:var(--teal-dark);border-radius:12px;padding:8px 16px;font-size:14px;font-weight:800">🎲 Surprise me!</button>
         <div id="fillWrap" style="flex:1;min-width:160px;height:14px;background:#e2edeb;border-radius:8px;overflow:hidden">
           <div id="fillBar" style="height:100%;width:0%;background:linear-gradient(90deg,#2a9d34,#7ac943);transition:width .5s ease"></div>
         </div>
@@ -879,6 +880,19 @@
       return '<button data-k="'+k+'">' + spriteDiv(k) + '<span class="nm">'+esc(G.PRODUCTS[k].name)+'</span></button>';
     }).join('');
   }
+  /* a fresh random basket: 7 prizes, never more than 3 non-snacks */
+  function randomBasket(){
+    var snacks = [], nons = [];
+    Object.keys(G.PRODUCTS).forEach(function(k){
+      (G.PRODUCTS[k].sheet === 'n' ? nons : snacks).push(k);
+    });
+    G.shuffle(snacks); G.shuffle(nons);
+    var wantN = Math.floor(Math.random() * (G.MAX_NONSNACK + 1));
+    var out = nons.slice(0, wantN);
+    while(out.length < G.MAX_PICK && snacks.length) out.push(snacks.pop());
+    G.shuffle(out);
+    return out;
+  }
   function nonSnackCount(){
     return picked.filter(function(k){ return G.PRODUCTS[k].sheet === 'n'; }).length;
   }
@@ -890,13 +904,16 @@
       b.classList.toggle('sel', picked.indexOf(b.dataset.k) !== -1);
     });
   }
+  function showShelf(which){
+    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
+      x.classList.toggle('active', x.dataset.shelf === which);
+    });
+    $('shelfS').classList.toggle('on', which === 's');
+    $('shelfN').classList.toggle('on', which === 'n');
+  }
   document.querySelector('.shelf-tabs').addEventListener('click', function(e){
     var b = e.target.closest('button[data-shelf]'); if(!b) return;
-    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
-      x.classList.toggle('active', x === b);
-    });
-    $('shelfS').classList.toggle('on', b.dataset.shelf==='s');
-    $('shelfN').classList.toggle('on', b.dataset.shelf==='n');
+    showShelf(b.dataset.shelf);
   });
   function shelfClick(e){
     var b = e.target.closest('button[data-k]'); if(!b) return;
@@ -1906,9 +1923,24 @@
   }
 
   /* ---------------- navigation ---------------- */
+  $('randomBtn').addEventListener('click', function(){
+    picked = randomBasket();
+    renderPick();
+    showShelf('s');
+    toast('🎲 Here is a surprise basket — press again for another!');
+  });
   $('roleKeeper').addEventListener('click', function(){
     picked = []; tokens = [{t:'var'}];   // 𝑥 starts on the tummy, deletable
     renderPick(); renderZRule();
+    /* the teacher can send the class straight to the zebra */
+    if(SETTINGS && SETTINGS.alzebra && SETTINGS.alzebra.skipStock){
+      picked = randomBasket();
+      renderPick();
+      show('scrRule');
+      renderZRule();
+      toast('🎲 Your prizes are picked — now paint the rule!');
+      return;
+    }
     show('scrStock');
   });
   $('roleTourist').addEventListener('click', function(){
