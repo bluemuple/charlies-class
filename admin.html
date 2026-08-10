@@ -574,7 +574,7 @@
   /* ---------------- per-game settings (shared blob in the machines store) --- */
   var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false},
                        algebra:{turnSecs:40},
-                       alzebra:{limits:{'+':12,'-':16,'*':22,'/':25}}};
+                       alzebra:{limits:{'+':18,'-':22,'*':28,'/':32}}};
   var gameSet = null, gamesSaveT = null;
   function loadGameSettings(){
     store.getMachine('game-settings').then(function(s){
@@ -606,8 +606,8 @@
         algebra:{turnSecs: n('setTurnSecs', 40)},
         friends:{hidden: !document.getElementById('setFriendsOn').checked,
                  showNames: document.getElementById('setFriendsNames').checked},
-        alzebra:{limits:{'+':n('limPlus',12), '-':n('limMinus',16),
-                         '*':n('limTimes',22), '/':n('limDiv',25)}}
+        alzebra:{limits:{'+':n('limPlus',18), '-':n('limMinus',22),
+                         '*':n('limTimes',28), '/':n('limDiv',32)}}
       };
       store.saveMachine(blob).then(function(){
         gameSet = blob;

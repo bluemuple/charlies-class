@@ -168,7 +168,7 @@
 
   /* ---------------- Al-Zebra (beginners): answer the outputs fast -------- */
   /* time to answer one problem, set by the hardest operation in the rule */
-  var ZEBRA_LIMITS = {'+':12, '-':16, '*':22, '/':25};
+  var ZEBRA_LIMITS = {'+':18, '-':22, '*':28, '/':32};   /* beginner-friendly defaults; the admin page can tighten them */
   function zebraTimeLimit(tokens, over){
     /* the teacher can retune seconds per operation from the admin page */
     var table = {};
@@ -210,6 +210,15 @@
              'Shiny','Jolly','Gentle','Mighty','Bouncy','Cheeky','Sparkly','Zippy'];
   var ANIMAL = ['Rabbit','Kiwi','Tiger','Panda','Dolphin','Fox','Owl','Koala',
                 'Penguin','Lion','Turtle','Hedgehog','Falcon','Otter','Wombat','Gecko'];
+  /* stable pseudonym for a given id — same kid, same animal, every render */
+  function aliasFor(seed){
+    var h = 2166136261;
+    String(seed).split('').forEach(function(c){
+      h ^= c.charCodeAt(0);
+      h = (h * 16777619) >>> 0;
+    });
+    return ADJ[h % ADJ.length] + ' ' + ANIMAL[(h >>> 4) % ANIMAL.length];
+  }
   function alias(rnd){
     rnd = rnd || Math.random;
     return ADJ[Math.floor(rnd()*ADJ.length)] + ' ' + ANIMAL[Math.floor(rnd()*ANIMAL.length)];
@@ -240,7 +249,7 @@
     rangeIndexFor:rangeIndexFor, assignRanges:assignRanges,
     prizeCount:prizeCount, pickPrizes:pickPrizes,
     zebraTimeLimit:zebraTimeLimit, zebraRating:zebraRating, zebraProblems:zebraProblems,
-    alias:alias, shuffle:shuffle, machineId:machineId
+    alias:alias, aliasFor:aliasFor, shuffle:shuffle, machineId:machineId
   };
 
   if(typeof module !== 'undefined' && module.exports) module.exports = GameCore;

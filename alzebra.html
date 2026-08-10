@@ -638,6 +638,27 @@
   }
   $('hintWrap').addEventListener('click', dismissHint);
   document.addEventListener('keydown', function(e){ dismissHint(); }, true);
+  /* -------- tiny synth: no sound files needed -------- */
+  var audioCtx = null;
+  function beep(freq, dur, when, gain){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      if(!audioCtx) audioCtx = new AC();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      var t = audioCtx.currentTime + (when || 0);
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain || .16, t + .02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + dur + .05);
+    }catch(e){}
+  }
+  function sndCount(isGo){ beep(isGo ? 880 : 660, isGo ? .4 : .12, 0, isGo ? .22 : .14); }
+  function sndTurn(){ beep(740, .1); beep(988, .16, .11); }
+  function sndWin(){ [523, 659, 784, 1047].forEach(function(f, i){ beep(f, .18, i * .13, .2); }); }
   /* -------- 3 · 2 · 1 · Go! -------- */
   function countdown(cb){
     if(window.ALZEBRA_TEST_FAST || window.CHARLIE_TEST_FAST){ cb(); return; }
@@ -646,6 +667,7 @@
     (function step(){
       if(i >= seq.length){ $('countWrap').classList.remove('on'); cb(); return; }
       el.textContent = seq[i++];
+      sndCount(i === seq.length);
       el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
       setTimeout(step, i === seq.length ? 560 : 700);
     })();
@@ -667,6 +689,7 @@
     var p = playerFor(m, m.prob); if(!p) return;
     $('turnWho').textContent = p.id === me.id ? '🎯 Your Turn!'
       : '🎯 ' + dispName(m, p, false) + '\'s turn!';
+    if(p.id === me.id) sndTurn();
     $('turnFlash').classList.add('on');
     clearTimeout(turnFlashT);
     turnFlashT = setTimeout(function(){ $('turnFlash').classList.remove('on'); }, 1200);
@@ -1377,7 +1400,7 @@
     }
     show('scrDone');
     /* confetti falls only on the winner's screen (both screens on a tie) */
-    if(iWon){ confetti(); play(sndMoney); }
+    if(iWon){ confetti(); sndWin(); play(sndMoney); }
     claimIfMine(m);
   }
   /* -------- stage names: alias during play, real name at the results --------

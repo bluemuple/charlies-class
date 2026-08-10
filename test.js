@@ -153,10 +153,10 @@ async function testGameCore(){
 
   // Al-Zebra: time limits, speed ratings, growing problems
   const plus = [{t:"var"},{t:"op",v:"+"},{t:"num",v:"3"}];
-  ok(G.zebraTimeLimit(plus) === 12, "an + pen gives 12 seconds");
-  ok(G.zebraTimeLimit([{t:"var"},{t:"op",v:"*"},{t:"num",v:"3"},{t:"op",v:"+"},{t:"num",v:"1"}]) === 22,
-     "the hardest operation sets the time (× → 22 s)");
-  ok(G.zebraTimeLimit([{t:"num",v:"5"},{t:"op",v:"/"},{t:"var"}]) === 25, "÷ gives 25 seconds");
+  ok(G.zebraTimeLimit(plus) === 18, "an + pen gives 18 seconds");
+  ok(G.zebraTimeLimit([{t:"var"},{t:"op",v:"*"},{t:"num",v:"3"},{t:"op",v:"+"},{t:"num",v:"1"}]) === 28,
+     "the hardest operation sets the time (× → 28 s)");
+  ok(G.zebraTimeLimit([{t:"num",v:"5"},{t:"op",v:"/"},{t:"var"}]) === 32, "÷ gives 32 seconds");
   ok(G.zebraRating(2, 12, true).label === "Perfect!" && G.zebraRating(2, 12, true).points === 50,
      "3 s or faster is Perfect! (50)");
   ok(G.zebraRating(4.5, 12, true).points === 40, "4–5 s is Great (40)");
@@ -660,6 +660,21 @@ async function testGamePlay(){
   ok(!d3.querySelector("#histBody img") && !d3.querySelector("#playPlayers img"),
      "results and players render the emoji as text, not markup");
   ok(!w3.pwned, "no script ran from the hostile emoji");
+
+  // spectator race: someone else's number hides its answer for a beat
+  const evil2 = await w3.CharlieStore.getMachine("m-evil");
+  evil2.history.push({b:"kiean-oabel", v:2, out:4, p:"cola"});
+  await w3.CharlieStore.saveMachine(evil2);
+  await waitFor(() => d3.getElementById("predictCard").style.display !== "none",
+     "a spectator gets the quick-predict card", 6000);
+  await waitFor(() => /❓/.test(d3.getElementById("histBody").textContent),
+     "the newest answer hides behind a ❓");
+  d3.getElementById("predictIn").value = "4";
+  d3.getElementById("predictGo").click();
+  await waitFor(() => /Spot on/.test(d3.getElementById("predictMsg").textContent),
+     "a right prediction gets a cheer");
+  await waitFor(() => !/❓/.test(d3.getElementById("histBody").textContent),
+     "the answer unmasks after the guess");
   try{ dom3.window.close(); }catch(e){}
 }
 
@@ -746,8 +761,8 @@ async function testAlZebra(){
   await waitFor(() => $("scrPen").classList.contains("on"), "the pen opens");
   const pens = await w.CharlieStore.listMachines();
   const pen = pens.find(m => m.type === "zebra");
-  ok(!!pen && pen.capacity === 1 && pen.probs.length === 6 && pen.limit === 12,
-     "pen saved: 1 visitor, 6 problems, 12 s limit");
+  ok(!!pen && pen.capacity === 1 && pen.probs.length === 6 && pen.limit === 18,
+     "pen saved: 1 visitor, 6 problems, 18 s limit");
   ok(pen.products.length === 7 && pen.pool.length === 7, "7 prizes in the pen");
 
   // a tourist arrives (simulated through the store) → keeper can start
@@ -1082,8 +1097,9 @@ async function testHub(){
   ok(d.querySelectorAll("#frGrid .frbar").length === 1, "one classmate bar on show");
   ok(/Bubbles/.test($("frGrid").textContent) && /Lv 4/.test($("frGrid").textContent),
      "the card shows the pet's name and level");
-  ok(!/Willow/.test($("frGrid").textContent) && /Friend 1/.test($("frGrid").textContent),
-     "the owner stays anonymous by default");
+  ok(!/Willow/.test($("frGrid").textContent)
+     && /🎈 [A-Z][a-z]+ [A-Z][a-z]+/.test($("frGrid").textContent),
+     "the owner hides behind a stable animal pseudonym by default");
   ok(/Taylor Swift/.test($("frGrid").textContent) && /football/.test($("frGrid").textContent),
      "favourite music and hobby show on the card");
   $("friendsClose").click();
@@ -1103,6 +1119,20 @@ async function testHub(){
   $("petPrev").click();
   await waitFor(() => /1 \/ 2/.test($("petBox").textContent), "the left arrow slides back to Bubbles");
   ok(/Bubbles/.test($("petBox").textContent), "Bubbles is on stage again");
+
+  // name options: results-name starts CHECKED (show), friends-name UNchecked
+  ok($("showResultsName").checked === true, "results-name option starts on (show)");
+  ok($("showFriendsName").checked === false, "friends-name option starts off (anonymous)");
+  $("showFriendsName").checked = true;
+  $("showFriendsName").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.profile && s.profile.showFriends === true;
+  }, "opting in saves showFriends on the profile", 5000);
+  $("friendsBtn").click();
+  await waitFor(() => /Willow/.test($("frGrid").textContent),
+     "with the opt-in, Friends shows my real name", 5000);
+  $("friendsClose").click();
 
   // the superpower glow was a one-time guide: it stays retired now
   d.querySelector("#talkBtn").click();

@@ -131,6 +131,19 @@
     vertical-align:middle;
   }
   .wait-rule .wait-mission{font-size:13.5px; color:#7a8f8b; font-weight:600; max-width:210px; text-align:left;}
+  /* the ghost demo: in → machine → out, looping while you wait */
+  #demoWrap{background:#f6fbfa; border:1.5px dashed #cfe3df; border-radius:14px; padding:10px 12px 8px; margin-bottom:10px;}
+  .demo-row{display:flex; align-items:center; justify-content:center; gap:18px; min-height:74px;}
+  #demoVend{height:70px; filter:drop-shadow(0 3px 8px rgba(31,90,84,.3));}
+  #demoVend.tremble{animation:tremble .4s ease-in-out;}
+  .demo-chip{
+    background:var(--yellow); color:#6b5c00; border-radius:12px; padding:6px 12px;
+    font-size:16px; font-weight:800; transition:transform .8s ease, opacity .5s;
+  }
+  .demo-chip.out{background:#e3f4f0; color:var(--teal-dark); opacity:0; transform:scale(.4);}
+  .demo-chip.out.pop{opacity:1; transform:scale(1);}
+  .demo-chip.go{transform:translateX(52px) scale(.55); opacity:.25;}
+  .demo-cap{font-size:12.5px; color:#7a8f8b; font-weight:600; text-align:center;}
   /* the bar fills gently as products are picked (0 → 7) */
   #fillWrap{flex:1; min-width:160px; height:14px; background:#e2edeb; border-radius:8px; overflow:hidden;}
   #fillBar{height:100%; width:0%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .5s ease;}
@@ -701,6 +714,14 @@
         <span class="redact"><i>𝑥</i> → <span class="ink"></span></span>
         <span class="wait-mission">Your mission: crack the seller's secret rule and win the goodies!</span>
       </div>
+      <div id="demoWrap">
+        <div class="demo-row">
+          <span class="demo-chip" id="demoIn">💵 3</span>
+          <img src="assets/vending.png" id="demoVend" alt="">
+          <span class="demo-chip out" id="demoOut">🍪 8</span>
+        </div>
+        <div class="demo-cap">Watch: a number goes <b>in</b>, the secret rule changes it, a prize pops <b>out</b>!</div>
+      </div>
       <div class="players" id="waitPlayers"></div>
       <div id="waitLine" style="text-align:center;font-weight:700;color:#4c6b66"></div>
       <label class="hidereal"><input type="checkbox" id="hideRealCk"> 🙈 Don't reveal my real name after the game</label>
@@ -716,6 +737,15 @@
           <h4 id="shopTitle">🏪 Shop</h4>
           <div class="players" id="playPlayers"></div>
           <div id="turnLine"></div>
+        </div>
+        <div class="card" id="predictCard" style="display:none">
+          <h4>🔮 Quick — what comes out?</h4>
+          <div id="predictLine" style="font-size:14px;color:#4c6b66;font-weight:700;margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <input id="predictIn" type="number" placeholder="your guess" style="flex:1;border:2px solid #cfe3df;border-radius:10px;padding:8px 10px;font-family:inherit;font-size:15px;font-weight:700">
+            <button id="predictGo" style="border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:800;font-size:14px;padding:8px 16px">Guess!</button>
+          </div>
+          <div id="predictMsg" style="font-size:13.5px;font-weight:700;margin-top:7px;min-height:18px"></div>
         </div>
         <div class="rematch-row" id="playRematch" style="display:none">
           <button class="bigbtn" id="rematchBtnP">🔁 Play again with this group</button>
@@ -901,6 +931,27 @@
   }
   $('hintWrap').addEventListener('click', dismissHint);
   document.addEventListener('keydown', function(e){ dismissHint(); }, true);
+  /* -------- tiny synth: no sound files needed -------- */
+  var audioCtx = null;
+  function beep(freq, dur, when, gain){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      if(!audioCtx) audioCtx = new AC();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      var t = audioCtx.currentTime + (when || 0);
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain || .16, t + .02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + dur + .05);
+    }catch(e){}
+  }
+  function sndCount(isGo){ beep(isGo ? 880 : 660, isGo ? .4 : .12, 0, isGo ? .22 : .14); }
+  function sndTurn(){ beep(740, .1); beep(988, .16, .11); }
+  function sndWin(){ [523, 659, 784, 1047].forEach(function(f, i){ beep(f, .18, i * .13, .2); }); }
   /* -------- 3 · 2 · 1 · Go! -------- */
   function countdown(cb){
     if(window.CHARLIE_TEST_FAST){ cb(); return; }
@@ -909,6 +960,7 @@
     (function step(){
       if(i >= seq.length){ $('countWrap').classList.remove('on'); cb(); return; }
       el.textContent = seq[i++];
+      sndCount(i === seq.length);
       el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
       setTimeout(step, i === seq.length ? 560 : 700);
     })();
@@ -966,6 +1018,7 @@
     var p = m.buyers[m.turn % m.buyers.length]; if(!p) return;
     $('turnWho').textContent = p.id === me.id ? '🎯 Your Turn!'
       : '🎯 ' + dispName(m, p, false) + '\'s turn!';
+    if(p.id === me.id) sndTurn();
     $('turnFlash').classList.add('on');
     clearTimeout(turnFlashT);
     turnFlashT = setTimeout(function(){ $('turnFlash').classList.remove('on'); }, 1200);
@@ -1538,12 +1591,42 @@
     machineId = id; role = 'buyer';
     cancelRound();
     resetRematchUI();
+    histSeen = -1; predictState = null;
+    $('predictCard').style.display = 'none';
     winShown = false;
     $('guessIn').value = ''; $('guessMsg').textContent = ''; $('guessPreview').innerHTML = '';
     $('numIn').value = '';
     show('scrWait');           /* the machine page comes when the seller starts */
     refresh();
   }
+  /* the ghost demo cycles small examples so the input→rule→output penny drops */
+  var DEMO_RULES = [
+    {tag: '+5', f: function(x){ return x + 5; }},
+    {tag: '×2', f: function(x){ return x * 2; }},
+    {tag: '+3', f: function(x){ return x + 3; }}
+  ];
+  var demoI = 0;
+  (function demoLoop(){
+    setTimeout(function(){
+      if(current() !== 'scrWait'){ demoLoop(); return; }
+      var x = 2 + Math.floor(Math.random() * 4);
+      var r = DEMO_RULES[demoI++ % DEMO_RULES.length];
+      var products = ['🍪', '🥤', '🧸', '🍿'];
+      $('demoIn').textContent = '💵 ' + x;
+      $('demoIn').classList.remove('go');
+      $('demoOut').classList.remove('pop');
+      setTimeout(function(){ $('demoIn').classList.add('go'); }, 900);
+      setTimeout(function(){
+        $('demoVend').classList.remove('tremble'); void $('demoVend').offsetWidth;
+        $('demoVend').classList.add('tremble');
+      }, 1800);
+      setTimeout(function(){
+        $('demoOut').textContent = products[Math.floor(Math.random() * products.length)] + ' ' + r.f(x);
+        $('demoOut').classList.add('pop');
+      }, 2400);
+      demoLoop();
+    }, 5200);
+  })();
   function renderWait(){
     var m = machine; if(!m) return;
     $('waitTitle').textContent = '🎪 ' + m.alias + '\'s Shop';
@@ -1594,9 +1677,57 @@
     return m.state==='playing' && m.buyers.length &&
            m.buyers[m.turn % m.buyers.length].id === me.id;
   }
+  /* spectators race the machine: when someone else's number goes in, the
+     answer hides for a few seconds and everyone watching may predict it */
+  var histSeen = -1, predictState = null, predictTimer = null;
+  function maybePredict(m){
+    if(current() !== 'scrPlay' || m.state !== 'playing'){ histSeen = m.history.length; return; }
+    if(histSeen < 0){ histSeen = m.history.length; return; }   /* joining: no back-fill */
+    if(m.history.length <= histSeen){ return; }
+    var h = m.history[m.history.length - 1];
+    histSeen = m.history.length;
+    if(h.b === me.id || predictState) return;
+    var who = null;
+    m.buyers.forEach(function(x){ if(x.id === h.b) who = x; });
+    predictState = {idx: m.history.length - 1, out: h.out, revealed: false};
+    $('predictLine').innerHTML = '<b>' + esc(who ? dispName(m, who, false) : 'Mystery Player')
+      + '</b> put <b>' + fmt(h.v) + '</b> in… what will come out?';
+    $('predictIn').value = '';
+    $('predictMsg').textContent = '';
+    $('predictCard').style.display = '';
+    clearTimeout(predictTimer);
+    predictTimer = setTimeout(function(){ revealPredict(null); }, 9000);
+  }
+  function revealPredict(guess){
+    if(!predictState || predictState.revealed) return;
+    predictState.revealed = true;
+    clearTimeout(predictTimer);
+    if(guess !== null && isFinite(guess)){
+      var right = Math.abs(guess - predictState.out) < 1e-9;
+      $('predictMsg').style.color = right ? '#2a9d34' : '#c3323f';
+      $('predictMsg').textContent = right
+        ? '🎯 Spot on! It was ' + fmt(predictState.out) + ' — you cracked the maths!'
+        : 'You said ' + fmt(guess) + ' — it was ' + fmt(predictState.out) + '. Great try!';
+      if(right) beep(1047, .18, 0, .2);
+    }
+    if(machine) renderHist(document.querySelector('.vm-right .tbl-wrap table'), machine);
+    setTimeout(function(){
+      $('predictCard').style.display = 'none';
+      predictState = null;
+    }, guess === null ? 0 : 2600);
+  }
+  $('predictGo').addEventListener('click', function(){
+    var v = parseFloat($('predictIn').value);
+    if($('predictIn').value.trim() === '' || isNaN(v)) return;
+    revealPredict(v);
+  });
+  $('predictIn').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); $('predictGo').click(); }
+  });
   function renderPlay(){
     var m = machine; if(!m) return;
     if(current() === 'scrPlay') flashTurn(m);
+    maybePredict(m);
     $('shopTitle').textContent = '🏪 ' + m.alias + '\'s shop';
 
     /* players + whose turn */
@@ -1672,13 +1803,15 @@
       return;
     }
     if(tbl.id === 'sellHist') tbl.style.display = '';
-    body.innerHTML = m.history.map(function(h){
+    body.innerHTML = m.history.map(function(h, i){
       var b = null;
       m.buyers.forEach(function(x){ if(x.id===h.b) b = x; });
+      var masked = predictState && !predictState.revealed && i === predictState.idx
+                && tbl.id !== 'sellHist';
       return '<tr>'
         + '<td><span class="who">'+(b?esc(b.emoji||'🙂')+' '+esc(dispName(m, b, m.state==='done')):'?')+'</span></td>'
         + '<td>'+esc(fmt(h.v))+'</td>'
-        + '<td class="outv">'+esc(fmt(h.out))+'</td>'
+        + '<td class="outv">'+(masked ? '❓' : esc(fmt(h.out)))+'</td>'
         + '</tr>';
     }).join('');
     var wrap = body.parentElement.parentElement;
@@ -2008,6 +2141,7 @@
         + '</div></div><div class="nm"></div></div>';
     }).join('');
     $('winWrap').classList.add('on');
+    sndWin();
     confetti();
     var wins = document.querySelectorAll('.slotwin');
     prizes.forEach(function(k, i){

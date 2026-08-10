@@ -402,8 +402,11 @@
           <input class="likes-in" id="likeMusic" placeholder="🎵 My favourite music…" maxlength="60">
           <input class="likes-in" id="likeHobby" placeholder="⚽ My favourite hobby…" maxlength="60">
         </div>
-        <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:6px 0 10px;cursor:pointer">
-          <input type="checkbox" id="hideRealPref"> 🙈 Don't reveal my real name in game results
+        <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:6px 0 4px;cursor:pointer">
+          <input type="checkbox" id="showResultsName" checked> 🙋 Show my name in the game results
+        </label>
+        <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:0 0 10px;cursor:pointer">
+          <input type="checkbox" id="showFriendsName"> 👥 Show my name in Friends
         </label>
         <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
         <button class="prof-btn quiet" id="logoutBtn">← Log out</button>
@@ -1202,6 +1205,7 @@
     var p = me.profile || {};
     if(document.activeElement !== $('likeMusic')) $('likeMusic').value = p.music || '';
     if(document.activeElement !== $('likeHobby')) $('likeHobby').value = p.hobby || '';
+    $('showFriendsName').checked = !!p.showFriends;
   }
   function saveLikes(){
     /* capture NOW — a refresh between keystroke and debounce can't erase it */
@@ -1211,6 +1215,7 @@
     likesTimer = setTimeout(function(){
       likesTimer = null;
       var p = Object.assign({}, me.profile || {}, {music: music, hobby: hobby});
+      /* showFriends rides along untouched */
       store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
     }, 600);
   }
@@ -1237,7 +1242,7 @@
         /* more pets → a beefier bar */
         var pad = 8 + Math.min(4, pets.length) * 4;
         return '<div class="frbar" style="padding-top:' + pad + 'px;padding-bottom:' + pad + 'px">'
-          + '<span class="own">' + (FR_SETTINGS.showNames ? esc(s.name) : '🎈 Friend ' + n) + '</span>'
+          + '<span class="own">' + ((FR_SETTINGS.showNames || prof.showFriends) ? esc(s.name) : '🎈 ' + esc(G.aliasFor(s.id))) + '</span>'
           + pets.map(function(p){
               return '<span class="petchip"><img src="' + petImg(p.type, false) + '" alt="">'
                 + '<span class="pn">' + esc(p.name || PETS[p.type].name) + '</span>'
@@ -1306,10 +1311,18 @@
   });
 
   /* ---------------- init ---------------- */
-  try{ document.getElementById('hideRealPref').checked =
-         localStorage.getItem('charlie-hide-real') === '1'; }catch(e){}
-  document.getElementById('hideRealPref').addEventListener('change', function(){
-    try{ localStorage.setItem('charlie-hide-real', this.checked ? '1' : ''); }catch(e){}
+  /* results-name: checked = show (the stored flag still means "hide");
+     markup defaults to checked so blocked storage still lands on "show" */
+  try{ if(localStorage.getItem('charlie-hide-real') === '1')
+         document.getElementById('showResultsName').checked = false; }catch(e){}
+  document.getElementById('showResultsName').addEventListener('change', function(){
+    try{ localStorage.setItem('charlie-hide-real', this.checked ? '' : '1'); }catch(e){}
+  });
+  /* friends-name: off by default; lives on the profile so classmates see it */
+  document.getElementById('showFriendsName').addEventListener('change', function(){
+    var on = this.checked;
+    var p = Object.assign({}, (me && me.profile) || {}, {showFriends: on});
+    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
   });
   store.init().then(function(){
     /* the teacher can rest a game: its card vanishes from the hub */
