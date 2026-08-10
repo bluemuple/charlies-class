@@ -1110,8 +1110,7 @@
       m.state==='playing' ? ('It\'s ' + (m.buyers[m.turn % m.buyers.length]||{}).name + '\'s turn.') : '';
     renderHist($('sellHist'), m);
     if(m.state==='done' && m.winner && !winShown){
-      winShown = true;
-      confetti();
+      winShown = true;   /* the cracker won — the seller just gets the news */
       toast('🎉 ' + m.winner.name + ' cracked your rule — you earned ' + m.reward + ' Whare!');
     }
     if(m.state==='done') scheduleMallExit('scrSell');
@@ -1292,8 +1291,7 @@
       $('stageHint').textContent = 'Back to the mall for another machine!';
       if(w && !winShown){
         winShown = true;
-        if(w.id === me.id){ showWin(m); }
-        else { confetti(); }
+        if(w.id === me.id){ showWin(m); }   /* confetti lives in showWin — winner only */
       }
       scheduleMallExit('scrPlay');
     }

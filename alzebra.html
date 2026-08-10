@@ -1153,7 +1153,8 @@
         + '</div>';
     }).join('');
     show('scrDone');
-    if(isPlayer){ confetti(); play(sndMoney); }
+    /* confetti falls only on the winner's screen (both screens on a tie) */
+    if(iWon){ confetti(); play(sndMoney); }
     claimIfMine(m);
   }
   /* each player banks their OWN loot exactly once.
