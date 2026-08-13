@@ -47,12 +47,24 @@
         box-shadow:0 3px 14px rgba(31,90,84,.13); margin-top:14px;}
 
   /* ---------- lobby ---------- */
+  .lvls{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:12px;}
+  .lvl{
+    border:3px solid #dfeae7; background:#fff; border-radius:14px; padding:12px 10px;
+    text-align:center; font-family:inherit; color:var(--ink);
+  }
+  .lvl:hover{background:var(--cream); border-color:#bcd9d3;}
+  .lvl.on{border-color:var(--good); background:#effaf0; box-shadow:0 3px 12px rgba(42,157,52,.2);}
+  .lvl .ic{font-size:30px; display:block;}
+  .lvl .nm{font-weight:800; color:var(--teal-dark); font-size:15.5px; margin-top:2px;}
+  .lvl .bl{font-size:12px; color:#7a8f8b; margin-top:3px; line-height:1.35;}
   .newbtn{
-    width:100%; border:0; border-radius:16px; padding:18px; font-size:20px; font-weight:800;
+    width:100%; border:0; border-radius:16px; padding:16px; font-size:20px; font-weight:800;
     background:var(--good); color:#fff; box-shadow:0 4px 14px rgba(42,157,52,.35);
   }
   .newbtn:hover{background:#217a29;}
-  .rooms{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px;}
+  .rooms{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .room .lv{font-size:12px; font-weight:800; color:#8a6d00; background:var(--yellow);
+            border-radius:20px; padding:1px 9px;}
   .room{
     border:2px solid #cfe3df; background:#fff; border-radius:14px; padding:14px 10px;
     display:flex; flex-direction:column; align-items:center; gap:4px; font-family:inherit;
@@ -73,9 +85,72 @@
   .task .goal{font-size:clamp(20px,3.6vh,30px); font-weight:800; margin-top:2px;}
   .task .goal b{color:var(--yellow);}
   .task .rd{font-size:13px; opacity:.8; margin-top:2px;}
+  .task.blink{animation:taskblink .42s ease-in-out 2;}
+  @keyframes taskblink{
+    0%,100%{background:var(--teal-dark); transform:scale(1);}
+    50%{background:#3aa79a; transform:scale(1.035); box-shadow:0 0 0 6px rgba(255,238,50,.55);}
+  }
+
+  /* a card that pops in the middle and fades — never blocks the game */
+  .popcard{
+    position:fixed; left:50%; top:44%; transform:translate(-50%,-50%) scale(.7);
+    z-index:70; pointer-events:none; opacity:0;
+    background:rgba(20,48,45,.94); color:#fff; border-radius:20px;
+    padding:22px 34px; text-align:center; max-width:86vw;
+    font-size:clamp(20px,3.6vh,32px); font-weight:800; line-height:1.35;
+    box-shadow:0 10px 34px rgba(0,0,0,.35);
+    transition:opacity .3s ease, transform .3s ease;
+  }
+  .popcard.on{opacity:1; transform:translate(-50%,-50%) scale(1);}
+  .popcard b{color:var(--yellow);}
+  .popcard .small{display:block; font-size:.55em; font-weight:700; opacity:.85; margin-top:6px;}
   .bar{height:8px; background:#cfe3df; border-radius:6px; overflow:hidden; margin-top:10px;}
   .bar i{display:block; height:100%; width:100%; background:var(--good); transition:width .25s linear;}
   .bar.low i{background:var(--accent);}
+
+  /* ---------- measuring round ---------- */
+  .mcard{
+    background:#fff; border-radius:16px; padding:18px; margin-top:14px;
+    box-shadow:0 3px 14px rgba(31,90,84,.13);
+    display:flex; gap:26px; align-items:center; justify-content:center; flex-wrap:wrap;
+  }
+  .shapebox{position:relative; padding:26px 42px 6px 6px;}
+  .shapegrid{display:grid; gap:2px; background:#b9cdb0; padding:3px; border-radius:6px;}
+  .shapegrid.plain{gap:0; padding:0; background:none;}
+  .shapegrid .s{background:var(--stone); border-radius:2px;}
+  .shapegrid.plain .s{background:var(--stone); border-radius:0; box-shadow:inset 0 0 0 3px #7d8b92;}
+  .shapebox .lab{
+    position:absolute; font-size:15px; font-weight:800; color:var(--teal-dark);
+    background:#fff; padding:0 5px; border-radius:6px;
+  }
+  .shapebox .lab.top{top:2px; left:50%; transform:translateX(-50%);}
+  .shapebox .lab.side{right:2px; top:55%; transform:translateY(-50%);}
+  .qa{min-width:250px;}
+  .blank{display:flex; align-items:center; gap:9px; margin-bottom:12px; font-size:17px; font-weight:800; color:var(--teal-dark);}
+  .blank span{width:96px;}
+  .blank input{
+    width:96px; padding:9px 10px; font-size:20px; font-weight:800; text-align:center;
+    border:0; border-bottom:3px dashed #bcd9d3; background:#f6fbfa; border-radius:8px 8px 0 0;
+    color:var(--teal-dark); font-family:inherit;
+  }
+  .blank input:focus{outline:none; border-bottom-color:var(--good); background:#effaf0;}
+  .blank b{font-weight:700; color:#7a8f8b; font-size:15px;}
+  .qbtns{display:flex; gap:10px; align-items:center; margin-top:4px;}
+  .hintpanel{
+    display:none; position:relative; margin-top:12px; background:var(--cream);
+    border:2px solid #ecd9a6; border-radius:14px; padding:14px 16px;
+    font-size:14.5px; line-height:1.6; color:#5b4a1e; max-width:330px;
+  }
+  .hintpanel.on{display:block;}
+  .hintpanel b{color:var(--teal-dark);}
+  .hintpanel i{font-family:Georgia,serif;}
+  .hintpanel hr{border:0; border-top:1px solid #ecd9a6; margin:9px 0;}
+  .hintpanel .eg{display:inline-block; background:#fff; border-radius:8px; padding:2px 9px; font-weight:800; color:var(--teal-dark);}
+  .hclose{
+    position:absolute; top:6px; right:8px; border:0; background:none;
+    font-size:16px; color:#9a8a5a; font-weight:800; padding:2px 5px;
+  }
+  .hclose:hover{color:var(--accent);}
 
   .boards{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px;}
   .board{background:#fff; border-radius:16px; padding:12px; box-shadow:0 3px 14px rgba(31,90,84,.13);}
@@ -172,8 +247,8 @@
 
     <div class="card">
       <h2>New</h2>
+      <div class="lvls" id="lvlPick"></div>
       <button class="newbtn" id="newBtn">➕ New game</button>
-      <p class="sub" style="margin-top:8px">Opens a plot and waits for a challenger.</p>
     </div>
 
     <div class="card">
@@ -196,14 +271,40 @@
 
   <!-- ============ MATCH ============ -->
   <section class="screen" id="scrGame">
-    <div class="task">
+    <div class="task" id="taskCard">
       <div class="lead" id="taskLead">ROUND 1 OF 5</div>
       <div class="goal" id="taskGoal">…</div>
       <div class="rd" id="taskWorth">…</div>
     </div>
     <div class="bar" id="timeBar"><i id="timeFill"></i></div>
 
-    <div class="boards">
+    <!-- measuring round: read the rectangle, fill in the two blanks -->
+    <div id="measureWrap" style="display:none">
+      <div class="mcard">
+        <div class="shapebox" id="shapeArt"></div>
+        <div class="qa">
+          <div class="blank"><span>Perimeter</span>
+            <input id="ansP" inputmode="numeric" autocomplete="off" placeholder="?"><b>m</b></div>
+          <div class="blank"><span>Area</span>
+            <input id="ansA" inputmode="numeric" autocomplete="off" placeholder="?"><b>m²</b></div>
+          <div class="qbtns">
+            <button class="tool" id="hintBtn">💡 Hint</button>
+            <button class="newbtn" id="checkBtn" style="padding:11px 20px;font-size:17px;width:auto">Check ✓</button>
+          </div>
+          <p class="keys" id="measureNote">&nbsp;</p>
+          <div class="hintpanel" id="hintPanel">
+            <button class="hclose" id="hintClose">✕</button>
+            <b>Perimeter</b> = (2 × length) + (2 × breadth)<br>
+            <span class="eg">P = 2<i>l</i> + 2<i>b</i></span>
+            <hr>
+            <b>Area</b> = length × breadth<br>
+            <span class="eg">A = <i>lb</i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="boards" id="boardsWrap">
       <div class="board">
         <h3><span>🧑 You</span><span class="sc" id="myScore">0 W</span></h3>
         <div class="readout" id="myRead"></div>
@@ -237,11 +338,17 @@
     <p class="final" id="doneLine"></p>
     <div class="scoreline" id="doneScores"></div>
     <div id="doneRounds"></div>
-    <div style="text-align:center"><button class="quietbtn" id="doneBack">🏠 Back to games</button></div>
+    <div style="text-align:center">
+      <button class="quietbtn" id="rematchBtn" style="border-color:#bfe3c4;background:#effaf0;color:#1d6b26">🔁 Play again with the same player</button>
+      <div class="sub" id="rematchLine" style="margin-top:6px"></div>
+      <button class="quietbtn" id="doneBack">🏠 Back to games</button>
+    </div>
   </section>
 
   <div class="veil" id="countWrap"><div id="countNum"></div></div>
   <div class="veil" id="roundFlash"><div id="roundWho"></div></div>
+  <div class="popcard" id="roundIntro"></div>
+  <div class="popcard" id="earnedCard"></div>
 </main>
 
 <script src="js/config.js"></script>
@@ -260,8 +367,8 @@
   /* lead = the 3·2·1·Go! countdown, so "Go!" lands exactly as the round opens.
      firstDelay also covers the "you vs them" card at the start of a match. */
   var DUR = FAST
-    ? {live:20, liveSlow:20, nextDelay:150, firstDelay:150, lead:60, grace:400, tick:40, flash:40}
-    : {live:500, liveSlow:1800, nextDelay:5400, firstDelay:4300, lead:2700, grace:6000, tick:250, flash:1100};
+    ? {live:20, liveSlow:20, nextDelay:150, firstDelay:150, lead:60, grace:400, tick:40, flash:40, intro:60, earned:80}
+    : {live:500, liveSlow:1800, nextDelay:5400, firstDelay:4300, lead:2700, grace:6000, tick:250, flash:1100, intro:1500, earned:3000};
 
   /* ---------------- session ---------------- */
   var sess = null;
@@ -296,6 +403,8 @@
     roundOpenAt = 0; countedFor = -1; liveFor = -1; revealedFor = -1;
     claimedLocal = false; claimBusy = false; payoutOwed = false; claimStamp = null;
     doneShown = false; entering = false; spaceDown = false;
+    rematchPressed = false; rematchBuilding = false; rematchFollowed = false;
+    dragging = false; dragSuppress = false;
     liveDirty = false;
     if(liveT){ clearTimeout(liveT); liveT = null; }
     tool = 'brush';
@@ -380,6 +489,29 @@
     return esc(m.seller.emoji || '🙂') + ' ' + esc(dispName(m, m.seller, true))
       + ' <span style="opacity:.7">vs</span> '
       + esc(m.buyers[0].emoji || '🙂') + ' ' + esc(dispName(m, m.buyers[0], true));
+  }
+  /* a card that pops in the middle of the screen and fades by itself */
+  var popTimers = {};
+  function popCard(id, html, ms){
+    if(!alive()) return;
+    var el = $(id);
+    el.innerHTML = html;
+    el.classList.add('on');
+    clearTimeout(popTimers[id]);
+    popTimers[id] = setTimeout(function(){ if(alive()) el.classList.remove('on'); }, ms);
+  }
+  /* the moment a round opens: the goal pops up big, and the banner blinks twice */
+  function announceRound(pr, i, total){
+    popCard('roundIntro',
+      '<span class="small">ROUND ' + (i + 1) + ' OF ' + total + '</span>'
+      + (pr.kind === 'measure'
+          ? 'Work out the <b>perimeter</b><br>and the <b>area</b>'
+          : 'Build a rectangle with<br>perimeter <b>' + pr.p + ' m</b> and area <b>' + pr.a + ' m²</b>'),
+      DUR.intro);
+    var card = $('taskCard');
+    card.classList.remove('blink');
+    void card.offsetWidth;
+    card.classList.add('blink');
   }
   function flashRound(html){
     if(FAST) return;
@@ -477,7 +609,7 @@
     var scr = current();
     if(scr === 'scrWait') renderWait();
     else if(scr === 'scrGame') renderGame();
-    else if(scr === 'scrDone') renderDone();
+    else if(scr === 'scrDone'){ renderDone(); tickRematch(); }
     if(room && room.state === 'playing' && (scr === 'scrWait')) enterMatch();
     if(room && room.state === 'done' && scr === 'scrGame') showResults();
   }
@@ -496,9 +628,11 @@
     var html = open.map(function(m){
       var full = (m.buyers || []).length >= 1 || m.state === 'playing';
       var mine = m.seller && m.seller.id === me.id;
+      var L = G.paveLevel(m.level);
       return '<button class="room" data-id="' + esc(m.id) + '"' + ((full && !mine) ? ' disabled' : '') + '>'
         + '<span class="em">' + esc(m.seller.emoji || '🙂') + '</span>'
         + '<span class="al">' + esc(m.alias || 'Mystery') + '\'s plot</span>'
+        + '<span class="lv">' + L.icon + ' ' + esc(L.name) + '</span>'
         + '<span class="oc">' + (full ? (mine ? 'yours' : 'in play') : 'waiting · tap to play') + '</span>'
         + '</button>';
     }).join('');
@@ -516,6 +650,34 @@
     }).catch(function(){ toast('That plot has closed — pick another!'); });
   });
 
+  /* the teacher decides how many of each kind of round a match holds */
+  function roundMix(lvl){
+    var s = (SETTINGS && SETTINGS.paving) || {};
+    return {
+      level: lvl,
+      extraSecs: +s.extraSecs || 0,
+      measure: s.measure === undefined ? G.PAVE_DEFAULT_ROUNDS.measure : Math.max(0, +s.measure || 0),
+      build:   s.build   === undefined ? G.PAVE_DEFAULT_ROUNDS.build   : Math.max(0, +s.build   || 0)
+    };
+  }
+
+  /* ---- how hard shall it be? Beginner is picked for you ---- */
+  var level = 'easy';
+  function renderLevels(){
+    $('lvlPick').innerHTML = ['easy','mid','hard'].map(function(k){
+      var L = G.PAVE_LEVELS[k];
+      return '<button class="lvl' + (k === level ? ' on' : '') + '" data-lvl="' + k + '">'
+        + '<span class="ic">' + L.icon + '</span>'
+        + '<span class="nm">' + esc(L.name) + '</span>'
+        + '<span class="bl">' + esc(L.blurb) + '</span></button>';
+    }).join('');
+  }
+  $('lvlPick').addEventListener('click', function(e){
+    var b = e.target.closest('.lvl'); if(!b) return;
+    level = b.getAttribute('data-lvl');
+    renderLevels();
+  });
+
   $('newBtn').addEventListener('click', function(){
     if(!me) return;
     var extra = (SETTINGS && SETTINGS.paving && +SETTINGS.paving.extraSecs) || 0;
@@ -528,7 +690,8 @@
       buyers: [],
       state: 'open',
       capacity: 1,
-      probs: G.paveProblems(null, extra),
+      level: level,
+      probs: G.paveRounds(null, roundMix(level)),
       prob: 0,
       probStartAt: 0,
       nextDelay: DUR.nextDelay,
@@ -615,7 +778,9 @@
   /* ================= MATCH ================= */
   var entering = false;
   function enterMatch(){
-    if(entering || current() === 'scrGame' || current() === 'scrDone') return;
+    if(entering || current() === 'scrGame') return;
+    /* the results screen only lets go for a brand new match (Play again) */
+    if(current() === 'scrDone' && (!room || room.state !== 'playing')) return;
     entering = true;
     cells = [];
     buildGrids();
@@ -653,6 +818,23 @@
     });
   }
 
+  /* the rectangle for a measuring round — with squares to count, or, for
+     experts, just the outline and its two labels */
+  function shapeHtml(pr){
+    var px = pr.grid ? Math.max(20, Math.min(38, Math.round(300 / pr.l))) : 1;
+    var inner = '';
+    if(pr.grid){
+      for(var i=0;i<pr.l*pr.b;i++) inner += '<div class="s"></div>';
+      return '<div class="shapegrid" style="grid-template-columns:repeat(' + pr.l + ',' + px + 'px);'
+        + 'grid-auto-rows:' + px + 'px">' + inner + '</div>'
+        + '<span class="lab top">' + pr.l + ' m</span><span class="lab side">' + pr.b + ' m</span>';
+    }
+    var w = Math.max(120, Math.min(300, pr.l * 34)), h = Math.round(w * pr.b / pr.l);
+    return '<div class="shapegrid plain" style="width:' + w + 'px;height:' + h + 'px">'
+      + '<div class="s" style="width:100%;height:100%"></div></div>'
+      + '<span class="lab top">' + pr.l + ' m</span><span class="lab side">' + pr.b + ' m</span>';
+  }
+
   function renderGame(){
     var m = room;
     if(!m) return;
@@ -662,10 +844,23 @@
     var live = roundLive(m);
     var last = m.history.length ? m.history[m.history.length - 1] : null;
     var showingLast = !live && last;          /* between rounds: reveal what happened */
+    var measuring = pr.kind === 'measure';
 
     $('taskLead').textContent = 'ROUND ' + (m.prob + 1) + ' OF ' + m.probs.length;
-    $('taskGoal').innerHTML = 'Build a rectangle with perimeter <b>' + pr.p + ' m</b> and area <b>' + pr.a + ' m²</b>';
-    $('taskWorth').textContent = 'Worth ' + fmtW(pr.pts) + (pr.hidden ? ' · your measurements are hidden!' : '');
+    $('taskGoal').innerHTML = measuring
+      ? 'Work out the <b>perimeter</b> and the <b>area</b> of this rectangle'
+      : 'Build a rectangle with perimeter <b>' + pr.p + ' m</b> and area <b>' + pr.a + ' m²</b>';
+    $('taskWorth').textContent = 'Worth ' + fmtW(pr.pts)
+      + (measuring ? '' : (pr.hidden ? ' · your measurements are hidden!' : ''));
+
+    /* the two round types use different halves of the screen */
+    $('measureWrap').style.display = measuring ? '' : 'none';
+    $('boardsWrap').style.display = measuring ? 'none' : '';
+    if(measuring){
+      renderMeasure(m, pr, live, showingLast, last);
+      renderBar(m);
+      return;
+    }
 
     var sc = scoresOf(m), opp = oppOf(m);
     $('myScore').textContent = fmtW(sc[me.id] || 0);
@@ -703,6 +898,72 @@
 
     renderBar(m);
   }
+  var shapeFor = -1, wrongUntil = 0;
+  function renderMeasure(m, pr, live, showingLast, last){
+    if(shapeFor !== m.prob){
+      shapeFor = m.prob;
+      $('shapeArt').innerHTML = shapeHtml(pr);
+      $('ansP').value = ''; $('ansA').value = '';
+      $('hintPanel').classList.remove('on');
+    }
+    var opp = oppOf(m), sc = scoresOf(m);
+    var lock = !live || Date.now() < wrongUntil;
+    $('ansP').disabled = lock; $('ansA').disabled = lock;
+    $('checkBtn').disabled = lock;
+    if(showingLast && last && last.kind === 'measure'){
+      $('measureNote').innerHTML = (last.w === me.id ? '🎉 You got it! ' : (last.w ? '😮 They got it first. ' : '⏰ Time! '))
+        + 'Perimeter <b>' + last.p + ' m</b> · area <b>' + last.a + ' m²</b>';
+    } else if(Date.now() < wrongUntil){
+      $('measureNote').textContent = 'Not quite — have another look…';
+    } else {
+      $('measureNote').innerHTML = opp
+        ? esc(opp.emoji || '🙂') + ' ' + esc(dispName(m, opp, true)) + ' is working too — be quick!'
+        : '&nbsp;';
+    }
+    $('myScore').textContent = fmtW(sc[me.id] || 0);
+    $('oppScore').textContent = fmtW((opp && sc[opp.id]) || 0);
+  }
+  $('hintBtn').addEventListener('click', function(){ $('hintPanel').classList.toggle('on'); });
+  $('hintClose').addEventListener('click', function(){ $('hintPanel').classList.remove('on'); });
+  $('checkBtn').addEventListener('click', checkMeasure);
+  ['ansP','ansA'].forEach(function(id){
+    $(id).addEventListener('keydown', function(e){ if(e.key === 'Enter') checkMeasure(); });
+  });
+  function checkMeasure(){
+    var m = room;
+    if(!m || !roundLive(m) || busyClaiming() || Date.now() < wrongUntil) return;
+    var pr = probOf(m);
+    if(!pr || pr.kind !== 'measure') return;
+    var gp = parseFloat($('ansP').value), ga = parseFloat($('ansA').value);
+    if(isNaN(gp) || isNaN(ga)){ toast('Fill in both blanks first!'); return; }
+    if(gp !== pr.p || ga !== pr.a){
+      wrongUntil = Date.now() + (FAST ? 30 : 2200);
+      sndNope();
+      renderMeasure(m, pr, true, false, null);
+      setTimeout(function(){ if(alive() && current() === 'scrGame') renderGame(); }, FAST ? 40 : 2300);
+      return;
+    }
+    startClaim();
+    var secs = Math.max(0.1, (Date.now() - Math.max(m.probStartAt, roundOpenAt)) / 1000);
+    var mine = {p:gp, a:ga};
+    store.getMachine(roomId).then(function(mm){
+      if(!mm || mm.state !== 'playing' || mm.prob !== m.prob){ claiming = false; if(mm){ room = mm; rerender(); } return; }
+      var expected = mm.prob;
+      mm.live = mm.live || {};
+      mm.live[me.id] = {ans:mine, t:Date.now(), prob:expected};
+      resolveRound(mm, me.id, secs);
+      return store.saveMachineIf(mm, expected).then(function(won){
+        claiming = false;
+        if(!won) return refresh();
+        room = mm;
+        bumpStat('solved');
+        play(sndPop);
+        flashRound('🎉 Round won!');
+        rerender();
+      });
+    }).catch(function(){ claiming = false; });
+  }
+
   function renderBar(m){
     var pr = probOf(m);
     if(!pr || !m.probStartAt){ $('timeFill').style.width = '100%'; return; }
@@ -713,7 +974,65 @@
     $('timeBar').classList.toggle('low', left < 0.25);
   }
 
-  /* ---------- laying stones ---------- */
+  /* ---------- laying stones ----------
+     A click lays one; press and drag lays a whole row or block. Both the mouse
+     and a finger work; a plain click event (no pointer) still goes through the
+     click handler, which is what keyboards and the tests use. */
+  var dragging = false, dragMode = null, dragSuppress = false;
+  function cellAt(el){
+    if(!el || !el.getAttribute) return null;
+    var x = el.getAttribute('data-x'), y = el.getAttribute('data-y');
+    if(x === null || y === null) return null;
+    return [+x, +y];
+  }
+  function applyAt(x, y){
+    if(dragMode === 'erase') eraseAt(x, y); else if(!G.paveHas(cells, x, y)) paintAt(x, y);
+  }
+  function dragStart(el){
+    if(!canPlay()) return;
+    var c = cellAt(el); if(!c) return;
+    dragging = true; dragSuppress = true;
+    dragMode = (tool === 'erase' || spaceDown) ? 'erase' : 'paint';
+    /* a single tap on a stone you already laid still lifts it */
+    if(dragMode === 'paint' && G.paveHas(cells, c[0], c[1])) dragMode = 'erase';
+    applyAt(c[0], c[1]);
+  }
+  function dragOver(el){
+    if(!dragging || !canPlay()) return;
+    var c = cellAt(el); if(!c) return;
+    applyAt(c[0], c[1]);
+  }
+  function dragEnd(){
+    if(!dragging) return;
+    dragging = false;
+    setTimeout(function(){ dragSuppress = false; }, 0);
+  }
+  $('myGrid').addEventListener('mousedown', function(e){
+    var b = e.target.closest('.c'); if(!b) return;
+    e.preventDefault();
+    dragStart(b);
+  });
+  $('myGrid').addEventListener('mouseover', function(e){
+    var b = e.target.closest('.c'); if(!b) return;
+    dragOver(b);
+  });
+  $('myGrid').addEventListener('touchstart', function(e){
+    var t = e.touches && e.touches[0]; if(!t) return;
+    var el = document.elementFromPoint(t.clientX, t.clientY);
+    if(el && el.classList && el.classList.contains('c')){ e.preventDefault(); dragStart(el); }
+  }, {passive:false});
+  $('myGrid').addEventListener('touchmove', function(e){
+    if(!dragging) return;
+    var t = e.touches && e.touches[0]; if(!t) return;
+    e.preventDefault();
+    var el = document.elementFromPoint(t.clientX, t.clientY);
+    if(el && el.classList && el.classList.contains('c')) dragOver(el);
+  }, {passive:false});
+  document.addEventListener('mouseup', dragEnd);
+  document.addEventListener('touchend', dragEnd);
+  window.addEventListener('blur', dragEnd);
+
+  /* ---------- one stone at a time ---------- */
   /* play stops when the bar empties — the extra grace is only there to let a
      client write the "nobody finished" row, never to sneak a late win */
   function canPlay(){
@@ -731,6 +1050,8 @@
   $('myGrid').addEventListener('click', function(e){
     var b = e.target.closest('.c');
     if(!b) return;
+    /* a drag ends with one click on the last cell — swallow exactly that one */
+    if(dragSuppress){ dragSuppress = false; return; }
     if(!canPlay()){ return; }
     var x = +b.getAttribute('data-x'), y = +b.getAttribute('data-y');
     if(tool === 'erase' || spaceDown) eraseAt(x, y); else paintAt(x, y);
@@ -847,18 +1168,20 @@
   /* fill in the round row, clear the plots and set the next one going */
   function resolveRound(mm, winnerId, secs){
     var pr = mm.probs[mm.prob];
-    var shapes = {};
+    var shapes = {}, answers = {};
     Object.keys(mm.live || {}).forEach(function(k){
       var e = mm.live[k];
       /* only snapshots from THIS round — a late dab must not leak into it */
-      if(e && (e.prob === undefined || e.prob === mm.prob)) shapes[k] = (e.cells || []).slice();
+      if(!e || (e.prob !== undefined && e.prob !== mm.prob)) return;
+      if(e.cells) shapes[k] = e.cells.slice();
+      if(e.ans) answers[k] = e.ans;
     });
     mm.history.push({
-      i: mm.prob, w: winnerId || null,
+      i: mm.prob, kind: pr.kind || 'build', w: winnerId || null,
       secs: winnerId ? Math.round(secs * 10) / 10 : null,
       pts: winnerId ? pr.pts : 0,
-      p: pr.p, a: pr.a, l: pr.l, b: pr.b,
-      shapes: shapes
+      p: pr.p, a: pr.a, l: pr.l, b: pr.b, grid: pr.grid,
+      shapes: shapes, answers: answers
     });
     mm.live = {};
     mm.prob++;
@@ -906,6 +1229,7 @@
       liveFor = m.prob;
       roundOpenAt = Date.now();
       renderGame();
+      announceRound(probOf(m), m.prob, m.probs.length);
     }
     /* nobody finished in time — close the round off */
     var pr = probOf(m);
@@ -943,6 +1267,11 @@
     var iWon = m && m.winner && m.winner.ids.indexOf(me.id) !== -1;
     if(iWon){ confetti(); play(sndVictory); }
     claimIfMine(m);
+    var earned = m ? shareFor(m, me.id) : 0;
+    popCard('earnedCard',
+      (earned ? '🎉 You earned<br><b>' + fmtW(earned) + '</b>' : '🧱 No Whare this time')
+      + '<span class="small">' + (earned ? 'It is already in your room' : 'Have another go!') + '</span>',
+      DUR.earned);
   }
   function miniGrid(list, extraCls){
     var set = {};
@@ -975,11 +1304,22 @@
       '<div>🧑 ' + esc(dispName(m, mineP, true)) + ' · ' + fmtW(shareFor(m, me.id)) + '</div>'
       + (opp ? '<div>' + esc(opp.emoji || '🙂') + ' ' + esc(dispName(m, opp, true)) + ' · ' + fmtW(shareFor(m, opp.id)) + '</div>' : '');
 
+    renderRematch(m, opp);
+
     $('doneRounds').innerHTML = (m.history || []).map(function(h){
       var who = h.w === me.id ? 'You' : (h.w ? (opp ? dispName(m, opp, true) : 'They') : 'Nobody');
       var when = h.w ? ' in ' + h.secs + 's' : '';
       var myCells = (h.shapes && h.shapes[me.id]) || [];
       var opCells = (opp && h.shapes && h.shapes[opp.id]) || [];
+      if(h.kind === 'measure'){
+        var myA = h.answers && h.answers[me.id];
+        return '<div class="rhead">Round ' + (h.i + 1) + ' · the ' + h.l + ' × ' + h.b + ' rectangle '
+          + '<span>— ' + esc(who) + (h.w ? ' answered first' + when : ' answered in time') + '</span></div>'
+          + '<div class="mini" style="max-width:340px">'
+          + '<div class="cap">✅ Answer &nbsp; perimeter <b>' + h.p + ' m</b> &nbsp;·&nbsp; area <b>' + h.a + ' m²</b></div>'
+          + (myA ? '<div class="cap" style="color:#7a8f8b">you said ' + myA.p + ' m and ' + myA.a + ' m²</div>' : '')
+          + '</div>';
+      }
       return '<div class="rhead">Round ' + (h.i + 1) + ' · perimeter ' + h.p + ' m · area ' + h.a + ' m² '
         + '<span>— ' + esc(who) + (h.w ? ' won ' + fmtW(h.pts) + when : ' finished it') + '</span></div>'
         + '<div class="rrow">'
@@ -988,6 +1328,87 @@
         + '<div class="mini"><div class="cap">✅ Answer (' + h.l + ' × ' + h.b + ')</div>' + miniGrid(answerCells(h), 'done') + '</div>'
         + '</div>';
     }).join('');
+  }
+
+  /* ---------- play again with the same player ----------
+     Both press, then the player who opened the first plot builds the new one
+     and writes its id back on the old plot; the other one follows it there. */
+  var rematchPressed = false, rematchBuilding = false, rematchFollowed = false;
+  function renderRematch(m, opp){
+    var btn = $('rematchBtn'), line = $('rematchLine');
+    var rm = m.rematch || {ids:[]};
+    var gone = opp && (m.left || []).indexOf(opp.id) !== -1;
+    if(!opp || gone){
+      btn.style.display = 'none';
+      line.textContent = opp ? esc(dispName(m, opp, true)) + ' has gone back to the games.' : '';
+      return;
+    }
+    btn.style.display = '';
+    btn.disabled = rematchPressed;
+    btn.textContent = rematchPressed ? '⏳ Waiting for them…' : '🔁 Play again with the same player';
+    line.textContent = (!rematchPressed && rm.ids.indexOf(opp.id) !== -1)
+      ? dispName(m, opp, true) + ' wants another game!'
+      : '';
+  }
+  $('rematchBtn').addEventListener('click', function(){
+    if(!room || rematchPressed) return;
+    rematchPressed = true;
+    renderDone();
+    withRoom(function(mm){
+      mm.rematch = mm.rematch || {ids:[]};
+      if(mm.rematch.ids.indexOf(me.id) === -1) mm.rematch.ids.push(me.id);
+      return mm;
+    }).then(function(){ tickRematch(); }).catch(function(){});
+  });
+  function tickRematch(){
+    var m = room;
+    if(!m || !rematchPressed || !m.rematch) return;
+    if(m.rematch.newId){ followRematch(m.rematch.newId); return; }
+    var ps = players(m);
+    var bothIn = ps.length === 2 && ps.every(function(p){ return m.rematch.ids.indexOf(p.id) !== -1; });
+    if(!bothIn) return;
+    if(m.seller.id !== me.id) return;          // the old host builds it
+    buildRematch(m);
+  }
+  function buildRematch(m){
+    if(rematchBuilding) return;
+    rematchBuilding = true;
+    var opp = oppOf(m);
+    var extra = (SETTINGS && SETTINGS.paving && +SETTINGS.paving.extraSecs) || 0;
+    var lvl = m.level || 'easy';
+    var nm = {
+      id: G.machineId(), type:'paving', created: Date.now(), alias: G.alias(),
+      seller: {id:me.id, name:me.name, emoji:me.emoji || '🙂', alias:G.alias(), hideReal:hidePref()},
+      buyers: [opp],
+      state:'playing', capacity:1, level:lvl,
+      probs: G.paveRounds(null, roundMix(lvl)),
+      prob:0, probStartAt: Date.now() + DUR.firstDelay, nextDelay: DUR.nextDelay,
+      live:{}, history:[], winner:null, claimed:{}, left:[]
+    };
+    store.saveMachine(nm).then(function(){
+      return withRoom(function(mm){
+        mm.rematch = mm.rematch || {ids:[]};
+        mm.rematch.newId = nm.id;
+        return mm;
+      });
+    }).then(function(){
+      resetMatchState();
+      roomId = nm.id; room = nm;
+      enterMatch();
+    }).catch(function(){
+      rematchBuilding = false;
+      toast('Could not start the next game — try again!');
+    });
+  }
+  function followRematch(id){
+    if(rematchFollowed) return;
+    rematchFollowed = true;
+    store.getMachine(id).then(function(m2){
+      if(!m2){ rematchFollowed = false; return; }
+      resetMatchState();
+      roomId = id; room = m2;
+      enterMatch();
+    }).catch(function(){ rematchFollowed = false; });
   }
 
   /* each player banks their own Whare, exactly once */
@@ -1097,6 +1518,7 @@
   }
   buildGrids();
   renderTools();
+  renderLevels();
   store.init().then(function(){
     checkClosed();
     /* realtime nudges keep the plot fresh; the steady poll carries the rest,

@@ -125,33 +125,46 @@ Follows *Finding the Perimeter and the Area of Rectangles* — Matua Henare's
 allotment, paved with 1 m² stones. Play it **after** the lesson: it rehearses
 the relationship rather than teaching it.
 
-- **The lobby** has two sections: **New** opens a plot and waits, and **Open
-  plots** lists everyone else's. A plot tile shows only an emoji and a stage
-  name (*Cute Rabbit's plot*) — you find out who it is once you are in.
-  Tapping a waiting plot starts the match immediately; it is always 1 v 1.
-- **Five rounds**, easy to hard. Each names a perimeter and an area
-  (*perimeter 10 m, area 6 m²*) and the first player to lay exactly that
-  rectangle wins the round — no submit button, the win fires the moment the
-  last stone lands. Rounds pay **1 · 1.5 · 2 · 2.5 · 3 Whare**, and the score
-  *is* the money — no conversion at the end. The winner takes 1 W more (a tie
-  splits it).
-- **Laying stones**: tap any square to start, then each stone must touch what
-  you have and keep the shape heading for a rectangle — blobs and plus-shapes
-  are politely refused. 🖌 Brush / 🧽 Eraser, **Backspace** takes back the last
-  stone, **Space + click** lifts one, ♻️ clears.
-- **What you can see**: your live perimeter and area show for the first three
-  rounds and are **hidden for the last two** (the banner warns you). Your
-  opponent's plot is live in **round 1** only; after that it is covered until
-  the round is won, then both plots are revealed side by side. Each round
-  starts on 3 · 2 · 1 · Go!
-- **Results**: every round is replayed as three grids — yours, theirs, and the
-  answer — with who won it and how fast. Confetti and `victory.mp3` for the
-  winner, and each player banks their own Whare exactly once.
+- **The lobby** is two sections of three columns: **New** — 🌱 Beginner
+  (chosen for you) · ⭐ Intermediate · 🔥 Expert, then one *New game* button —
+  and **Open plots**, each tile carrying its difficulty. A tile shows only an
+  emoji and a stage name (*Cute Rabbit's plot*); you find out who it is once
+  you are in. Tapping a waiting plot starts the match immediately; always 1v1.
+- **Two kinds of round.** First the **measuring** ones: a rectangle is shown
+  and you fill in `perimeter ___` and `area ___`; first correct answer takes
+  the Whare, a wrong one costs you a couple of seconds, and **💡 Hint** opens a
+  panel with *P = 2l + 2b* and *A = lb* (with a ✕ to close). Then the
+  **paving** ones: the round names a perimeter and an area and the first
+  player to lay exactly that rectangle wins it — no submit button, the win
+  fires the moment the last stone lands. Three and five by default; the
+  teacher sets both counts, or switches either kind off.
+- **Whare is the score**: 1 · 1.5 · 2 for measuring, 1 · 1.5 · 2 · 2.5 · 3 for
+  paving, and the winner takes 1 W more (a tie splits it).
+- **Laying stones**: tap any square to start, or press and drag to lay a whole
+  row. Each stone must touch what you have and keep the shape heading for a
+  rectangle — blobs and plus-shapes are politely refused. 🖌 Brush / 🧽 Eraser,
+  **Backspace** takes back the last stone, **Space + click** lifts one.
+- **Difficulty** decides how much the plot tells you. Beginner shows your live
+  perimeter and area all game and draws the measuring shapes on squares;
+  Intermediate switches the readout off for the last two paving rounds; Expert
+  hides it from the first round, gives every shape *without* a grid to count,
+  and trims the clock a little.
+- Your opponent's plot is live in **round 1** only; after that it is covered
+  until the round is won, then both are revealed. Every round opens on
+  3 · 2 · 1 · Go!, with the new goal popping up in the middle of the screen
+  and the banner blinking twice.
+- **Results**: paving rounds are replayed as three grids — yours, theirs and
+  the answer; measuring rounds simply show the answer and what you wrote. What
+  you earned pops up in the middle of the screen, there is confetti and
+  `victory.mp3` for the winner, **🔁 Play again with the same player** opens a
+  fresh plot for the pair at the same difficulty, and each player banks their
+  own Whare exactly once.
 - A reload mid-match walks the student straight back onto their plot; if the
   teacher closes the game, anyone still in the lobby is sent home gently while
   running matches finish.
 - **Admin**: hide the game, switch the class to **nicknames instead of real
-  names** (real names are the default), and add extra seconds per round.
+  names** (real names are the default), choose whether each kind of round is
+  in and how many of it, and add extra seconds per round.
 
 ## The Pet Shop 🐾
 

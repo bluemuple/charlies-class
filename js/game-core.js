@@ -258,16 +258,71 @@
   /* the live perimeter/area readout switches off for the last two rounds */
   var PAVE_OPEN_ROUNDS = 3;
 
-  function paveProblems(rnd, extraSecs){
+  /* how much help the plot gives you, chosen when the room is made */
+  var PAVE_LEVELS = {
+    easy: {key:'easy', icon:'🌱', name:'Beginner',
+           blurb:'Your perimeter and area show the whole game', hideFrom:99, speed:1},
+    mid:  {key:'mid',  icon:'⭐', name:'Intermediate',
+           blurb:'They switch off for the last two rounds',     hideFrom:PAVE_OPEN_ROUNDS, speed:1},
+    hard: {key:'hard', icon:'🔥', name:'Expert',
+           blurb:'No measurements at all, and a little less time', hideFrom:0, speed:0.85}
+  };
+  function paveLevel(key){ return PAVE_LEVELS[key] || PAVE_LEVELS.easy; }
+
+  function paveProblems(rnd, extraSecs, level){
     rnd = rnd || Math.random;
-    var add = extraSecs || 0;
+    var add = extraSecs || 0, L = paveLevel(level);
     return PAVE_TIERS.map(function(t, i){
       var r = t.rects[Math.floor(rnd() * t.rects.length)];
       var l = Math.max(r[0], r[1]), b = Math.min(r[0], r[1]);
-      return {l:l, b:b, p:2*l + 2*b, a:l*b, pts:t.pts, secs:t.secs + add,
-              hidden:i >= PAVE_OPEN_ROUNDS};
+      return {l:l, b:b, p:2*l + 2*b, a:l*b, pts:t.pts,
+              secs:Math.round(t.secs * L.speed) + add,
+              hidden:i >= L.hideFrom};
     });
   }
+  /* the other kind of round: a rectangle is shown, you work out its perimeter
+     and area. Experts get the shape without the grid to count. */
+  var PAVE_MEASURE = [
+    {pts:1,   secs:30, rects:[[2,3],[3,3],[2,4],[3,4]]},
+    {pts:1,   secs:30, rects:[[3,5],[4,4],[2,6],[4,5]]},
+    {pts:1.5, secs:35, rects:[[4,6],[5,5],[3,7],[5,6]]},
+    {pts:1.5, secs:35, rects:[[5,7],[4,8],[6,6],[5,8]]},
+    {pts:2,   secs:40, rects:[[6,7],[4,9],[6,8],[7,7]]}
+  ];
+  var PAVE_DEFAULT_ROUNDS = {measure:3, build:5};
+
+  function paveMeasureProblems(rnd, count, level, extraSecs){
+    rnd = rnd || Math.random;
+    var add = extraSecs || 0, L = paveLevel(level), out = [];
+    var n = Math.max(0, Math.min(count === undefined ? PAVE_DEFAULT_ROUNDS.measure : count, PAVE_MEASURE.length));
+    for(var i=0;i<n;i++){
+      var t = PAVE_MEASURE[i];
+      var r = t.rects[Math.floor(rnd() * t.rects.length)];
+      var l = Math.max(r[0], r[1]), b = Math.min(r[0], r[1]);
+      out.push({kind:'measure', l:l, b:b, p:2*l + 2*b, a:l*b, pts:t.pts,
+                secs:Math.round(t.secs * L.speed) + add,
+                grid:L.key !== 'hard'});     /* experts count without squares */
+    }
+    return out;
+  }
+
+  /* a whole match: the measuring questions first, then the paving ones */
+  function paveRounds(rnd, opts){
+    opts = opts || {};
+    var mN = opts.measure === undefined ? PAVE_DEFAULT_ROUNDS.measure : opts.measure;
+    var bN = opts.build === undefined ? PAVE_DEFAULT_ROUNDS.build : opts.build;
+    var rounds = paveMeasureProblems(rnd, mN, opts.level, opts.extraSecs)
+      .concat(paveProblems(rnd, opts.extraSecs, opts.level)
+        .slice(0, Math.max(0, Math.min(bN, PAVE_TIERS.length)))
+        .map(function(p){ p.kind = 'build'; return p; }));
+    /* a match with no rounds at all would strand both players */
+    if(!rounds.length){
+      rounds = paveProblems(rnd, opts.extraSecs, opts.level).slice(0, 1)
+        .map(function(p){ p.kind = 'build'; return p; });
+    }
+    return rounds;
+  }
+
   function paveTotal(probs){
     return (probs || []).reduce(function(s, p){ return s + p.pts; }, 0);
   }
@@ -372,6 +427,9 @@
   var GameCore = {
     PRODUCTS:PRODUCTS, RANGES:RANGES,
     PAVE_W:PAVE_W, PAVE_H:PAVE_H, PAVE_TIERS:PAVE_TIERS, PAVE_OPEN_ROUNDS:PAVE_OPEN_ROUNDS,
+    PAVE_LEVELS:PAVE_LEVELS, paveLevel:paveLevel,
+    PAVE_MEASURE:PAVE_MEASURE, PAVE_DEFAULT_ROUNDS:PAVE_DEFAULT_ROUNDS,
+    paveMeasureProblems:paveMeasureProblems, paveRounds:paveRounds,
     paveProblems:paveProblems, paveTotal:paveTotal, paveRect:paveRect,
     paveShapeOk:paveShapeOk, paveCanPaint:paveCanPaint, paveCanErase:paveCanErase,
     paveMetrics:paveMetrics, paveSolved:paveSolved, paveHas:paveHas, paveBox:paveBox,
