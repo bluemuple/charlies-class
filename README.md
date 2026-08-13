@@ -17,6 +17,7 @@ A class website for Year 6/7 maths games, built to run free on **GitHub Pages**
   Whare, stuff won in games with selling, rule-attempt history with a sparkle
   on cracked rules, Pet Shop placeholder, change-emoji, log out).
 - `algebra.html` — the **Algebra Machine** game (see below).
+- `paving.html` — **Paving Race** 🧱, a 1v1 perimeter-and-area race (see below).
 - `admin.html` — **teacher admin**: roster split into boys and girls, add /
   edit / remove students, whether each student has chosen a code yet, their
   money (Whare), a 🔑 button that clears a forgotten code, and a button that
@@ -118,6 +119,40 @@ This is a class game with play money, so the setup is deliberately simple.
   for more Whare in your room. Confetti + a slot-machine reveal, the seller
   earns the crack-reward, and the attempt lands in both players' history.
 
+## Paving Race 🧱 (how a game runs)
+
+Follows *Finding the Perimeter and the Area of Rectangles* — Matua Henare's
+allotment, paved with 1 m² stones. Play it **after** the lesson: it rehearses
+the relationship rather than teaching it.
+
+- **The lobby** has two sections: **New** opens a plot and waits, and **Open
+  plots** lists everyone else's. A plot tile shows only an emoji and a stage
+  name (*Cute Rabbit's plot*) — you find out who it is once you are in.
+  Tapping a waiting plot starts the match immediately; it is always 1 v 1.
+- **Five rounds**, easy to hard. Each names a perimeter and an area
+  (*perimeter 10 m, area 6 m²*) and the first player to lay exactly that
+  rectangle wins the round — no submit button, the win fires the moment the
+  last stone lands. Rounds pay **1 · 1.5 · 2 · 2.5 · 3 Whare**, and the score
+  *is* the money — no conversion at the end. The winner takes 1 W more (a tie
+  splits it).
+- **Laying stones**: tap any square to start, then each stone must touch what
+  you have and keep the shape heading for a rectangle — blobs and plus-shapes
+  are politely refused. 🖌 Brush / 🧽 Eraser, **Backspace** takes back the last
+  stone, **Space + click** lifts one, ♻️ clears.
+- **What you can see**: your live perimeter and area show for the first three
+  rounds and are **hidden for the last two** (the banner warns you). Your
+  opponent's plot is live in **round 1** only; after that it is covered until
+  the round is won, then both plots are revealed side by side. Each round
+  starts on 3 · 2 · 1 · Go!
+- **Results**: every round is replayed as three grids — yours, theirs, and the
+  answer — with who won it and how fast. Confetti and `victory.mp3` for the
+  winner, and each player banks their own Whare exactly once.
+- A reload mid-match walks the student straight back onto their plot; if the
+  teacher closes the game, anyone still in the lobby is sent home gently while
+  running matches finish.
+- **Admin**: hide the game, switch the class to **nicknames instead of real
+  names** (real names are the default), and add extra seconds per round.
+
 ## The Pet Shop 🐾
 
 In *My room*: one pet per student, bought from six mystery silhouettes —
@@ -136,6 +171,7 @@ Snacks can't be sold — they are pet food by design.
 4. ✅ Algebra Machine multiplayer
 5. ✅ Al-Zebra (beginners) — zebra rule-painting, carrot races, speed ratings
 6. ✅ Pet Shop — pets, naming, feeding, affection, superpowers
+7. ✅ Paving Race — 1v1 perimeter and area, five rounds, Whare as the score
 
 ## Notes for future work
 

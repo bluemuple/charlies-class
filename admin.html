@@ -262,6 +262,15 @@
         <label style="font-size:14px;color:#4c6b66;font-weight:700">Seconds per turn
           <input type="number" id="setTurnSecs" min="10" max="180" style="width:64px;margin-left:6px"></label>
       </div>
+      <div style="min-width:250px">
+        <h3 style="margin:4px 0 8px">🧱 Paving Race</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setPaveOn" checked> Visible to students</label>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setPaveNick"> Use nicknames instead of real names</label>
+        <label style="font-size:14px;color:#4c6b66;font-weight:700">Extra seconds per round
+          <input type="number" id="setPaveSecs" min="0" max="120" style="width:64px;margin-left:6px"></label>
+      </div>
     </div>
     <p class="note">Hiding a game takes it off the students' hub — games already running
     finish normally, but nobody can start a new one until you show it again.
@@ -578,7 +587,8 @@
   }
 
   /* ---------------- per-game settings (shared blob in the machines store) --- */
-  var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false},
+  var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false},
+                       paving:{nicknames:false, extraSecs:0},
                        algebra:{turnSecs:40},
                        alzebra:{limits:{'+':18,'-':22,'*':28,'/':32}}};
   var gameSet = null, gamesSaveT = null;
@@ -602,6 +612,10 @@
       document.getElementById('setAlgSkip').checked = !!(g.algebra && g.algebra.skipStock);
       document.getElementById('setAlgMusic').checked = !!(g.algebra && g.algebra.music);
       document.getElementById('setZebraSkip').checked = !!(g.alzebra && g.alzebra.skipStock);
+      document.getElementById('setPaveOn').checked = !hid.paving;
+      document.getElementById('setPaveNick').checked = !!(g.paving && g.paving.nicknames);
+      document.getElementById('setPaveSecs').value =
+        (g.paving && g.paving.extraSecs) || GAME_DEFAULTS.paving.extraSecs;
     }).catch(function(){});
   }
   function saveGameSettings(){
@@ -611,7 +625,10 @@
       var blob = {
         id:'game-settings', type:'settings', created: Date.now(),
         hidden:{alzebra: !document.getElementById('setZebraOn').checked,
-                algebra: !document.getElementById('setAlgOn').checked},
+                algebra: !document.getElementById('setAlgOn').checked,
+                paving: !document.getElementById('setPaveOn').checked},
+        paving:{nicknames: document.getElementById('setPaveNick').checked,
+                extraSecs: Math.max(0, +document.getElementById('setPaveSecs').value || 0)},
         algebra:{turnSecs: n('setTurnSecs', 40),
                  skipStock: document.getElementById('setAlgSkip').checked,
                  music: document.getElementById('setAlgMusic').checked},
@@ -632,7 +649,8 @@
     }, 350);
   }
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
-   'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic']
+   'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
+   'setPaveOn','setPaveNick','setPaveSecs']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);
     });

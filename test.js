@@ -87,7 +87,7 @@ async function testConfig(){
 
 async function testBrand(){
   console.log("\nbranding");
-  for(const f of ["index.html", "admin.html", "hub.html", "algebra.html", "alzebra.html"]){
+  for(const f of ["index.html", "admin.html", "hub.html", "algebra.html", "alzebra.html", "paving.html"]){
     const src = fs.readFileSync(path.join(__dirname, f), "utf8");
     ok(!/id="brand"/.test(src) && !/Charlie Company/.test(src),
        f + " carries no corner label");
@@ -949,6 +949,294 @@ async function testAlZebra(){
   try{ dom2.window.close(); }catch(e){}
 }
 
+async function testPaving(){
+  console.log("\npaving race — the maths");
+  const G = require("./js/game-core.js");
+
+  const ps = G.paveProblems(() => 0);
+  ok(ps.length === 5, "five rounds");
+  ok(ps.every(p => p.l * p.b === p.a && 2 * (p.l + p.b) === p.p),
+     "every round's perimeter and area really belong to its rectangle");
+  ok(ps.every(p => Math.max(p.l, p.b) <= G.PAVE_W && Math.min(p.l, p.b) <= G.PAVE_H),
+     "every answer fits on the grid");
+  ok(ps.filter(p => p.hidden).length === 2, "the last two rounds hide the measurements");
+  ok(ps[0].pts < ps[4].pts && G.paveTotal(ps) === 10, "harder rounds pay more; 10 W on the table");
+  ok(G.paveProblems(() => 0, 15)[0].secs === G.PAVE_TIERS[0].secs + 15,
+     "the teacher's extra seconds reach the problems");
+  // every rectangle a tier can pick must fit
+  ok(G.PAVE_TIERS.every(t => t.rects.every(r =>
+       Math.max(r[0], r[1]) <= G.PAVE_W && Math.min(r[0], r[1]) <= G.PAVE_H)),
+     "no tier can deal a rectangle too big for the grid");
+
+  ok(G.paveRect([[0,0],[1,0],[0,1],[1,1]]).p === 8, "a 2 × 2 has perimeter 8");
+  ok(G.paveRect([[0,0],[1,0],[0,1]]) === null, "an L is not a rectangle");
+  ok(G.paveRect([[0,0],[2,0]]) === null, "a gap is not a rectangle");
+  ok(G.paveCanPaint([], 4, 4), "the first stone goes anywhere");
+  ok(!G.paveCanPaint([[0,0]], 2, 2), "later stones must touch");
+  ok(G.paveCanPaint([[0,0],[1,0],[2,0]], 0, 1), "you can start the next row");
+  ok(!G.paveCanPaint([[1,0],[0,1],[1,1],[2,1]], 1, 2), "a plus shape is refused");
+  ok(!G.paveCanPaint([[9,0]], 10, 0) && !G.paveCanPaint([[0,0]], 0, -1),
+     "stones stay on the grid");
+  ok(!G.paveCanErase([[0,0],[1,0],[2,0]], 1, 0), "you cannot punch a hole");
+  ok(G.paveCanErase([[0,0],[1,0],[2,0]], 2, 0), "you can lift an end stone");
+  ok(G.paveMetrics([[0,0],[1,0],[0,1]]).p === 8, "an L of 3 has perimeter 8");
+  ok(G.paveSolved([[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]], {p:10, a:6}),
+     "3 × 2 answers perimeter 10, area 6");
+  ok(!G.paveSolved([[0,0],[1,0],[2,0],[3,0]], {p:10, a:6}),
+     "1 × 4 has the wrong measurements");
+
+  console.log("\npaving race — a whole match");
+  const dom = await load("paving.html", w => {
+    w.CHARLIE_TEST_SESSION = {id:"tepono-montg", name:"Tepono", emoji:"🐦"};
+    w.PAVING_TEST_FAST = true;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+  await waitFor(() => $("meName").textContent === "Tepono", "the name capsule fills in");
+
+  // a plot another child opened is waiting in the list
+  const openPlot = {
+    id:"m-pav1", type:"paving", created:Date.now(), alias:"Cute Rabbit",
+    seller:{id:"kiean-oabel", name:"Kiean", emoji:"🦊", alias:"Cute Rabbit", hideReal:false},
+    buyers:[], state:"open", capacity:1,
+    probs:[{l:3,b:2,p:10,a:6,pts:1,secs:45,hidden:false},
+           {l:4,b:3,p:14,a:12,pts:1.5,secs:50,hidden:false},
+           {l:5,b:4,p:18,a:20,pts:2,secs:60,hidden:false},
+           {l:6,b:4,p:20,a:24,pts:2.5,secs:70,hidden:true},
+           {l:8,b:5,p:26,a:40,pts:3,secs:80,hidden:true}],
+    prob:0, probStartAt:0, nextDelay:150, live:{}, history:[],
+    winner:null, claimed:{}, left:[]
+  };
+  await w.CharlieStore.saveMachine(openPlot);
+  await waitFor(() => d.querySelectorAll("#roomList .room").length === 1,
+                "the open plot shows up in the list");
+  const tile = d.querySelector("#roomList .room");
+  ok(/Cute Rabbit/.test(tile.textContent) && !/Kiean/.test(tile.textContent),
+     "the list shows the plot's alias, never the host's name");
+
+  tile.click();
+  await waitFor(() => d.querySelector("#scrGame").classList.contains("on"),
+                "tapping the plot drops you straight into the match");
+  ok(/Kiean/.test($("oppTitle").textContent),
+     "inside the room the real name shows (the class default)");
+  ok(/perimeter/i.test($("taskGoal").textContent) && /10 m/.test($("taskGoal").textContent)
+     && /6 m/.test($("taskGoal").textContent), "round 1 asks for perimeter 10 and area 6");
+  ok($("oppHide").style.display === "none", "round 1 lets you watch each other");
+
+  const cell = (x, y) => d.querySelector('#myGrid .c[data-x="' + x + '"][data-y="' + y + '"]');
+  const lay = list => list.forEach(c => cell(c[0], c[1]).click());
+
+  // an illegal stone is refused, and says so
+  await waitFor(() => !$("myGrid").classList.contains("locked"), "the grid unlocks for round 1");
+  cell(0, 0).click();
+  cell(5, 5).click();
+  ok(d.querySelectorAll("#myGrid .c.on").length === 1, "a stone that touches nothing is refused");
+  ok(/touch/i.test($("toast").textContent), "and the nudge explains why");
+  ok(/Perimeter 4 m/.test($("myRead").textContent) && /Area 1/.test($("myRead").textContent),
+     "the live readout measures one stone");
+
+  // win round 1 with a 3 × 2
+  lay([[1,0],[2,0],[0,1],[1,1],[2,1]]);
+  await waitFor(async () => {
+    const m = await w.CharlieStore.getMachine("m-pav1");
+    return m.history.length === 1;
+  }, "laying the right rectangle wins round 1 on the spot", 5000);
+  let m = await w.CharlieStore.getMachine("m-pav1");
+  ok(m.history[0].w === "tepono-montg" && m.history[0].pts === 1,
+     "the round row records the winner and the Whare");
+  ok(m.history[0].shapes["tepono-montg"].length === 6, "and keeps the shape that won it");
+  ok(m.prob === 1 && m.probStartAt > Date.now() - 1000, "round 2 is queued up");
+
+  // round 2: the opponent's grid is now blind while drawing
+  await waitFor(() => $("oppHide").style.display === "" &&
+                      !$("myGrid").classList.contains("locked"),
+                "from round 2 the other plot is hidden while you draw");
+  ok(d.querySelectorAll("#myGrid .c.on").length === 0, "your plot is swept clean for the new round");
+
+  // Kiean wins round 2 from his own machine
+  m = await w.CharlieStore.getMachine("m-pav1");
+  m.live["kiean-oabel"] = {cells:[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]], t:Date.now()};
+  m.history.push({i:1, w:"kiean-oabel", secs:4.2, pts:1.5, p:14, a:12, l:4, b:3,
+                  shapes:{"kiean-oabel":m.live["kiean-oabel"].cells}});
+  m.live = {}; m.prob = 2; m.probStartAt = Date.now() + 150;
+  await w.CharlieStore.saveMachine(m);
+  await waitFor(() => /2 W/.test($("oppScore").textContent) ||
+                      /1.5 W/.test($("oppScore").textContent),
+                "their score climbs when they win one");
+
+  // rounds 3-5: hand them to Kiean so the match can finish
+  for(const r of [{i:2,pts:2,p:18,a:20,l:5,b:4}, {i:3,pts:2.5,p:20,a:24,l:6,b:4}]){
+    m = await w.CharlieStore.getMachine("m-pav1");
+    m.history.push({i:r.i, w:"kiean-oabel", secs:5, pts:r.pts, p:r.p, a:r.a, l:r.l, b:r.b, shapes:{}});
+    m.prob = r.i + 1; m.live = {}; m.probStartAt = Date.now() + 150;
+    await w.CharlieStore.saveMachine(m);
+    await sleep(80);
+  }
+  // round 5 hides the measurements
+  await waitFor(() => /hidden/i.test($("myRead").textContent), "the last rounds hide your measurements");
+  ok(/hidden/i.test($("taskWorth").textContent), "and the banner warns you first");
+
+  // Tepono takes the last round: 8 × 5
+  await waitFor(() => !$("myGrid").classList.contains("locked"), "the final round opens");
+  const big = [];
+  for(let y=0;y<5;y++) for(let x=0;x<8;x++) big.push([x,y]);
+  lay(big);
+  await waitFor(() => d.querySelector("#scrDone").classList.contains("on"),
+                "the fifth round ends the match and the results appear", 6000);
+
+  m = await w.CharlieStore.getMachine("m-pav1");
+  ok(m.state === "done" && m.history.length === 5, "five rounds are on the record");
+  ok(m.winner && !m.winner.tie && m.winner.ids[0] === "kiean-oabel",
+     "the bigger pile of Whare wins the match");
+  ok(/Kiean/.test($("doneLine").textContent), "the loser's screen names the winner");
+  ok(d.querySelectorAll("#doneRounds .rrow").length === 5, "one row of grids per round");
+  ok(d.querySelectorAll("#doneRounds .rrow")[0].querySelectorAll(".mini").length === 3,
+     "each row shows you, them and the answer");
+  const answer = d.querySelectorAll("#doneRounds .rrow")[0].querySelectorAll(".mini")[2];
+  ok(/3 × 2/.test(answer.textContent) && answer.querySelectorAll(".c.on").length === 6,
+     "the answer grid draws the rectangle that was wanted");
+
+  // Tepono banks round 1 (1 W) + round 5 (3 W) = 4 W, no winner's bonus
+  await waitFor(async () => {
+    const t = (await w.CharlieStore.list()).find(s => s.id === "tepono-montg");
+    return t && t.money === 4;
+  }, "you bank exactly the Whare you won", 6000);
+  const m2 = await w.CharlieStore.getMachine("m-pav1");
+  ok(typeof m2.claimed["tepono-montg"] === "string" &&
+     m2.claimed["tepono-montg"].indexOf("tepono-montg:") === 0,
+     "the payout is stamped by this device so it can never pay twice");
+  await sleep(120);
+  const t2 = (await w.CharlieStore.list()).find(s => s.id === "tepono-montg");
+  ok(t2.money === 4, "and a second look does not pay again");
+
+  // a second match in the same sitting must score and pay all over again
+  d.querySelector("#backBtn").click();
+  await waitFor(() => d.querySelector("#scrHome").classList.contains("on"),
+                "Back drops you into the lobby, not out of the game");
+  await w.CharlieStore.saveMachine({
+    id:"m-pav3", type:"paving", created:Date.now(), alias:"Brave Kea",
+    seller:{id:"kiean-oabel", name:"Kiean", emoji:"🦊", alias:"Brave Kea", hideReal:false},
+    buyers:[{id:"tepono-montg", name:"Tepono", emoji:"🐦", alias:"Swift Tui", hideReal:false}],
+    state:"playing", capacity:1,
+    probs:[{l:3,b:2,p:10,a:6,pts:1,secs:45,hidden:false},
+           {l:4,b:3,p:14,a:12,pts:1.5,secs:50,hidden:false},
+           {l:5,b:4,p:18,a:20,pts:2,secs:60,hidden:false},
+           {l:6,b:4,p:20,a:24,pts:2.5,secs:70,hidden:true},
+           {l:8,b:5,p:26,a:40,pts:3,secs:80,hidden:true}],
+    prob:4, probStartAt:Date.now(), nextDelay:150, live:{},
+    history:[{i:0,w:"tepono-montg",secs:4,pts:1,p:10,a:6,l:3,b:2,shapes:{}},
+             {i:1,w:"tepono-montg",secs:5,pts:1.5,p:14,a:12,l:4,b:3,shapes:{}},
+             {i:2,w:"tepono-montg",secs:6,pts:2,p:18,a:20,l:5,b:4,shapes:{}},
+             {i:3,w:"kiean-oabel",secs:7,pts:2.5,p:20,a:24,l:6,b:4,shapes:{}}],
+    winner:null, claimed:{}, left:[]
+  });
+  await waitFor(() => d.querySelector("#scrGame").classList.contains("on"),
+                "the next match starts cleanly after the last one", 5000);
+  ok(d.querySelectorAll("#myGrid .c.on").length === 0, "with an empty plot");
+  await waitFor(() => !$("myGrid").classList.contains("locked"), "and a live grid");
+  const big2 = [];
+  for(let y=0;y<5;y++) for(let x=0;x<8;x++) big2.push([x,y]);
+  lay(big2);
+  await waitFor(() => d.querySelector("#scrDone").classList.contains("on"),
+                "the second match reaches its results screen", 6000);
+  // 1 + 1.5 + 2 + 3 = 7.5 W plus the 1 W bonus, on top of the 4 W already banked
+  await waitFor(async () => {
+    const t = (await w.CharlieStore.list()).find(s => s.id === "tepono-montg");
+    return t && t.money === 12.5;
+  }, "the second match pays out too — nothing stale from the first", 6000);
+
+  try{ dom.window.close(); }catch(e){}
+
+  // the winner's side: rejoin after a reload, take the last round, bank the bonus
+  console.log("\npaving race — the winner's side");
+  const dom2 = await load("paving.html", w2 => {
+    w2.CHARLIE_TEST_SESSION = {id:"kiean-oabel", name:"Kiean", emoji:"🦊"};
+    w2.PAVING_TEST_FAST = true;
+  });
+  const w2 = dom2.window, d2 = w2.document;
+  const $2 = id => d2.getElementById(id);
+  await waitFor(() => $2("meName").textContent === "Kiean", "the winner arrives");
+  // a match he was already in, waiting on its last round
+  await w2.CharlieStore.saveMachine({
+    id:"m-pav2", type:"paving", created:Date.now(), alias:"Happy Owl",
+    seller:{id:"willow-kolo", name:"Willow", emoji:"🦉", alias:"Happy Owl", hideReal:false},
+    buyers:[{id:"kiean-oabel", name:"Kiean", emoji:"🦊", alias:"Brave Kea", hideReal:false}],
+    state:"playing", capacity:1,
+    probs:[{l:3,b:2,p:10,a:6,pts:1,secs:45,hidden:false},
+           {l:4,b:3,p:14,a:12,pts:1.5,secs:50,hidden:false},
+           {l:5,b:4,p:18,a:20,pts:2,secs:60,hidden:false},
+           {l:6,b:4,p:20,a:24,pts:2.5,secs:70,hidden:true},
+           {l:8,b:5,p:26,a:40,pts:3,secs:80,hidden:true}],
+    prob:4, probStartAt:Date.now(), nextDelay:150, live:{},
+    history:[{i:0,w:"kiean-oabel",secs:4,pts:1,p:10,a:6,l:3,b:2,shapes:{}},
+             {i:1,w:"kiean-oabel",secs:5,pts:1.5,p:14,a:12,l:4,b:3,shapes:{}},
+             {i:2,w:"kiean-oabel",secs:6,pts:2,p:18,a:20,l:5,b:4,shapes:{}},
+             {i:3,w:"willow-kolo",secs:7,pts:2.5,p:20,a:24,l:6,b:4,shapes:{}}],
+    winner:null, claimed:{}, left:[]
+  });
+  await waitFor(() => d2.querySelector("#scrGame").classList.contains("on"),
+                "a match already under way pulls its player back in", 5000);
+  ok(/ROUND 5 OF 5/.test($2("taskLead").textContent), "right where the match had got to");
+  ok(/Willow/.test($2("oppTitle").textContent), "with the same opponent");
+
+  await waitFor(() => !$2("myGrid").classList.contains("locked"), "the grid is live");
+  for(let y=0;y<5;y++) for(let x=0;x<8;x++){
+    d2.querySelector('#myGrid .c[data-x="' + x + '"][data-y="' + y + '"]').click();
+  }
+  await waitFor(() => d2.querySelector("#scrDone").classList.contains("on"),
+                "the winning rectangle ends the match", 6000);
+  const won = await w2.CharlieStore.getMachine("m-pav2");
+  ok(won.winner && won.winner.ids[0] === "kiean-oabel", "the winner is the one with more Whare");
+  ok(/You win/.test($2("doneTitle").textContent), "the winner's screen celebrates");
+  // 1 + 1.5 + 2 + 3 = 7.5 W won, plus the 1 W winner's bonus
+  await waitFor(async () => {
+    const k = (await w2.CharlieStore.list()).find(s => s.id === "kiean-oabel");
+    return k && k.money === 8.5;
+  }, "the winner banks 7.5 W plus the 1 W bonus", 6000);
+  ok(/8.5 W/.test($2("doneScores").textContent), "and the results page shows the same total");
+  try{ dom2.window.close(); }catch(e){}
+
+  console.log("\npaving race — the teacher's switches");
+  const dom3 = await load("admin.html", w3 => { w3.CHARLIE_TEST_TEACHER = true; });
+  const w3 = dom3.window, d3 = w3.document;
+  await waitFor(() => d3.getElementById("setPaveOn"), "the Paving Race panel is in admin");
+  // let the page finish reading the saved settings, or it overwrites our clicks
+  await waitFor(() => d3.getElementById("setTurnSecs").value !== "",
+                "admin finishes loading the current settings", 4000);
+  d3.getElementById("setPaveNick").checked = true;
+  d3.getElementById("setPaveNick").dispatchEvent(new w3.Event("change"));
+  d3.getElementById("setPaveSecs").value = "20";
+  d3.getElementById("setPaveSecs").dispatchEvent(new w3.Event("change"));
+  await waitFor(async () => {
+    const s = await w3.CharlieStore.getMachine("game-settings");
+    return s && s.paving && s.paving.nicknames === true && s.paving.extraSecs === 20;
+  }, "nickname mode and extra seconds save", 4000);
+  let s3 = await w3.CharlieStore.getMachine("game-settings");
+  ok(s3.hidden.paving === false, "the game stays visible until you say otherwise");
+  ok(s3.alzebra && s3.algebra, "the other games' settings survive the save");
+  d3.getElementById("setPaveOn").checked = false;
+  d3.getElementById("setPaveOn").dispatchEvent(new w3.Event("change"));
+  await waitFor(async () => {
+    const s = await w3.CharlieStore.getMachine("game-settings");
+    return s && s.hidden && s.hidden.paving === true;
+  }, "unticking Visible hides the game", 4000);
+  try{ dom3.window.close(); }catch(e){}
+
+  // a teacher closing the game reaches students who are still in the lobby
+  const dom4 = await load("paving.html", w4 => {
+    w4.CHARLIE_TEST_SESSION = {id:"tepono-montg", name:"Tepono", emoji:"🐦"};
+    w4.PAVING_TEST_FAST = true;
+  });
+  const w4 = dom4.window;
+  await waitFor(() => w4.document.getElementById("meName").textContent === "Tepono",
+                "a student is sitting in the lobby");
+  await w4.CharlieStore.saveMachine({id:"game-settings", type:"settings", created:Date.now(),
+                                     hidden:{paving:true}, paving:{nicknames:false, extraSecs:0}});
+  await waitFor(() => /closed Paving Race/i.test(w4.document.getElementById("toast").textContent),
+                "closing the game walks them back to the hub kindly", 4000);
+  try{ dom4.window.close(); }catch(e){}
+}
+
 async function testHub(){
   console.log("\nhub.html");
   const dom = await load("hub.html", w => {
@@ -1226,9 +1514,10 @@ async function testHub(){
   $("talkBack").click();
 
   const cards = d.querySelectorAll(".games .game");
-  ok(cards.length === 2, "just the two games — no 'More games' placeholder");
+  ok(cards.length === 3, "the three games — no 'More games' placeholder");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
+  ok(/Paving Race/.test(cards[2].textContent), "Paving Race joins the row");
   // title + Play now only: the art icon, the title and the badge, nothing else
   [...cards].forEach((c, i) => {
     const kids = [...c.children].map(k => k.className);
@@ -1255,6 +1544,7 @@ async function testHub(){
     await testGamePlay();
     await testStockAutofill();
     await testAlZebra();
+    await testPaving();
     await testHub();
   }catch(e){
     failed++;

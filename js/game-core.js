@@ -239,8 +239,142 @@
     return 'm-' + s;
   }
 
+  /* ================= Paving Race =================
+     Matua Henare's allotment: 1 m² paving stones on a grid. A round names a
+     perimeter and an area; the first player to lay a rectangle with exactly
+     those measurements wins the round. Whare IS the score — no conversion. */
+
+  var PAVE_W = 10, PAVE_H = 8;
+
+  /* five rounds, easy → hard. Each tier offers a few rectangles so no two
+     matches feel the same; every one fits inside the 10 × 8 grid. */
+  var PAVE_TIERS = [
+    {pts:1,   secs:45, rects:[[2,3],[3,3],[2,4],[2,5]]},
+    {pts:1.5, secs:50, rects:[[3,4],[4,4],[2,6],[3,5]]},
+    {pts:2,   secs:60, rects:[[4,5],[3,6],[5,5],[2,8]]},
+    {pts:2.5, secs:70, rects:[[4,6],[4,7],[3,8],[5,6]]},
+    {pts:3,   secs:80, rects:[[5,8],[4,9],[6,7],[5,7]]}
+  ];
+  /* the live perimeter/area readout switches off for the last two rounds */
+  var PAVE_OPEN_ROUNDS = 3;
+
+  function paveProblems(rnd, extraSecs){
+    rnd = rnd || Math.random;
+    var add = extraSecs || 0;
+    return PAVE_TIERS.map(function(t, i){
+      var r = t.rects[Math.floor(rnd() * t.rects.length)];
+      var l = Math.max(r[0], r[1]), b = Math.min(r[0], r[1]);
+      return {l:l, b:b, p:2*l + 2*b, a:l*b, pts:t.pts, secs:t.secs + add,
+              hidden:i >= PAVE_OPEN_ROUNDS};
+    });
+  }
+  function paveTotal(probs){
+    return (probs || []).reduce(function(s, p){ return s + p.pts; }, 0);
+  }
+
+  function paveKey(c){ return c[0] + ',' + c[1]; }
+  function paveHas(cells, x, y){
+    for(var i=0;i<cells.length;i++) if(cells[i][0]===x && cells[i][1]===y) return true;
+    return false;
+  }
+  function paveBox(cells){
+    var x0=cells[0][0], x1=x0, y0=cells[0][1], y1=y0;
+    cells.forEach(function(c){
+      if(c[0]<x0) x0=c[0]; if(c[0]>x1) x1=c[0];
+      if(c[1]<y0) y0=c[1]; if(c[1]>y1) y1=c[1];
+    });
+    return {x0:x0, y0:y0, x1:x1, y1:y1, w:x1-x0+1, h:y1-y0+1};
+  }
+
+  /* a finished rectangle: the cells fill their bounding box exactly */
+  function paveRect(cells){
+    if(!cells || !cells.length) return null;
+    var seen = {};
+    for(var i=0;i<cells.length;i++){
+      var k = paveKey(cells[i]);
+      if(seen[k]) return null;
+      seen[k] = 1;
+    }
+    var b = paveBox(cells);
+    if(b.w * b.h !== cells.length) return null;
+    var l = Math.max(b.w, b.h), s = Math.min(b.w, b.h);
+    return {x:b.x0, y:b.y0, w:b.w, h:b.h, l:l, b:s, a:b.w*b.h, p:2*b.w + 2*b.h};
+  }
+
+  /* work-in-progress shapes: a rectangle, or a rectangle with one row (or one
+     column) part-laid — that is how you build one stone at a time. Blobs,
+     L-plus-L shapes and diagonals are refused, so the drawing always heads
+     somewhere sensible. */
+  function paveShapeOk(cells){
+    if(!cells || !cells.length) return true;
+    var b = paveBox(cells), i, j;
+    function lines(byRow){
+      var out = [], span = byRow ? b.w : b.h;
+      var from = byRow ? b.y0 : b.x0, to = byRow ? b.y1 : b.x1;
+      for(var v=from; v<=to; v++){
+        var vals = [];
+        for(i=0;i<cells.length;i++){
+          if((byRow ? cells[i][1] : cells[i][0]) === v) vals.push(byRow ? cells[i][0] : cells[i][1]);
+        }
+        vals.sort(function(m,n){ return m-n; });
+        out.push(vals);
+      }
+      return {list:out, span:span};
+    }
+    function fits(byRow){
+      var L = lines(byRow), partial = 0;
+      for(var k=0;k<L.list.length;k++){
+        var vals = L.list[k];
+        if(!vals.length) return false;
+        if(vals.length === L.span) continue;
+        partial++;
+        if(partial > 1) return false;
+        for(var q=1;q<vals.length;q++) if(vals[q] !== vals[q-1] + 1) return false;
+      }
+      return true;
+    }
+    return fits(true) || fits(false);
+  }
+
+  /* may this stone go down? inside the grid, touching what is already laid,
+     and the result still on its way to a rectangle */
+  function paveCanPaint(cells, x, y, w, h){
+    w = w || PAVE_W; h = h || PAVE_H;
+    if(x < 0 || y < 0 || x >= w || y >= h) return false;
+    if(paveHas(cells, x, y)) return false;
+    if(cells.length){
+      var touch = paveHas(cells, x-1, y) || paveHas(cells, x+1, y)
+               || paveHas(cells, x, y-1) || paveHas(cells, x, y+1);
+      if(!touch) return false;
+    }
+    return paveShapeOk(cells.concat([[x, y]]));
+  }
+  function paveCanErase(cells, x, y){
+    if(!paveHas(cells, x, y)) return false;
+    var rest = cells.filter(function(c){ return !(c[0]===x && c[1]===y); });
+    return paveShapeOk(rest);
+  }
+
+  /* live readout — works for any shape, not just rectangles */
+  function paveMetrics(cells){
+    var n = (cells || []).length, shared = 0;
+    for(var i=0;i<n;i++){
+      if(paveHas(cells, cells[i][0]+1, cells[i][1])) shared++;
+      if(paveHas(cells, cells[i][0], cells[i][1]+1)) shared++;
+    }
+    return {a:n, p:4*n - 2*shared};
+  }
+  function paveSolved(cells, prob){
+    var r = paveRect(cells);
+    return !!(r && prob && r.p === prob.p && r.a === prob.a);
+  }
+
   var GameCore = {
     PRODUCTS:PRODUCTS, RANGES:RANGES,
+    PAVE_W:PAVE_W, PAVE_H:PAVE_H, PAVE_TIERS:PAVE_TIERS, PAVE_OPEN_ROUNDS:PAVE_OPEN_ROUNDS,
+    paveProblems:paveProblems, paveTotal:paveTotal, paveRect:paveRect,
+    paveShapeOk:paveShapeOk, paveCanPaint:paveCanPaint, paveCanErase:paveCanErase,
+    paveMetrics:paveMetrics, paveSolved:paveSolved, paveHas:paveHas, paveBox:paveBox,
     MAX_PICK:MAX_PICK, MAX_NONSNACK:MAX_NONSNACK, PICK_SECONDS:PICK_SECONDS,
     OP_PRICE:OP_PRICE,
     opGlyph:opGlyph, ruleOps:ruleOps, validRule:validRule, evalRule:evalRule,

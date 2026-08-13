@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paving Race — Wharenui Maths</title>
+<meta name="description" content="Head-to-head maths race: lay paving stones to build a rectangle with the perimeter and area your teacher's plan asks for.">
+<link rel="canonical" href="https://bluemuple.github.io/charlies-class/paving.html">
+<style>
+  :root{
+    --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
+    --ink:#22333b; --card:#ffffff; --accent:#e63946; --good:#2a9d34;
+    --stone:#9aa7ad; --stone-dark:#6f7d84; --grass:#cfe3c4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,#f2f8ec 0%,#e2f0d9 45%,#d4e8c8 100%);
+    min-height:100vh;
+  }
+  button{font-family:inherit; cursor:pointer;}
+
+  header{position:absolute; top:0; left:0; right:0; display:flex; align-items:center;
+         gap:12px; padding:10px 16px; z-index:20; pointer-events:none;}
+  header > *{pointer-events:auto;}
+  #backBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:7px 14px; font-size:14px; font-weight:700;
+  }
+  #backBtn:hover{background:#eef7f5;}
+  #meChip{
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+    border:2px solid #cfe3df; background:#fff; border-radius:30px;
+    padding:5px 14px 5px 9px; font-size:14.5px; font-weight:800; color:var(--teal-dark);
+  }
+  #meChip:hover{background:var(--cream);}
+  #meChip .em{font-size:20px;}
+  #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
+
+  main{max-width:1080px; margin:0 auto; padding:52px 18px 30px;}
+  .screen{display:none;} .screen.on{display:block;}
+  h1{font-size:clamp(22px,3.4vh,32px); color:var(--teal-dark); text-align:center;}
+  h2{font-size:17px; color:var(--teal-dark); margin-bottom:8px;}
+  .sub{font-size:14px; color:#4c6b66; text-align:center; margin-top:4px;}
+  .card{background:var(--card); border-radius:16px; padding:16px 18px;
+        box-shadow:0 3px 14px rgba(31,90,84,.13); margin-top:14px;}
+
+  /* ---------- lobby ---------- */
+  .newbtn{
+    width:100%; border:0; border-radius:16px; padding:18px; font-size:20px; font-weight:800;
+    background:var(--good); color:#fff; box-shadow:0 4px 14px rgba(42,157,52,.35);
+  }
+  .newbtn:hover{background:#217a29;}
+  .rooms{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px;}
+  .room{
+    border:2px solid #cfe3df; background:#fff; border-radius:14px; padding:14px 10px;
+    display:flex; flex-direction:column; align-items:center; gap:4px; font-family:inherit;
+  }
+  .room:hover{background:var(--cream); border-color:var(--teal);}
+  .room[disabled]{opacity:.45; cursor:not-allowed;}
+  .room .em{font-size:34px;}
+  .room .al{font-weight:800; color:var(--teal-dark); font-size:15px;}
+  .room .oc{font-size:12.5px; color:#7a8f8b; font-weight:700;}
+  .empty{color:#8aa19c; font-size:14px; text-align:center; padding:14px 6px;}
+
+  /* ---------- match ---------- */
+  .task{
+    background:var(--teal-dark); color:#fff; border-radius:16px; padding:12px 18px;
+    text-align:center; box-shadow:0 4px 14px rgba(31,90,84,.3);
+  }
+  .task .lead{font-size:14px; opacity:.85; font-weight:700; letter-spacing:.4px;}
+  .task .goal{font-size:clamp(20px,3.6vh,30px); font-weight:800; margin-top:2px;}
+  .task .goal b{color:var(--yellow);}
+  .task .rd{font-size:13px; opacity:.8; margin-top:2px;}
+  .bar{height:8px; background:#cfe3df; border-radius:6px; overflow:hidden; margin-top:10px;}
+  .bar i{display:block; height:100%; width:100%; background:var(--good); transition:width .25s linear;}
+  .bar.low i{background:var(--accent);}
+
+  .boards{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px;}
+  .board{background:#fff; border-radius:16px; padding:12px; box-shadow:0 3px 14px rgba(31,90,84,.13);}
+  .board h3{font-size:15px; color:var(--teal-dark); display:flex; align-items:center; gap:7px;}
+  .board h3 .sc{margin-left:auto; background:var(--yellow); color:#8a6d00;
+                border-radius:20px; padding:2px 10px; font-size:13px;}
+  .readout{display:flex; gap:8px; margin:8px 0; font-size:14px; font-weight:800;}
+  .readout span{background:#eef7f5; border-radius:10px; padding:4px 10px; color:var(--teal-dark);}
+  .readout span.hid{background:#f4eee0; color:#9a8a5a;}
+
+  .grid{display:grid; gap:2px; background:#b9cdb0; padding:3px; border-radius:8px;
+        grid-template-columns:repeat(10,1fr); aspect-ratio:10/8;}
+  .grid .c{background:var(--grass); border-radius:2px; border:0; padding:0;}
+  .grid .c.on{background:var(--stone); box-shadow:inset 0 -3px 0 rgba(0,0,0,.16);}
+  .grid.mine .c:hover{outline:2px solid var(--teal); outline-offset:-2px;}
+  .grid.mine.era .c.on:hover{outline:2px solid var(--accent);}
+  .grid.done .c.on{background:var(--good);}
+  .grid.locked{opacity:.6; pointer-events:none;}
+  .veilbox{position:relative;}
+  .hidenote{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.82); border-radius:8px; font-weight:800; color:#7a8f8b;
+    text-align:center; font-size:15px; padding:10px;
+  }
+  .tools{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .tool{
+    border:2px solid #cfe3df; background:#fff; border-radius:12px; padding:7px 12px;
+    font-size:14px; font-weight:800; color:var(--teal-dark);
+  }
+  .tool.on{background:var(--teal); color:#fff; border-color:var(--teal);}
+  .tool:hover{background:var(--cream); color:var(--teal-dark);}
+  .tool.on:hover{background:var(--teal-dark); color:#fff;}
+  .keys{font-size:12px; color:#8aa19c; margin-top:8px;}
+
+  /* ---------- results ---------- */
+  .rrow{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:8px;}
+  .mini{background:#fff; border-radius:12px; padding:8px; box-shadow:0 2px 8px rgba(31,90,84,.1);}
+  .mini .cap{font-size:12.5px; font-weight:800; color:#4c6b66; margin-bottom:5px;
+             display:flex; align-items:center; gap:5px;}
+  .mini .cap .win{background:var(--good); color:#fff; border-radius:10px; padding:0 7px; font-size:11px;}
+  .mini .grid{gap:1px; padding:2px;}
+  .rhead{font-weight:800; color:var(--teal-dark); margin-top:16px; font-size:15px;}
+  .rhead span{font-weight:600; color:#4c6b66; font-size:13.5px;}
+  .final{text-align:center; font-size:clamp(20px,3.2vh,28px); font-weight:800; color:var(--teal-dark);}
+  .scoreline{display:flex; justify-content:center; gap:18px; margin-top:8px; flex-wrap:wrap;}
+  .scoreline div{background:#fff; border-radius:14px; padding:8px 16px; font-weight:800;
+                 box-shadow:0 2px 8px rgba(31,90,84,.12);}
+  .quietbtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:9px 16px; font-size:15px; font-weight:700; margin-top:14px;
+  }
+  .quietbtn:hover{background:#eef7f5;}
+
+  /* ---------- veils / toast ---------- */
+  .veil{position:fixed; inset:0; z-index:80; display:none; align-items:center;
+        justify-content:center; background:rgba(20,48,45,.72);}
+  .veil.on{display:flex;}
+  #countNum{color:#fff; font-size:clamp(60px,16vh,150px); font-weight:800;}
+  #countNum.vs{font-size:clamp(20px,4vh,38px); text-align:center; max-width:90vw;}
+  #countNum.pop{animation:pop .5s ease-out;}
+  @keyframes pop{0%{transform:scale(.4); opacity:0} 60%{transform:scale(1.12); opacity:1} 100%{transform:scale(1)}}
+  #roundWho{color:#fff; font-size:clamp(24px,5vh,46px); font-weight:800; text-align:center; padding:0 16px;}
+  #toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-90px);
+    z-index:90; background:#22333b; color:#fff; font-size:15px; font-weight:700;
+    padding:10px 20px; border-radius:30px; box-shadow:0 6px 18px rgba(0,0,0,.3);
+    transition:transform .3s ease; pointer-events:none; max-width:82vw; text-align:center;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0);}
+  #confetti{position:fixed; inset:0; z-index:60; pointer-events:none;}
+
+  @media (max-width:820px){
+    .boards{grid-template-columns:1fr;}
+    .rrow{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<canvas id="confetti"></canvas>
+
+<header>
+  <button id="backBtn">← Back</button>
+  <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
+</header>
+
+<main>
+
+  <!-- ============ LOBBY ============ -->
+  <section class="screen on" id="scrHome">
+    <h1>🧱 Paving Race</h1>
+    <p class="sub">Matua Henare needs paved plots. Race another player to lay the rectangle he asks for!</p>
+
+    <div class="card">
+      <h2>New</h2>
+      <button class="newbtn" id="newBtn">➕ New game</button>
+      <p class="sub" style="margin-top:8px">Opens a plot and waits for a challenger.</p>
+    </div>
+
+    <div class="card">
+      <h2>Open plots</h2>
+      <div class="rooms" id="roomList"></div>
+      <p class="empty" id="roomsEmpty">No plots open yet — start one with <b>New game</b>!</p>
+    </div>
+  </section>
+
+  <!-- ============ HOST WAITING ============ -->
+  <section class="screen" id="scrWait">
+    <h1>🧱 Waiting for a challenger…</h1>
+    <div class="card" style="text-align:center">
+      <div style="font-size:52px" id="waitEm">🙂</div>
+      <p class="sub" style="font-size:16px">Your plot is open as <b id="waitAlias">…</b></p>
+      <p class="sub">Tell a friend to pick it from the <b>Open plots</b> list.</p>
+      <button class="quietbtn" id="cancelBtn">✖ Close this plot</button>
+    </div>
+  </section>
+
+  <!-- ============ MATCH ============ -->
+  <section class="screen" id="scrGame">
+    <div class="task">
+      <div class="lead" id="taskLead">ROUND 1 OF 5</div>
+      <div class="goal" id="taskGoal">…</div>
+      <div class="rd" id="taskWorth">…</div>
+    </div>
+    <div class="bar" id="timeBar"><i id="timeFill"></i></div>
+
+    <div class="boards">
+      <div class="board">
+        <h3><span>🧑 You</span><span class="sc" id="myScore">0 W</span></h3>
+        <div class="readout" id="myRead"></div>
+        <div class="veilbox">
+          <div class="grid mine" id="myGrid"></div>
+        </div>
+        <div class="tools">
+          <button class="tool on" id="brushBtn">🖌 Brush</button>
+          <button class="tool" id="eraseBtn">🧽 Eraser</button>
+          <button class="tool" id="undoBtn">⌫ Undo</button>
+          <button class="tool" id="clearBtn">♻️ Clear</button>
+        </div>
+        <p class="keys">Backspace = undo the last stone · hold Space and click = lift a stone</p>
+      </div>
+
+      <div class="board">
+        <h3><span id="oppTitle">🙂 Opponent</span><span class="sc" id="oppScore">0 W</span></h3>
+        <div class="readout" id="oppRead"></div>
+        <div class="veilbox">
+          <div class="grid" id="oppGrid"></div>
+          <div class="hidenote" id="oppHide" style="display:none">🤫 Hidden this round<br><span style="font-size:12.5px">You will see it when the round ends</span></div>
+        </div>
+        <p class="keys" id="oppNote">&nbsp;</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section class="screen" id="scrDone">
+    <h1 id="doneTitle">Results</h1>
+    <p class="final" id="doneLine"></p>
+    <div class="scoreline" id="doneScores"></div>
+    <div id="doneRounds"></div>
+    <div style="text-align:center"><button class="quietbtn" id="doneBack">🏠 Back to games</button></div>
+  </section>
+
+  <div class="veil" id="countWrap"><div id="countNum"></div></div>
+  <div class="veil" id="roundFlash"><div id="roundWho"></div></div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script src="js/game-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var store = window.CharlieStore, G = window.GameCore;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* test hook: shrink every animation/wait so jsdom can play a whole match */
+  var FAST = !!(window.PAVING_TEST_FAST || window.CHARLIE_TEST_FAST);
+  /* lead = the 3·2·1·Go! countdown, so "Go!" lands exactly as the round opens.
+     firstDelay also covers the "you vs them" card at the start of a match. */
+  var DUR = FAST
+    ? {live:20, liveSlow:20, nextDelay:150, firstDelay:150, lead:60, grace:400, tick:40, flash:40}
+    : {live:500, liveSlow:1800, nextDelay:5400, firstDelay:4300, lead:2700, grace:6000, tick:250, flash:1100};
+
+  /* ---------------- session ---------------- */
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem('charlie-session')); }catch(e){}
+  if(!sess && window.CHARLIE_TEST_SESSION) sess = window.CHARLIE_TEST_SESSION;
+  if(!sess || !sess.id){ window.location.replace('index.html'); }
+
+  var me = null;
+  var roomId = null;
+  var room = null;              // latest blob (type 'paving')
+  var SETTINGS = null;
+  var W = G.PAVE_W, H = G.PAVE_H;
+
+  var cells = [];               // my stones, in the order I laid them
+  var tool = 'brush';
+  var spaceDown = false;
+  var claiming = false;         // synchronous latch on the round save
+  var claimingSince = 0;        // …self-releasing, so a lost promise can't freeze the game
+  var roundOpenAt = 0;          // when this round became mine to play
+  var countedFor = -1;          // round index the countdown has already run for
+  var liveFor = -1;             // round index whose grid has been unlocked
+  var revealedFor = -1;         // round index whose result has been flashed
+  var claimedLocal = false, claimBusy = false, payoutOwed = false;
+  var claimStamp = null;
+  var doneShown = false;
+  var tickT = null, pollT = null;
+
+  /* everything that must not survive into the next match */
+  function resetMatchState(){
+    cells = [];
+    claiming = false; claimingSince = 0;
+    roundOpenAt = 0; countedFor = -1; liveFor = -1; revealedFor = -1;
+    claimedLocal = false; claimBusy = false; payoutOwed = false; claimStamp = null;
+    doneShown = false; entering = false; spaceDown = false;
+    liveDirty = false;
+    if(liveT){ clearTimeout(liveT); liveT = null; }
+    tool = 'brush';
+    if(typeof document !== 'undefined' && document && document.body) renderTools();
+  }
+
+  var sndPop = null, sndVictory = null;
+  try{ sndPop = new Audio('assets/pop.mp3'); sndVictory = new Audio('assets/victory.mp3'); }catch(e){}
+  function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
+
+  var audioCtx = null;
+  function beep(freq, dur, when, gain){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      if(!audioCtx) audioCtx = new AC();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      var t = audioCtx.currentTime + (when || 0);
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain || .16, t + .02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + dur + .05);
+    }catch(e){}
+  }
+  function sndCount(isGo){ beep(isGo ? 880 : 660, isGo ? .4 : .12, 0, isGo ? .22 : .14); }
+  function sndStone(){ beep(520, .06, 0, .10); }
+  function sndNope(){ beep(190, .1, 0, .10); }
+
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  }
+
+  var HIDE_CHIP = {scrWait:1, scrGame:1};
+  function show(id){
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
+      s.classList.toggle('on', s.id === id);
+    });
+    $('meChip').style.display = HIDE_CHIP[id] ? 'none' : '';
+  }
+  function current(){
+    var on = document.querySelector('.screen.on');
+    return on ? on.id : '';
+  }
+  function fmtW(n){
+    var r = Math.round(n * 2) / 2;
+    return (r % 1 === 0 ? r : r.toFixed(1)) + ' W';
+  }
+
+  /* -------- 3 · 2 · 1 · Go! -------- */
+  function alive(){ return typeof document !== 'undefined' && document && document.body; }
+  function countdown(cb, vsHtml){
+    if(FAST){ cb(); return; }
+    var seq = ['3','2','1','Go!'], i = 0, el = $('countNum');
+    $('countWrap').classList.add('on');
+    function numbers(){ if(!alive()) return; el.classList.remove('vs'); step(); }
+    (function intro(){
+      if(!vsHtml){ numbers(); return; }
+      el.classList.add('vs');
+      el.innerHTML = vsHtml;
+      el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+      setTimeout(numbers, 1400);
+    })();
+    function step(){
+      if(!alive()) return;
+      if(i >= seq.length){ $('countWrap').classList.remove('on'); cb(); return; }
+      el.textContent = seq[i++];
+      sndCount(i === seq.length);
+      el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+      setTimeout(step, i === seq.length ? 560 : 700);
+    }
+  }
+  function vsLine(m){
+    if(!m || !m.buyers[0]) return null;
+    return esc(m.seller.emoji || '🙂') + ' ' + esc(dispName(m, m.seller, true))
+      + ' <span style="opacity:.7">vs</span> '
+      + esc(m.buyers[0].emoji || '🙂') + ' ' + esc(dispName(m, m.buyers[0], true));
+  }
+  function flashRound(html){
+    if(FAST) return;
+    $('roundWho').innerHTML = html;
+    $('roundFlash').classList.add('on');
+    setTimeout(function(){ if(alive()) $('roundFlash').classList.remove('on'); }, DUR.flash);
+  }
+
+  /* -------- names: the plot list shows an alias, inside the room the real
+     name (unless the teacher switched the class to nicknames) -------- */
+  function nickMode(){ return !!(SETTINGS && SETTINGS.paving && SETTINGS.paving.nicknames); }
+  function hidePref(){ try{ return localStorage.getItem('charlie-hide-real') === '1'; }catch(e){ return false; } }
+  function dispName(m, p, inRoom){
+    if(!p) return '';
+    var alias = p.alias || (m && m.seller && p.id === m.seller.id && m.alias) || 'Mystery Player';
+    if(!inRoom) return alias;
+    return (nickMode() || p.hideReal) ? alias : p.name;
+  }
+  function bumpStat(key){
+    var p = Object.assign({}, (me && me.profile) || {});
+    var s = Object.assign({}, p.stats || {});
+    s[key] = (s[key] || 0) + 1;
+    p.stats = s;
+    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
+  }
+
+  /* ---------------- players / scores ---------------- */
+  function players(m){ return m ? [m.buyers[0], m.seller].filter(Boolean) : []; }
+  function oppOf(m){
+    var ps = players(m);
+    for(var i=0;i<ps.length;i++) if(ps[i].id !== me.id) return ps[i];
+    return null;
+  }
+  function meIn(m){
+    var ps = players(m);
+    for(var i=0;i<ps.length;i++) if(ps[i].id === me.id) return ps[i];
+    return null;
+  }
+  function scoresOf(m){
+    var sc = {};
+    players(m).forEach(function(p){ sc[p.id] = 0; });
+    (m.history || []).forEach(function(h){ if(h.w) sc[h.w] = (sc[h.w] || 0) + h.pts; });
+    return sc;
+  }
+  function shareFor(m, id){
+    var sc = scoresOf(m), own = sc[id] || 0;
+    if(!m.winner) return own;
+    if(m.winner.ids.indexOf(id) === -1) return own;
+    return own + (m.winner.tie ? 0.5 : 1);      /* winner's bonus Whare */
+  }
+  function probOf(m){ return m && m.probs ? m.probs[m.prob] : null; }
+  function roundOver(m){ return !m || m.state === 'done' || m.prob >= m.probs.length; }
+  /* the round is live once its start time has passed */
+  function roundLive(m){
+    return m && m.state === 'playing' && !roundOver(m) && Date.now() >= (m.probStartAt || 0);
+  }
+
+  /* ---------------- shared plumbing ---------------- */
+  function withRoom(fn){
+    return store.getMachine(roomId).then(function(m){
+      if(!m) return null;
+      var out = fn(m);
+      if(!out){ room = m; rerender(); return null; }
+      return store.saveMachine(out).then(function(){ room = out; rerender(); return out; });
+    });
+  }
+  function refresh(){
+    if(typeof document === 'undefined' || !document || !document.body) return Promise.resolve();
+    if(current() === 'scrHome' || !roomId){
+      return store.listMachines().then(function(ms){
+        renderRooms(ms);
+        maybeResume(ms);        /* same list — no extra trip to the database */
+      }).catch(function(){});
+    }
+    return store.getMachine(roomId).then(function(m){
+      if(!m) return;
+      room = m; rerender();
+    }).catch(function(){});
+  }
+  function refreshMe(){
+    return store.list().then(function(all){
+      me = all.filter(function(s){ return s.id === sess.id; })[0] || me;
+      renderChip();
+    });
+  }
+  function renderChip(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
+    if(!me) return;
+    $('meEmoji').textContent = me.emoji || '🙂';
+    $('meName').textContent = me.name;
+    $('meMoney').textContent = (me.money || 0) + ' W';
+  }
+  function rerender(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
+    var scr = current();
+    if(scr === 'scrWait') renderWait();
+    else if(scr === 'scrGame') renderGame();
+    else if(scr === 'scrDone') renderDone();
+    if(room && room.state === 'playing' && (scr === 'scrWait')) enterMatch();
+    if(room && room.state === 'done' && scr === 'scrGame') showResults();
+  }
+  $('meChip').addEventListener('click', function(){ window.location.href = 'hub.html#me'; });
+  $('backBtn').addEventListener('click', function(){
+    if(current() === 'scrHome'){ window.location.href = 'hub.html'; return; }
+    leaveRoom();
+  });
+
+  /* ================= LOBBY ================= */
+  function renderRooms(machines){
+    if(typeof document === 'undefined' || !document || !document.body) return;
+    var open = (machines || []).filter(function(m){
+      return m.type === 'paving' && (m.state === 'open' || m.state === 'playing');
+    });
+    var html = open.map(function(m){
+      var full = (m.buyers || []).length >= 1 || m.state === 'playing';
+      var mine = m.seller && m.seller.id === me.id;
+      return '<button class="room" data-id="' + esc(m.id) + '"' + ((full && !mine) ? ' disabled' : '') + '>'
+        + '<span class="em">' + esc(m.seller.emoji || '🙂') + '</span>'
+        + '<span class="al">' + esc(m.alias || 'Mystery') + '\'s plot</span>'
+        + '<span class="oc">' + (full ? (mine ? 'yours' : 'in play') : 'waiting · tap to play') + '</span>'
+        + '</button>';
+    }).join('');
+    $('roomList').innerHTML = html;
+    $('roomsEmpty').style.display = open.length ? 'none' : '';
+  }
+  $('roomList').addEventListener('click', function(e){
+    var b = e.target.closest('button.room');
+    if(!b || b.disabled) return;
+    var id = b.getAttribute('data-id');
+    store.getMachine(id).then(function(m){
+      if(!m) return;
+      if(m.seller && m.seller.id === me.id){ roomId = m.id; room = m; show('scrWait'); renderWait(); return; }
+      joinRoom(id, 0);
+    }).catch(function(){ toast('That plot has closed — pick another!'); });
+  });
+
+  $('newBtn').addEventListener('click', function(){
+    if(!me) return;
+    var extra = (SETTINGS && SETTINGS.paving && +SETTINGS.paving.extraSecs) || 0;
+    var m = {
+      id: G.machineId(),
+      type: 'paving',
+      created: Date.now(),
+      alias: G.alias(),
+      seller: {id:me.id, name:me.name, emoji:me.emoji || '🙂', alias:G.alias(), hideReal:hidePref()},
+      buyers: [],
+      state: 'open',
+      capacity: 1,
+      probs: G.paveProblems(null, extra),
+      prob: 0,
+      probStartAt: 0,
+      nextDelay: DUR.nextDelay,
+      live: {},
+      history: [],
+      winner: null,
+      claimed: {},
+      left: []
+    };
+    store.saveMachine(m).then(function(){
+      resetMatchState();
+      roomId = m.id; room = m;
+      bumpStat('made');
+      show('scrWait'); renderWait();
+    }).catch(function(){ toast('Could not open the plot — try again!'); });
+  });
+
+  function renderWait(){
+    if(!room) return;
+    $('waitEm').textContent = (room.seller && room.seller.emoji) || '🙂';
+    $('waitAlias').textContent = (room.alias || 'Mystery') + '\'s plot';
+  }
+  $('cancelBtn').addEventListener('click', leaveRoom);
+
+  function joinRoom(id, attempt){
+    return store.getMachine(id).then(function(m){
+      if(!m || m.state !== 'open'){ toast('Just missed it — that plot is busy!'); refresh(); return; }
+      m.buyers = m.buyers || [];
+      m.buyers.push({id:me.id, name:me.name, emoji:me.emoji || '🙂', alias:G.alias(), hideReal:hidePref()});
+      /* second player through the gate starts the match for both of us */
+      m.state = 'playing';
+      m.prob = 0;
+      m.live = {};
+      m.probStartAt = Date.now() + DUR.firstDelay;
+      return store.saveMachine(m).then(function(){
+        return store.getMachine(id).then(function(m2){
+          var isMe = m2 && m2.buyers[0] && m2.buyers[0].id === me.id;
+          if(!isMe){
+            if((attempt || 0) < 2) return joinRoom(id, (attempt || 0) + 1);
+            toast('Just missed it — another player got in!'); refresh(); return;
+          }
+          resetMatchState();
+          roomId = id; room = m2;
+          bumpStat('joined');
+          enterMatch();
+        });
+      });
+    }).catch(function(){ toast('Could not join that plot — try another!'); });
+  }
+
+  /* a Chromebook that reloads mid-match walks straight back onto its plot */
+  function maybeResume(ms){
+    if(roomId || !me || current() !== 'scrHome') return;
+    var mine = (ms || []).filter(function(m){
+      if(!m || m.type !== 'paving' || !m.seller) return false;
+      if((m.left || []).indexOf(me.id) !== -1) return false;
+      var isPlayer = m.seller.id === me.id
+        || (m.buyers || []).some(function(b){ return b && b.id === me.id; });
+      if(!isPlayer) return false;
+      return m.state === 'playing' || (m.state === 'open' && m.seller.id === me.id);
+    }).sort(function(a, b){ return (b.created || 0) - (a.created || 0); })[0];
+    if(!mine) return;
+    roomId = mine.id; room = mine;
+    if(mine.state === 'open'){ show('scrWait'); renderWait(); return; }
+    enterMatch();
+  }
+
+  function leaveRoom(){
+    var id = roomId, was = room;
+    roomId = null; room = null;
+    resetMatchState();
+    show('scrHome'); refresh();
+    if(!id || !was) return;
+    /* an open plot of mine closes; a live match is forfeited politely */
+    store.getMachine(id).then(function(m){
+      if(!m) return;
+      if(m.state === 'open' && m.seller.id === me.id){ m.state = 'done'; m.closed = true; return store.saveMachine(m); }
+      /* walking away is final — the plot must not pull us back in */
+      m.left = m.left || [];
+      if(m.left.indexOf(me.id) === -1){ m.left.push(me.id); return store.saveMachine(m); }
+    }).catch(function(){});
+  }
+
+  /* ================= MATCH ================= */
+  var entering = false;
+  function enterMatch(){
+    if(entering || current() === 'scrGame' || current() === 'scrDone') return;
+    entering = true;
+    cells = [];
+    buildGrids();
+    var startedFor = roomId;
+    countdown(function(){
+      entering = false;
+      /* they may have walked away while the countdown was running */
+      if(!roomId || roomId !== startedFor || !room) return;
+      countedFor = room.prob;
+      roundOpenAt = Date.now();
+      show('scrGame');
+      renderGame();
+    }, vsLine(room));
+  }
+
+  function buildGrids(){
+    ['myGrid','oppGrid'].forEach(function(gid){
+      var g = $(gid);
+      if(g.childNodes.length === W * H) return;
+      var html = '';
+      for(var y=0;y<H;y++) for(var x=0;x<W;x++){
+        html += (gid === 'myGrid')
+          ? '<button class="c" data-x="' + x + '" data-y="' + y + '"></button>'
+          : '<div class="c" data-x="' + x + '" data-y="' + y + '"></div>';
+      }
+      g.innerHTML = html;
+    });
+  }
+  function paintGrid(gridEl, list){
+    var set = {};
+    (list || []).forEach(function(c){ set[c[0] + ',' + c[1]] = 1; });
+    Array.prototype.forEach.call(gridEl.children, function(el){
+      var k = el.getAttribute('data-x') + ',' + el.getAttribute('data-y');
+      el.classList.toggle('on', !!set[k]);
+    });
+  }
+
+  function renderGame(){
+    var m = room;
+    if(!m) return;
+    if(m.state === 'done'){ showResults(); return; }
+    var pr = probOf(m);
+    if(!pr) return;
+    var live = roundLive(m);
+    var last = m.history.length ? m.history[m.history.length - 1] : null;
+    var showingLast = !live && last;          /* between rounds: reveal what happened */
+
+    $('taskLead').textContent = 'ROUND ' + (m.prob + 1) + ' OF ' + m.probs.length;
+    $('taskGoal').innerHTML = 'Build a rectangle with perimeter <b>' + pr.p + ' m</b> and area <b>' + pr.a + ' m²</b>';
+    $('taskWorth').textContent = 'Worth ' + fmtW(pr.pts) + (pr.hidden ? ' · your measurements are hidden!' : '');
+
+    var sc = scoresOf(m), opp = oppOf(m);
+    $('myScore').textContent = fmtW(sc[me.id] || 0);
+    $('oppScore').textContent = fmtW((opp && sc[opp.id]) || 0);
+    $('oppTitle').textContent = (opp ? (opp.emoji || '🙂') + ' ' + dispName(m, opp, true) : '🙂 Opponent');
+
+    /* my readout — off for the last two rounds */
+    var mine = G.paveMetrics(cells);
+    $('myRead').innerHTML = pr.hidden
+      ? '<span class="hid">🙈 Perimeter hidden</span><span class="hid">🙈 Area hidden</span>'
+      : '<span>Perimeter ' + mine.p + ' m</span><span>Area ' + mine.a + ' m²</span>';
+
+    /* my grid */
+    var myShape = showingLast ? ((last.shapes && last.shapes[me.id]) || cells) : cells;
+    paintGrid($('myGrid'), myShape);
+    $('myGrid').classList.toggle('locked', !live);
+    $('myGrid').classList.toggle('era', tool === 'erase');
+    $('myGrid').classList.toggle('done', !!(showingLast && last.w === me.id));
+
+    /* opponent grid: live only in round 1, otherwise revealed when the round ends */
+    var oppCells = [];
+    var blind = false;
+    if(showingLast) oppCells = (opp && last.shapes && last.shapes[opp.id]) || [];
+    else if(m.prob === 0) oppCells = (opp && m.live && m.live[opp.id] && m.live[opp.id].cells) || [];
+    else blind = true;
+    paintGrid($('oppGrid'), oppCells);
+    $('oppHide').style.display = blind ? '' : 'none';
+    $('oppGrid').classList.toggle('done', !!(showingLast && opp && last.w === opp.id));
+    $('oppRead').innerHTML = (showingLast || m.prob === 0)
+      ? (function(){ var k = G.paveMetrics(oppCells); return '<span>Perimeter ' + k.p + ' m</span><span>Area ' + k.a + ' m²</span>'; })()
+      : '<span class="hid">🙈 Hidden</span>';
+    $('oppNote').textContent = showingLast
+      ? (last.w === me.id ? '🎉 You won that round!' : (last.w ? '😮 They got it first' : '⏰ Nobody finished that one'))
+      : (m.prob === 0 ? 'Round 1 — you can watch each other!' : '');
+
+    renderBar(m);
+  }
+  function renderBar(m){
+    var pr = probOf(m);
+    if(!pr || !m.probStartAt){ $('timeFill').style.width = '100%'; return; }
+    var span = pr.secs * 1000;
+    var goneMs = Date.now() - m.probStartAt;
+    var left = roundLive(m) ? Math.max(0, 1 - goneMs / span) : 1;
+    $('timeFill').style.width = Math.round(left * 100) + '%';
+    $('timeBar').classList.toggle('low', left < 0.25);
+  }
+
+  /* ---------- laying stones ---------- */
+  /* play stops when the bar empties — the extra grace is only there to let a
+     client write the "nobody finished" row, never to sneak a late win */
+  function canPlay(){
+    if(!room || !roundLive(room) || busyClaiming()) return false;
+    var pr = probOf(room);
+    return !!pr && Date.now() < room.probStartAt + pr.secs * 1000;
+  }
+  /* the latch releases itself if a promise never comes back */
+  function busyClaiming(){
+    if(!claiming) return false;
+    if(Date.now() - claimingSince > 10000){ claiming = false; return false; }
+    return true;
+  }
+  function startClaim(){ claiming = true; claimingSince = Date.now(); }
+  $('myGrid').addEventListener('click', function(e){
+    var b = e.target.closest('.c');
+    if(!b) return;
+    if(!canPlay()){ return; }
+    var x = +b.getAttribute('data-x'), y = +b.getAttribute('data-y');
+    if(tool === 'erase' || spaceDown) eraseAt(x, y); else paintAt(x, y);
+  });
+  function paintAt(x, y){
+    if(G.paveHas(cells, x, y)){ eraseAt(x, y); return; }
+    if(!G.paveCanPaint(cells, x, y, W, H)){
+      sndNope();
+      toast(cells.length ? 'Stones must touch and keep a rectangle shape 🧱' : 'Tap any square to start');
+      return;
+    }
+    cells.push([x, y]);
+    sndStone();
+    afterEdit();
+  }
+  function eraseAt(x, y){
+    if(!G.paveHas(cells, x, y)) return;
+    if(!G.paveCanErase(cells, x, y)){ sndNope(); toast('That would leave a hole — try ⌫ Undo'); return; }
+    cells = cells.filter(function(c){ return !(c[0]===x && c[1]===y); });
+    afterEdit();
+  }
+  function undo(){
+    if(!canPlay() || !cells.length) return;
+    cells.pop();
+    afterEdit();
+  }
+  function clearAll(){
+    if(!canPlay() || !cells.length) return;
+    cells = [];
+    afterEdit();
+  }
+  function afterEdit(){
+    renderGame();
+    pushLive();
+    checkSolved();
+  }
+  $('brushBtn').addEventListener('click', function(){ tool = 'brush'; renderTools(); });
+  $('eraseBtn').addEventListener('click', function(){ tool = 'erase'; renderTools(); });
+  $('undoBtn').addEventListener('click', undo);
+  $('clearBtn').addEventListener('click', clearAll);
+  function renderTools(){
+    $('brushBtn').classList.toggle('on', tool === 'brush');
+    $('eraseBtn').classList.toggle('on', tool === 'erase');
+    $('myGrid').classList.toggle('era', tool === 'erase');
+  }
+  /* the shortcuts belong to the match screen only — elsewhere Space must
+     still work the buttons for anyone using a keyboard */
+  document.addEventListener('keydown', function(e){
+    if(current() !== 'scrGame') return;
+    var tag = (e.target && e.target.tagName || '').toLowerCase();
+    if(tag === 'input' || tag === 'textarea') return;
+    if(e.key === ' ' || e.key === 'Spacebar'){ spaceDown = true; e.preventDefault(); return; }
+    if(e.key === 'Backspace'){ undo(); e.preventDefault(); }
+  });
+  document.addEventListener('keyup', function(e){
+    if(e.key === ' ' || e.key === 'Spacebar') spaceDown = false;
+  });
+  /* alt-tabbing while holding Space must not leave the eraser stuck on */
+  window.addEventListener('blur', function(){ spaceDown = false; });
+
+  /* ---------- live sync of my plot ---------- */
+  var liveT = null, liveDirty = false;
+  function pushLive(){
+    if(!roomId || !room || room.state !== 'playing') return;
+    liveDirty = true;
+    if(liveT) return;
+    /* the opponent's plot is only on screen in round 1 — after that a slower
+       trickle is plenty, it just has to be recent when the round closes */
+    var wait = room.prob === 0 ? DUR.live : DUR.liveSlow;
+    var forProb = room.prob;
+    liveT = setTimeout(function(){
+      liveT = null;
+      if(!liveDirty) return;
+      liveDirty = false;
+      if(!roomId || !room || room.prob !== forProb) return;
+      var snapshot = cells.slice();
+      store.getMachine(roomId).then(function(mm){
+        if(!mm || mm.state !== 'playing' || mm.prob !== forProb) return;
+        var expected = mm.prob;
+        mm.live = mm.live || {};
+        mm.live[me.id] = {cells:snapshot, t:Date.now(), prob:forProb};
+        /* compare-and-swap so a live dab can never undo a finished round */
+        return store.saveMachineIf(mm, expected);
+      }).catch(function(){});
+    }, wait);
+  }
+
+  /* ---------- winning a round ---------- */
+  function checkSolved(){
+    var m = room;
+    if(!m || !roundLive(m) || busyClaiming()) return;
+    var pr = probOf(m);
+    if(!G.paveSolved(cells, pr)) return;
+    startClaim();
+    var secs = Math.max(0.1, (Date.now() - Math.max(m.probStartAt, roundOpenAt)) / 1000);
+    var snapshot = cells.slice();
+    store.getMachine(roomId).then(function(mm){
+      if(!mm || mm.state !== 'playing' || mm.prob !== m.prob){ claiming = false; if(mm){ room = mm; rerender(); } return; }
+      var expected = mm.prob;
+      mm.live = mm.live || {};
+      mm.live[me.id] = {cells:snapshot, t:Date.now(), prob:expected};
+      resolveRound(mm, me.id, secs);
+      return store.saveMachineIf(mm, expected).then(function(won){
+        claiming = false;
+        if(!won){ return refresh(); }
+        room = mm;
+        bumpStat('solved');
+        play(sndPop);
+        flashRound('🎉 Round won!<br><span style="font-size:.55em">' + fmtW(probOf({probs:m.probs, prob:expected}) ? m.probs[expected].pts : 0) + '</span>');
+        rerender();
+      });
+    }).catch(function(){ claiming = false; });
+  }
+  /* fill in the round row, clear the plots and set the next one going */
+  function resolveRound(mm, winnerId, secs){
+    var pr = mm.probs[mm.prob];
+    var shapes = {};
+    Object.keys(mm.live || {}).forEach(function(k){
+      var e = mm.live[k];
+      /* only snapshots from THIS round — a late dab must not leak into it */
+      if(e && (e.prob === undefined || e.prob === mm.prob)) shapes[k] = (e.cells || []).slice();
+    });
+    mm.history.push({
+      i: mm.prob, w: winnerId || null,
+      secs: winnerId ? Math.round(secs * 10) / 10 : null,
+      pts: winnerId ? pr.pts : 0,
+      p: pr.p, a: pr.a, l: pr.l, b: pr.b,
+      shapes: shapes
+    });
+    mm.live = {};
+    mm.prob++;
+    mm.probStartAt = Date.now() + (mm.nextDelay || DUR.nextDelay);
+    if(mm.prob >= mm.probs.length) finalise(mm);
+  }
+  function finalise(mm){
+    mm.state = 'done';
+    var sc = scoresOf(mm), ps = players(mm);
+    if(ps.length < 2){ mm.winner = {tie:false, ids:[ps[0] ? ps[0].id : me.id]}; return; }
+    var a = ps[0], b = ps[1], as = sc[a.id] || 0, bs = sc[b.id] || 0;
+    mm.winner = (as === bs) ? {tie:true, ids:[a.id, b.id]}
+                            : {tie:false, ids:[as > bs ? a.id : b.id]};
+  }
+
+  /* ---------- the clock: countdowns, time-outs, screen changes ---------- */
+  function tick(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
+    var m = room;
+    if(!m || current() !== 'scrGame') return;
+    if(m.state === 'done'){ showResults(); return; }
+    renderBar(m);
+
+    var startsIn = (m.probStartAt || 0) - Date.now();
+    /* lead the next round in with 3 · 2 · 1 · Go! */
+    if(!roundOver(m) && startsIn > 0 && countedFor !== m.prob && startsIn <= DUR.lead){
+      countedFor = m.prob;
+      countdown(function(){
+        cells = [];
+        roundOpenAt = Date.now();
+        renderGame();
+      }, null);
+      return;
+    }
+    if(!roundOver(m) && startsIn <= 0 && countedFor !== m.prob){
+      countedFor = m.prob;
+      cells = [];
+      roundOpenAt = Date.now();
+      renderGame();
+      return;
+    }
+    /* the moment the round actually opens, unlock the grid — waiting for the
+       next poll would hand whoever polls first a head start */
+    if(!roundOver(m) && roundLive(m) && liveFor !== m.prob){
+      liveFor = m.prob;
+      roundOpenAt = Date.now();
+      renderGame();
+    }
+    /* nobody finished in time — close the round off */
+    var pr = probOf(m);
+    if(pr && roundLive(m) && !busyClaiming()){
+      var overdue = Date.now() - (m.probStartAt + pr.secs * 1000);
+      if(overdue > DUR.grace){
+        startClaim();
+        store.getMachine(roomId).then(function(mm){
+          if(!mm || mm.state !== 'playing' || mm.prob !== m.prob){
+            claiming = false;
+            if(mm){ room = mm; rerender(); }        // the other client got there first
+            return;
+          }
+          var expected = mm.prob;
+          resolveRound(mm, null, 0);
+          return store.saveMachineIf(mm, expected).then(function(){
+            claiming = false; return refresh();
+          });
+        }).catch(function(){ claiming = false; });
+      }
+    }
+    if(m.history.length && revealedFor !== m.history.length - 1){
+      revealedFor = m.history.length - 1;
+      renderGame();
+    }
+  }
+
+  /* ================= RESULTS ================= */
+  function showResults(){
+    if(doneShown){ claimIfMine(room); return; }   // keeps retrying a failed payout
+    doneShown = true;
+    show('scrDone');
+    renderDone();
+    var m = room;
+    var iWon = m && m.winner && m.winner.ids.indexOf(me.id) !== -1;
+    if(iWon){ confetti(); play(sndVictory); }
+    claimIfMine(m);
+  }
+  function miniGrid(list, extraCls){
+    var set = {};
+    (list || []).forEach(function(c){ set[c[0] + ',' + c[1]] = 1; });
+    var html = '<div class="grid ' + (extraCls || '') + '">';
+    for(var y=0;y<H;y++) for(var x=0;x<W;x++){
+      html += '<div class="c' + (set[x + ',' + y] ? ' on' : '') + '"></div>';
+    }
+    return html + '</div>';
+  }
+  function answerCells(h){
+    var out = [], l = h.l || 1, b = h.b || 1;
+    for(var y=0;y<b;y++) for(var x=0;x<l;x++) out.push([x, y]);
+    return out;
+  }
+  function renderDone(){
+    var m = room;
+    if(!m) return;
+    var sc = scoresOf(m), opp = oppOf(m), mineP = meIn(m);
+    var iWon = m.winner && m.winner.ids.indexOf(me.id) !== -1;
+    var tie = m.winner && m.winner.tie;
+
+    $('doneTitle').textContent = tie ? '🤝 A dead heat!' : (iWon ? '🎉 You win!' : 'Good race!');
+    $('doneLine').textContent = tie
+      ? 'You both paved the same amount — half a Whare each as a bonus.'
+      : (iWon ? 'You paved fastest — 1 W winner\'s bonus on top!'
+              : (opp ? dispName(m, opp, true) + ' paved fastest this time.' : ''));
+
+    $('doneScores').innerHTML =
+      '<div>🧑 ' + esc(dispName(m, mineP, true)) + ' · ' + fmtW(shareFor(m, me.id)) + '</div>'
+      + (opp ? '<div>' + esc(opp.emoji || '🙂') + ' ' + esc(dispName(m, opp, true)) + ' · ' + fmtW(shareFor(m, opp.id)) + '</div>' : '');
+
+    $('doneRounds').innerHTML = (m.history || []).map(function(h){
+      var who = h.w === me.id ? 'You' : (h.w ? (opp ? dispName(m, opp, true) : 'They') : 'Nobody');
+      var when = h.w ? ' in ' + h.secs + 's' : '';
+      var myCells = (h.shapes && h.shapes[me.id]) || [];
+      var opCells = (opp && h.shapes && h.shapes[opp.id]) || [];
+      return '<div class="rhead">Round ' + (h.i + 1) + ' · perimeter ' + h.p + ' m · area ' + h.a + ' m² '
+        + '<span>— ' + esc(who) + (h.w ? ' won ' + fmtW(h.pts) + when : ' finished it') + '</span></div>'
+        + '<div class="rrow">'
+        + '<div class="mini"><div class="cap">🧑 You' + (h.w === me.id ? '<span class="win">✓</span>' : '') + '</div>' + miniGrid(myCells) + '</div>'
+        + '<div class="mini"><div class="cap">' + esc(opp ? (opp.emoji || '🙂') : '🙂') + ' Them' + (h.w && h.w !== me.id ? '<span class="win">✓</span>' : '') + '</div>' + miniGrid(opCells) + '</div>'
+        + '<div class="mini"><div class="cap">✅ Answer (' + h.l + ' × ' + h.b + ')</div>' + miniGrid(answerCells(h), 'done') + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  /* each player banks their own Whare, exactly once */
+  function claimIfMine(m){
+    if(claimBusy) return Promise.resolve();
+    if(claimedLocal && !payoutOwed) return Promise.resolve();
+    if(!m || !meIn(m)) return Promise.resolve();
+    claimBusy = true;
+    claimedLocal = true;
+    /* the stamp is ours alone: if a second tab of the same student got there
+       first its stamp wins and we quietly do nothing */
+    if(!claimStamp) claimStamp = me.id + ':' + Date.now() + ':' + Math.random().toString(36).slice(2);
+    var step = payoutOwed
+      ? Promise.resolve(m)
+      : withRoom(function(mm){
+          if(!mm.claimed) mm.claimed = {};
+          if(mm.claimed[me.id]) return null;
+          mm.claimed[me.id] = claimStamp;
+          return mm;
+        });
+    return step.then(function(mm){
+      if(!mm && !payoutOwed){ claimBusy = false; return; }
+      var src = mm || m;
+      /* read it back: last-write-wins could have dropped our stamp */
+      return store.getMachine(roomId).then(function(check){
+        if(check && check.claimed && check.claimed[me.id] !== claimStamp){
+          claimBusy = false; payoutOwed = false;      // someone else is paying us
+          return;
+        }
+        payoutOwed = true;
+        var myMoney = shareFor(src, me.id);
+        if(!myMoney){ payoutOwed = false; claimBusy = false; return; }
+        return store.list().then(function(all){
+          var mine = all.filter(function(s){ return s.id === me.id; })[0];
+          if(!mine) return;
+          return store.update(me.id, {money: (mine.money || 0) + myMoney});
+        }).then(function(){
+          payoutOwed = false;
+          refreshMe();
+          return withRoom(function(mm2){
+            if(!mm2.claimed) mm2.claimed = {};
+            if(mm2.claimed[me.id] === claimStamp) return null;
+            mm2.claimed[me.id] = claimStamp;
+            return mm2;
+          });
+        }).then(function(){ claimBusy = false; });
+      });
+    }).catch(function(err){
+      claimBusy = false;
+      payoutOwed = true;          // armed: the next look at the results retries
+      if(FAST) window.__claimErr = String(err && (err.stack || err.message || err));
+    });
+  }
+  /* never navigate out from under a payment that is still in flight */
+  $('doneBack').addEventListener('click', function(){
+    var btn = $('doneBack');
+    btn.disabled = true;
+    var go = function(){ leaveRoom(); window.location.href = 'hub.html'; };
+    var waited = 0;
+    (function wait(){
+      if((!claimBusy && !payoutOwed) || waited > 2500){ go(); return; }
+      waited += 120;
+      setTimeout(wait, 120);
+    })();
+  });
+
+  function confetti(){
+    var cv = $('confetti'), ctx = null;
+    try{ ctx = cv.getContext && cv.getContext('2d'); }catch(e){}
+    if(!ctx || !window.requestAnimationFrame) return;
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var bits = [], colors = ['#e63946','#ffee32','#2a9d34','#4a82bd','#c2547d','#f4a261'];
+    for(var i=0;i<160;i++){
+      bits.push({x:Math.random()*cv.width, y:-20-Math.random()*cv.height*0.5,
+                 w:6+Math.random()*7, h:9+Math.random()*8,
+                 vy:2+Math.random()*3.5, vx:Math.random()*2-1,
+                 rot:Math.random()*Math.PI, vr:Math.random()*0.2-0.1,
+                 c:colors[i%colors.length]});
+    }
+    var t0 = Date.now();
+    (function draw(){
+      ctx.clearRect(0,0,cv.width,cv.height);
+      bits.forEach(function(b){
+        b.y += b.vy; b.x += b.vx; b.rot += b.vr;
+        ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.rot);
+        ctx.fillStyle = b.c; ctx.fillRect(-b.w/2,-b.h/2,b.w,b.h);
+        ctx.restore();
+      });
+      if(Date.now()-t0 < 4200) requestAnimationFrame(draw);
+      else ctx.clearRect(0,0,cv.width,cv.height);
+    })();
+  }
+
+  /* ---------------- boot ---------------- */
+  var closing = false;
+  /* the teacher can close the game mid-lesson: anyone still in the lobby is
+     walked back to the hub, but a match already running finishes in peace */
+  function checkClosed(){
+    if(closing || (roomId && current() !== 'scrHome')) return Promise.resolve();
+    return store.getMachine('game-settings').then(function(s){
+      if(s) SETTINGS = s;
+      if(!(s && s.hidden && s.hidden.paving)) return;
+      closing = true;
+      toast('🧱 Your teacher has closed Paving Race for now.');
+      setTimeout(function(){ if(alive()) window.location.href = 'hub.html'; }, 1600);
+    }).catch(function(){});
+  }
+  buildGrids();
+  renderTools();
+  store.init().then(function(){
+    checkClosed();
+    /* realtime nudges keep the plot fresh; the steady poll carries the rest,
+       so a busy class isn't re-querying everything on every keystroke */
+    store.onChange(function(){ refresh(); });
+    pollT = setInterval(function(){ refresh(); refreshMe(); checkClosed(); }, FAST ? 300 : 3000);
+    tickT = setInterval(tick, DUR.tick);
+    window.addEventListener('pagehide', function(){
+      clearInterval(pollT); clearInterval(tickT);
+    });
+    return refreshMe();
+  }).then(function(){
+    return refresh();
+  }).catch(function(){
+    toast('Hmm, the game can\'t reach the class database. Ask your teacher!');
+  });
+})();
+</script>
+</body>
+</html>

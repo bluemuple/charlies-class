@@ -385,6 +385,11 @@
       <span class="t">Algebra Machine</span>
       <span class="badge">▶ Play now</span>
     </button>
+    <button class="game" id="pavingGame">
+      <span class="art">🧱</span>
+      <span class="t">Paving Race</span>
+      <span class="badge">▶ Play now</span>
+    </button>
   </div>
 </main>
 
@@ -1349,6 +1354,9 @@
   $('algebraGame').addEventListener('click', function(){
     window.location.href = 'algebra.html';
   });
+  $('pavingGame').addEventListener('click', function(){
+    window.location.href = 'paving.html';
+  });
 
   /* ---------------- init ---------------- */
   /* results-name: checked = show (the stored flag still means "hide");
@@ -1379,7 +1387,8 @@
       if(!s || !s.hidden) return;
       if(s.hidden.alzebra) $('alzebraGame').style.display = 'none';
       if(s.hidden.algebra) $('algebraGame').style.display = 'none';
-      if(s.hidden.alzebra && s.hidden.algebra){
+      if(s.hidden.paving) $('pavingGame').style.display = 'none';
+      if(s.hidden.alzebra && s.hidden.algebra && s.hidden.paving){
         document.querySelector('.games').insertAdjacentHTML('beforeend',
           '<div style="grid-column:1/-1;text-align:center;color:#7a8f8b;font-weight:700;padding:26px 0">'
           + '😴 The games are having a rest — see you next time!</div>');
