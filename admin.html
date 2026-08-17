@@ -272,6 +272,10 @@
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setTriOn" checked> Visible to students</label>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setTriNick"> Use nicknames on the ranking</label>
+        <button id="triReset" style="border:2px solid #e6c9c9;background:#fff;color:#c3323f;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer">🗑 Clear the ranking</button>
+        <span id="triResetMsg" style="font-size:12.5px;font-weight:700;color:#2a9d34;margin-left:6px"></span>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setPaveNick"> Use nicknames instead of real names</label>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:4px">
           <input type="checkbox" id="setPaveMeasureOn" checked> Measuring questions
@@ -578,6 +582,19 @@
   /* ---------------- student feedback ---------------- */
   function esc2(s){ return String(s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  document.getElementById('triReset').addEventListener('click', function(){
+    if(!window.confirm('Clear the Try Triangles ranking for the whole class?')) return;
+    var btn = document.getElementById('triReset'), msg = document.getElementById('triResetMsg');
+    btn.disabled = true;
+    store.saveMachine({id:'triangle-scores', type:'scores', created: Date.now(), entries:[]})
+      .then(function(){
+        msg.textContent = 'Ranking cleared ✓';
+        setTimeout(function(){ msg.textContent = ''; }, 2200);
+      })
+      .catch(function(){ msg.style.color = '#c3323f'; msg.textContent = 'Could not clear — try again'; })
+      .then(function(){ btn.disabled = false; });
+  });
+
   function loadFeedback(){
     store.getMachine('feedback-log').then(function(log){
       var list = document.getElementById('fbList');
@@ -627,6 +644,7 @@
       document.getElementById('setZebraSkip').checked = !!(g.alzebra && g.alzebra.skipStock);
       document.getElementById('setPaveOn').checked = !hid.paving;
       document.getElementById('setTriOn').checked = !hid.triangles;
+      document.getElementById('setTriNick').checked = !!(g.triangles && g.triangles.nicknames);
       document.getElementById('setPaveNick').checked = !!(g.paving && g.paving.nicknames);
       document.getElementById('setPaveSecs').value =
         (g.paving && g.paving.extraSecs) || GAME_DEFAULTS.paving.extraSecs;
@@ -649,6 +667,7 @@
                 algebra: !document.getElementById('setAlgOn').checked,
                 paving: !document.getElementById('setPaveOn').checked,
                 triangles: !document.getElementById('setTriOn').checked},
+        triangles:{nicknames: document.getElementById('setTriNick').checked},
         paving:{nicknames: document.getElementById('setPaveNick').checked,
                 extraSecs: Math.max(0, +document.getElementById('setPaveSecs').value || 0),
                 measure: document.getElementById('setPaveMeasureOn').checked
@@ -676,7 +695,7 @@
   }
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
    'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
-   'setPaveOn','setPaveNick','setPaveSecs','setTriOn',
+   'setPaveOn','setPaveNick','setPaveSecs','setTriOn','setTriNick',
    'setPaveMeasureOn','setPaveMeasure','setPaveBuildOn','setPaveBuild']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);

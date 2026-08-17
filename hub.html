@@ -316,6 +316,19 @@
   }
 
   /* pet shop grid (silhouettes until they come home) */
+  .snack-grid{display:grid; grid-template-columns:repeat(auto-fill,90px); gap:8px;}
+  .snack-grid button{
+    border:2px solid #e2edeb; border-radius:12px; background:#fbfdfc; padding:6px;
+    position:relative; transition:.12s;
+  }
+  .snack-grid button:hover{transform:translateY(-3px); border-color:var(--teal);}
+  .snack-grid button[disabled]{opacity:.45; cursor:default; transform:none;}
+  .snack-grid .nm{font-size:9.5px; font-weight:700; color:#5c7671; display:block; margin-top:3px;
+                  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .snack-grid .pp{
+    position:absolute; top:-6px; right:-6px; background:var(--yellow); color:#6b5c00;
+    font-size:10.5px; font-weight:800; border-radius:12px; padding:1px 7px;
+  }
   .pet-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
   .pet-grid button{
     border:2px solid #e2edeb; border-radius:14px; background:#fbfdfc; padding:10px;
@@ -469,6 +482,10 @@
         Collect as many pets as you like — each one eats snacks and learns
         its own superpowers as your hearts grow.</p>
       <div class="pet-grid" id="petGrid"></div>
+      <h3 style="font-size:15px;color:var(--teal-dark);margin:16px 0 4px">🍪 Snack counter</h3>
+      <p style="font-size:13px;color:#8aa19c;margin-bottom:8px">
+        Treats to feed your pets — every snack is +5 ❤️.</p>
+      <div class="snack-grid" id="snackGrid"></div>
       <button class="prof-btn quiet" id="shopBack">← Never mind</button>
     </div>
       </div>
@@ -794,7 +811,46 @@
     }).catch(function(){ toast('Hmm, that didn\'t save — try again!'); });
   }
 
+  /* the treats on sale: plain snacks 1 W, nicer ones 2 W, the fancy few 3 W */
+  var SNACK_PRICE = {
+    water:1, mints:1, pretzels:1, popcorn:1, cornchips:1, biscuits:1,
+    cola:2, soda:2, juice:2, chips:2, cookie:2, wafers:2, gummies:2, muesli:2,
+    energy:3, coffee:3, chocmilk:3, chocolate:3, trailmix:3, noodles:3
+  };
+  function renderSnacks(){
+    var money = me.money || 0;
+    $('snackGrid').innerHTML = Object.keys(SNACK_PRICE).map(function(k){
+      var p = G.PRODUCTS[k];
+      if(!p) return '';
+      var price = SNACK_PRICE[k];
+      return '<button data-s="' + k + '"' + (money < price ? ' disabled' : '')
+        + ' title="' + esc(p.name) + ' — ' + price + ' Whare">'
+        + '<span class="pp">' + price + ' W</span>' + spriteDiv(k)
+        + '<span class="nm">' + esc(p.name) + '</span></button>';
+    }).join('');
+  }
+  var snackBusy = false;
+  $('snackGrid').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-s]');
+    if(!b || b.disabled || snackBusy) return;
+    var k = b.dataset.s, p = G.PRODUCTS[k], price = SNACK_PRICE[k];
+    if(!p) return;
+    if((me.money || 0) < price){
+      toast('Save up! The ' + p.name + ' costs ' + price + ' Whare.');
+      return;
+    }
+    if(!window.confirm('Buy the ' + p.name + ' for ' + price + ' Whare?')) return;
+    snackBusy = true;
+    var items = (me.items || []).concat([k]);
+    store.update(me.id, {items: items, money: (me.money || 0) - price}).then(function(){
+      me.items = items; me.money = (me.money || 0) - price;
+      toast('🍪 ' + p.name + ' added to My stuff — feed it to a pet!');
+      return refresh();
+    }).then(function(){ snackBusy = false; })
+      .catch(function(){ snackBusy = false; toast('Hmm, that didn\'t save — try again!'); });
+  });
   function renderShop(){
+    renderSnacks();
     $('petGrid').innerHTML = Object.keys(PETS).map(function(t){
       var m = PETS[t];
       return '<button data-t="' + t + '"><img src="assets/pets/s' + t + '.jpg" alt="mystery pet">'

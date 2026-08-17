@@ -56,6 +56,7 @@
   }
   .tut-flex{display:flex; gap:22px; align-items:center; justify-content:center; flex-wrap:wrap;}
   .tut-stage{flex:1 1 430px; max-width:560px; min-width:300px;}
+  .tut-stage svg{max-height:52vh; display:block; margin:0 auto;}
   .tut-side{flex:0 1 330px; min-width:280px;}
   svg .grid{stroke:#d9e6e2; stroke-width:1;}
   svg .frame{stroke:#b9cdc9; stroke-width:1.5; fill:none;}
@@ -117,7 +118,7 @@
 
   /* ---------------- play ---------------- */
   #timerWrap{height:14px; background:#e2edeb; border-radius:8px; overflow:hidden; margin-bottom:6px;}
-  #timerBar{height:100%; width:0%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .25s linear;}
+  #timerBar{height:100%; width:100%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .25s linear;}
   #timerBar.mid{background:linear-gradient(90deg,#e8a33d,#f4cf6a);}
   #timerBar.low{background:linear-gradient(90deg,#e63946,#f4a261);}
   .pts-row{display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap;
@@ -127,6 +128,7 @@
     font-size:15px; font-weight:800;
   }
   #ptsNow.mid{background:#e8a33d;} #ptsNow.low{background:#e63946;}
+  #timeLeft{font-size:13px; font-weight:800; color:#8aa19c;}
   .q-head{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:6px;}
   .q-count{font-size:13px; font-weight:800; color:#8aa19c;}
   #scoreLine{
@@ -138,7 +140,8 @@
     font-size:19px; font-weight:800; pointer-events:none;
   }
   .q-flex{display:flex; gap:22px; align-items:center; justify-content:center; flex-wrap:wrap;}
-  .q-fig{flex:1 1 380px; max-width:480px; min-width:280px;}
+  .q-fig{flex:1 1 360px; max-width:420px; min-width:260px;}
+  .q-fig svg{max-height:46vh; display:block; margin:0 auto;}
   .q-side{flex:0 1 320px; min-width:270px;}
   .q-ask{font-size:16px; font-weight:800; color:var(--teal-dark); margin-bottom:10px; line-height:1.5;}
   .q-ask .lbl{background:#e3f4f0; border-radius:8px; padding:1px 8px;}
@@ -238,7 +241,8 @@
     <div id="timerWrap"><div id="timerBar"></div></div>
     <div class="pts-row">
       <span>The faster you solve, the more score you get.</span>
-      <span id="ptsNow">30 pts</span>
+      <span id="ptsNow">50 pts</span>
+      <span id="timeLeft">120s left</span>
     </div>
     <div class="card">
       <div class="q-head"><span class="q-count" id="qCount">Question 1 of 8</span></div>
@@ -804,10 +808,16 @@
 
   /* ================= the game ================= */
   var MAXT = 120, BEST_PAY = 2, round = [], qi = 0, score = 0, hintUsed = false;
+  /* 50 points for a really quick answer, easing down 1 point every 2 seconds,
+     and never below 20 once a minute has gone — slow thinking still pays */
+  var PTS_MAX = 50, PTS_FLOOR = 20, FLOOR_AT = 60;
   var qStart = 0, timerIv = null, answering = false;
-  var roster = [], FR_SETTINGS = {hidden:false, showNames:false}, scoreBlob = null;
+  var roster = [], TRI_NICK = false, scoreBlob = null;
 
-  function ptsFor(t){ return Math.max(3, 30 - 3 * Math.floor(t / 5)); }
+  function ptsFor(t){
+    if(t >= FLOOR_AT) return PTS_FLOOR;
+    return Math.max(PTS_FLOOR, PTS_MAX - Math.floor(t / 2));
+  }
   function elapsed(){ return (Date.now() - qStart) / 1000; }
   function stopTimer(){ if(timerIv){ clearInterval(timerIv); timerIv = null; } }
   function startTimer(){
@@ -818,14 +828,16 @@
   }
   function tick(){
     var t = Math.min(MAXT, elapsed());
-    var pct = t / MAXT * 100;
-    $('timerBar').style.width = pct.toFixed(1) + '%';
+    var left = Math.max(0, MAXT - t);
+    $('timerBar').style.width = (left / MAXT * 100).toFixed(1) + '%';
     var p = ptsFor(t);
     $('ptsNow').textContent = p + ' pts';
-    $('timerBar').classList.toggle('mid', p <= 20 && p > 10);
-    $('timerBar').classList.toggle('low', p <= 10);
-    $('ptsNow').classList.toggle('mid', p <= 20 && p > 10);
-    $('ptsNow').classList.toggle('low', p <= 10);
+    $('timeLeft').textContent = Math.ceil(left) + 's left';
+    var warm = t >= 30 && t < FLOOR_AT, cold = t >= FLOOR_AT;
+    $('timerBar').classList.toggle('mid', warm);
+    $('timerBar').classList.toggle('low', cold);
+    $('ptsNow').classList.toggle('mid', warm);
+    $('ptsNow').classList.toggle('low', cold);
     if(elapsed() >= MAXT && !answering) timeUp();
   }
   function timeUp(){
@@ -993,9 +1005,9 @@
 
   /* ---------------- leaderboard ---------------- */
   function boardName(id, name){
-    var s = roster.filter(function(x){ return x.id === id; })[0];
-    var opted = s && s.profile && s.profile.showFriends;
-    return (FR_SETTINGS.showNames || opted) ? name : '🎈 ' + G.aliasFor(id);
+    /* real names by default; the admin page can switch the whole board to
+       nicknames for a class that would rather stay anonymous */
+    return TRI_NICK ? '🎈 ' + G.aliasFor(id) : name;
   }
   function entries(){
     return ((scoreBlob && scoreBlob.entries) || []).slice()
@@ -1139,7 +1151,7 @@
   /* ---------------- init ---------------- */
   store.init().then(function(){
     store.getMachine('game-settings').then(function(s){
-      if(s && s.friends) FR_SETTINGS = s.friends;
+      if(s && s.triangles) TRI_NICK = !!s.triangles.nicknames;
       if(s && s.hidden && s.hidden.triangles){
         toast('📐 Your teacher has closed Try Triangles for now.');
         setTimeout(function(){ window.location.href = 'hub.html'; }, 1600);

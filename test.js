@@ -246,6 +246,21 @@ async function testAdmin(){
     return s && s.algebra.skipStock === true && s.alzebra.skipStock === true
         && s.algebra.music === true;
   }, "skip-the-shelves and music switches land", 5000);
+  $("setTriNick").checked = true;
+  $("setTriNick").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = await w.CharlieStore.getMachine("game-settings");
+    return s && s.triangles && s.triangles.nicknames === true;
+  }, "the Try Triangles nickname switch lands", 5000);
+  // and the teacher can wipe the ranking
+  await w.CharlieStore.saveMachine({id:"triangle-scores", type:"scores", created:Date.now(),
+    entries:[{id:"cj-rapata", name:"CJ", emoji:"🦖", score:99, t:Date.now()}]});
+  ok(!!$("triReset"), "there is a button to clear the ranking");
+  $("triReset").click();
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("triangle-scores");
+    return b && b.entries.length === 0;
+  }, "clearing empties the ranking", 5000);
   ok(/No code yet/.test($("boyList").textContent), "roster shows 'No code yet'");
   ok(!/Show codes/.test(d.body.textContent), "no 'show codes' button — codes are private now");
 
@@ -1552,7 +1567,7 @@ async function testTriangles(){
   answerCurrent(false);
   await waitFor(() => +$("scoreVal").textContent > 0, "a correct answer scores points", 4000);
   const afterFirst = +$("scoreVal").textContent;
-  ok(afterFirst <= 30 && afterFirst >= 3, "the first answer is worth at most 30 points");
+  ok(afterFirst <= 50 && afterFirst >= 20, "an answer is worth 50 down to a floor of 20");
   await waitFor(() => /Question 2 of 8/.test($("qCount").textContent), "on to question 2", 4000);
 
   // a wrong answer is refused, and the question stays put
@@ -1574,7 +1589,7 @@ async function testTriangles(){
   answerCurrent(true);
   await waitFor(() => +$("scoreVal").textContent > before, "the area question scores", 4000);
   const gained = +$("scoreVal").textContent - before;
-  ok(gained <= 15, "using the hint pays only half (" + gained + ")");
+  ok(gained <= 25, "using the hint pays only half (" + gained + ")");
   ok($("hintBox").classList.contains("on") && /×/.test($("hintBox").textContent)
      && /½/.test($("hintBox").textContent), "the hint spells out base × height × ½");
 
@@ -1601,7 +1616,9 @@ async function testTriangles(){
   // the board keeps the best score, and never the real name by default
   const blob = await w.CharlieStore.getMachine("triangle-scores");
   ok(blob.entries.length === 1 && blob.entries[0].score === total, "the board stores my best");
-  ok(!/Willow/.test($("doneBoard").textContent), "classmates see an alias, not my name");
+  ok(/Willow/.test($("doneBoard").textContent), "the ranking shows real names by default");
+  // the bar counts DOWN, and the seconds left are on show
+  ok(/s left/.test($("timeLeft").textContent), "the time left is spelled out");
   try{ dom.window.close(); }catch(e){}
 }
 
@@ -1658,6 +1675,26 @@ async function testHub(){
      "pets are named in English");
   const prices = [...d.querySelectorAll("#petGrid .pp")].map(x => parseInt(x.textContent));
   ok(prices.join(",") === "15,24,28,32,36,70", "prices: goldfish 15 … triceratops 70");
+
+  // the snack counter under the pets: 1-3 Whare, straight into My stuff
+  ok(d.querySelectorAll("#snackGrid button").length === 20, "twenty treats on the snack counter");
+  const snackPrices = [...d.querySelectorAll("#snackGrid .pp")].map(x => parseInt(x.textContent));
+  ok(snackPrices.every(p => p >= 1 && p <= 3), "every snack costs between 1 and 3 Whare");
+  const before = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+  const buyable = [...d.querySelectorAll("#snackGrid button")].filter(b => !b.disabled)[0];
+  const key = buyable.dataset.s;
+  const cost = parseInt(buyable.querySelector(".pp").textContent);
+  buyable.click();
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.money === before.money - cost && s.items.indexOf(key) !== -1;
+  }, "buying a snack pays for it and puts it in My stuff", 5000);
+  // put the purse and the shelf back so the pet checks below start as they were
+  await w.CharlieStore.update("willow-kolo", { money: before.money, items: before.items });
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.money === before.money && s.items.length === before.items.length;
+  }, "the shop test tidies up after itself", 5000);
 
   // too expensive first (willow has 13), then the goldfish comes home
   d.querySelector('#petGrid button[data-t="6"]').click();
