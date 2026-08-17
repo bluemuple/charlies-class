@@ -820,6 +820,11 @@
 
   /* ================= the game ================= */
   var MAXT = 120, BEST_PAY = 2, round = [], qi = 0, score = 0, hintUsed = false;
+  /* how many of each kind were right this turn — the teacher sees these */
+  var tally = null;
+  function freshTally(){
+    return {hb:{ok:0, n:0}, concept:{ok:0, n:0}, area:{ok:0, n:0}};
+  }
   /* 50 points for a really quick answer, easing down 1 point every 2 seconds,
      and never below 20 once a minute has gone — slow thinking still pays */
   var PTS_MAX = 50, PTS_FLOOR = 20, FLOOR_AT = 60;
@@ -876,6 +881,7 @@
   function renderQuestion(){
     var q = round[qi];
     answering = false; hintUsed = false;
+    if(tally && tally[q.type]) tally[q.type].n++;
     $('qCount').textContent = 'Question ' + (qi + 1) + ' of ' + round.length;
     $('qMsg').textContent = '';
     $('hintWrap').style.display = q.type === 'area' ? '' : 'none';
@@ -981,6 +987,7 @@
     }
     answering = true;
     stopTimer();
+    if(tally && tally[q.type]) tally[q.type].ok++;
     var pts = ptsFor(Math.min(MAXT, elapsed()));
     if(hintUsed) pts = Math.ceil(pts / 2);
     score += pts;
@@ -1069,6 +1076,24 @@
       });
     }).catch(function(){ return {blob: scoreBlob, beat: false, hadBefore: true}; });
   }
+  /* one row per finished turn, so the teacher can follow each child's progress */
+  function saveResult(){
+    return store.getMachine('triangle-results').then(function(b){
+      b = b || {id:'triangle-results', type:'results', created: Date.now(), rows:[]};
+      var mineRows = b.rows.filter(function(r){ return r.id === me.id; });
+      b.rows.push({
+        id: me.id, name: me.name, emoji: me.emoji || '🙂',
+        turn: mineRows.length + 1, score: score, t: Date.now(),
+        hb: [tally.hb.ok, tally.hb.n],
+        concept: [tally.concept.ok, tally.concept.n],
+        area: [tally.area.ok, tally.area.n]
+      });
+      if(b.rows.length > 600) b.rows = b.rows.slice(-600);   /* keep the log tidy */
+      b.created = Date.now();
+      return store.saveMachine(b);
+    }).catch(function(){});
+  }
+
   /* a personal best is worth 2 Whare — paid once per new best */
   function payBest(){
     return store.list().then(function(all){
@@ -1087,6 +1112,7 @@
     $('doneScore').textContent = score + ' points';
     $('doneRank').textContent = 'Saving your score…';
     $('doneReward').classList.remove('on');
+    saveResult();
     saveScore(score).then(function(res){
       var list = entries();
       var rank = -1;
@@ -1151,7 +1177,7 @@
     });
   }
   function startGame(){
-    round = buildRound(); qi = 0; score = 0;
+    round = buildRound(); qi = 0; score = 0; tally = freshTally();
     $('scoreVal').textContent = '0';
     show('scrPlay');
     renderQuestion();

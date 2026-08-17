@@ -273,6 +273,7 @@
           <input type="checkbox" id="setTriOn" checked> Visible to students</label>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setTriNick"> Use nicknames on the ranking</label>
+        <button id="triResults" style="border:2px solid #cfe3df;background:#fff;color:#1f5a54;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:6px">📊 Results</button>
         <button id="triReset" style="border:2px solid #e6c9c9;background:#fff;color:#c3323f;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer">🗑 Clear the ranking</button>
         <span id="triResetMsg" style="font-size:12.5px;font-weight:700;color:#2a9d34;margin-left:6px"></span>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
@@ -297,6 +298,14 @@
   <section class="card" id="fbCard2">
     <h2>💬 Student feedback <span id="fbAvg" style="color:#8a6d00;font-size:16px"></span></h2>
     <div id="fbList" style="font-size:14.5px;color:#4c6b66">No feedback yet.</div>
+  </section>
+
+  <section class="card" id="triResultsCard" style="display:none">
+    <h2>📊 Try Triangles — results by question type</h2>
+    <p class="note">Each turn a student plays adds a row: <b>heights</b> (naming the height for a
+    given base), the <b>wording</b> question about perpendicular, and <b>areas</b>.
+    Clearing the ranking does not clear this record.</p>
+    <div id="triResultsBox" style="font-size:14px;color:#4c6b66"></div>
   </section>
 
   <div class="cols">
@@ -582,6 +591,59 @@
   /* ---------------- student feedback ---------------- */
   function esc2(s){ return String(s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function frac(pair){
+    if(!pair || !pair[1]) return '<span style="color:#b9cdc9">—</span>';
+    var ok = pair[0], n = pair[1];
+    var col = ok === n ? '#2a9d34' : ok === 0 ? '#c3323f' : '#8a6d00';
+    return '<b style="color:' + col + '">' + ok + '</b> / ' + n;
+  }
+  document.getElementById('triResults').addEventListener('click', function(){
+    var card = document.getElementById('triResultsCard');
+    var openNow = card.style.display === 'none';
+    card.style.display = openNow ? '' : 'none';
+    if(!openNow) return;
+    var box = document.getElementById('triResultsBox');
+    box.textContent = 'Loading…';
+    store.getMachine('triangle-results').then(function(b){
+      var rows = (b && b.rows) || [];
+      if(!rows.length){ box.textContent = 'No games played yet.'; return; }
+      /* group the turns under each student, newest student activity first */
+      var byId = {}, order = [];
+      rows.forEach(function(r){
+        if(!byId[r.id]){ byId[r.id] = []; order.push(r.id); }
+        byId[r.id].push(r);
+      });
+      order.sort(function(a, c){
+        var la = byId[a][byId[a].length-1].t || 0, lc = byId[c][byId[c].length-1].t || 0;
+        return lc - la;
+      });
+      box.innerHTML = order.map(function(id){
+        var list = byId[id].slice().sort(function(a, c){ return (a.turn||0) - (c.turn||0); });
+        var who = list[list.length-1];
+        var best = Math.max.apply(null, list.map(function(r){ return r.score || 0; }));
+        return '<div style="border:1.5px solid #e2edeb;border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fbfdfc">'
+          + '<div style="font-weight:800;color:#1f5a54;margin-bottom:6px">'
+          +   esc2(who.emoji || '🙂') + ' ' + esc2(who.name || id)
+          +   '<span style="float:right;color:#8a6d00">best ' + best + ' pts</span></div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:13.5px">'
+          + '<thead><tr style="color:#7a8f8b;text-align:left">'
+          +   '<th style="padding:2px 6px">turn</th><th style="padding:2px 6px">heights</th>'
+          +   '<th style="padding:2px 6px">wording</th><th style="padding:2px 6px">areas</th>'
+          +   '<th style="padding:2px 6px">score</th><th style="padding:2px 6px">when</th></tr></thead><tbody>'
+          + list.map(function(r){
+              return '<tr style="border-top:1px solid #edf4f3">'
+                + '<td style="padding:3px 6px;font-weight:800">' + (r.turn || '?') + '</td>'
+                + '<td style="padding:3px 6px">' + frac(r.hb) + '</td>'
+                + '<td style="padding:3px 6px">' + frac(r.concept) + '</td>'
+                + '<td style="padding:3px 6px">' + frac(r.area) + '</td>'
+                + '<td style="padding:3px 6px;font-weight:800">' + (r.score || 0) + '</td>'
+                + '<td style="padding:3px 6px;color:#8aa19c">'
+                +   (r.t ? new Date(r.t).toLocaleDateString() : '') + '</td></tr>';
+            }).join('')
+          + '</tbody></table></div>';
+      }).join('');
+    }).catch(function(){ box.textContent = 'Could not load the results — try again.'; });
+  });
   document.getElementById('triReset').addEventListener('click', function(){
     if(!window.confirm('Clear the Try Triangles ranking for the whole class?')) return;
     var btn = document.getElementById('triReset'), msg = document.getElementById('triResetMsg');

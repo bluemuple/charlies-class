@@ -277,6 +277,19 @@ async function testAdmin(){
   // and the teacher can wipe the ranking
   await w.CharlieStore.saveMachine({id:"triangle-scores", type:"scores", created:Date.now(),
     entries:[{id:"cj-rapata", name:"CJ", emoji:"🦖", score:99, t:Date.now()}]});
+  // the teacher can read each child's per-type record, turn by turn
+  await w.CharlieStore.saveMachine({id:"triangle-results", type:"results", created:Date.now(), rows:[
+    {id:"cj-rapata", name:"CJ", emoji:"🦖", turn:1, score:120, t:Date.now()-9e5, hb:[2,3], concept:[1,1], area:[3,4]},
+    {id:"cj-rapata", name:"CJ", emoji:"🦖", turn:2, score:190, t:Date.now(), hb:[3,3], concept:[1,1], area:[4,4]}
+  ]});
+  ok(!!$("triResults"), "there is a Results button");
+  $("triResults").click();
+  await waitFor(() => /CJ/.test($("triResultsBox").textContent), "the results panel lists the student", 5000);
+  ok(d.querySelectorAll("#triResultsBox tbody tr").length === 2, "both turns are shown");
+  ok(/heights/.test($("triResultsBox").textContent) && /wording/.test($("triResultsBox").textContent)
+     && /areas/.test($("triResultsBox").textContent), "the three question types are named");
+  ok(/best 190/.test($("triResultsBox").textContent), "the student's best score is summarised");
+
   ok(!!$("triReset"), "there is a button to clear the ranking");
   $("triReset").click();
   await waitFor(async () => {
@@ -1639,6 +1652,14 @@ async function testTriangles(){
   const blob = await w.CharlieStore.getMachine("triangle-scores");
   ok(blob.entries.length === 1 && blob.entries[0].score === total, "the board stores my best");
   ok(/Willow/.test($("doneBoard").textContent), "the ranking shows real names by default");
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("triangle-results");
+    if(!b || !b.rows.length) return false;
+    const r = b.rows[b.rows.length - 1];
+    return r.id === "willow-kolo" && r.turn === 1
+        && r.hb[1] === 3 && r.concept[1] === 1 && r.area[1] === 4
+        && r.hb[0] <= 3 && r.area[0] <= 4;
+  }, "the turn is logged with a tally for each question type", 6000);
   // the bar counts DOWN, and the seconds left are on show
   ok(/s left/.test($("timeLeft").textContent), "the time left is spelled out");
   try{ dom.window.close(); }catch(e){}
