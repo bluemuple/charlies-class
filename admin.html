@@ -266,6 +266,11 @@
         <h3 style="margin:4px 0 8px">🧱 Paving Race</h3>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setPaveOn" checked> Visible to students</label>
+      </div>
+      <div style="min-width:220px">
+        <h3 style="margin:4px 0 8px">📐 Try Triangles</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setTriOn" checked> Visible to students</label>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setPaveNick"> Use nicknames instead of real names</label>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:4px">
@@ -595,7 +600,7 @@
   }
 
   /* ---------------- per-game settings (shared blob in the machines store) --- */
-  var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false},
+  var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false, triangles:false},
                        paving:{nicknames:false, extraSecs:0, measure:3, build:5},
                        algebra:{turnSecs:40},
                        alzebra:{limits:{'+':18,'-':22,'*':28,'/':32}}};
@@ -621,6 +626,7 @@
       document.getElementById('setAlgMusic').checked = !!(g.algebra && g.algebra.music);
       document.getElementById('setZebraSkip').checked = !!(g.alzebra && g.alzebra.skipStock);
       document.getElementById('setPaveOn').checked = !hid.paving;
+      document.getElementById('setTriOn').checked = !hid.triangles;
       document.getElementById('setPaveNick').checked = !!(g.paving && g.paving.nicknames);
       document.getElementById('setPaveSecs').value =
         (g.paving && g.paving.extraSecs) || GAME_DEFAULTS.paving.extraSecs;
@@ -641,7 +647,8 @@
         id:'game-settings', type:'settings', created: Date.now(),
         hidden:{alzebra: !document.getElementById('setZebraOn').checked,
                 algebra: !document.getElementById('setAlgOn').checked,
-                paving: !document.getElementById('setPaveOn').checked},
+                paving: !document.getElementById('setPaveOn').checked,
+                triangles: !document.getElementById('setTriOn').checked},
         paving:{nicknames: document.getElementById('setPaveNick').checked,
                 extraSecs: Math.max(0, +document.getElementById('setPaveSecs').value || 0),
                 measure: document.getElementById('setPaveMeasureOn').checked
@@ -669,7 +676,7 @@
   }
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
    'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
-   'setPaveOn','setPaveNick','setPaveSecs',
+   'setPaveOn','setPaveNick','setPaveSecs','setTriOn',
    'setPaveMeasureOn','setPaveMeasure','setPaveBuildOn','setPaveBuild']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);

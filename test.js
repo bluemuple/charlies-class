@@ -1441,6 +1441,170 @@ async function testPaving(){
   try{ dom4.window.close(); }catch(e){}
 }
 
+async function testTriangles(){
+  console.log("\ntriangles.html — tutorial, then the timed round");
+  const dom = await load("triangles.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+    w.CHARLIE_TEST_FAST = true;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await waitFor(() => !!w.TRI_TEST, "the test hook is available");
+  await sleep(150);
+
+  /* ---- every question in the bank must agree with its own geometry ---- */
+  const T = w.TRI_TEST, bank = T.bank();
+  ok(bank.HB.length === 10, "ten base-and-height questions in the bank");
+  ok(bank.AREA.length === 20, "twenty area questions in the bank");
+  let hbOk = true, hbWhy = "";
+  bank.HB.forEach((it, n) => {
+    const a = it.pts[it.base[0]], b = it.pts[it.base[1]], apex = it.pts[it.apex];
+    const f = T.footOf(apex, a, b);
+    // the answer must start at the apex and end at the foot
+    const ans = T.hbAnswer(it);
+    if(ans.length !== 2){ hbOk = false; hbWhy = "item " + n + " answer '" + ans + "'"; return; }
+    if(ans.charAt(0) !== it.letters[it.apex]){ hbOk = false; hbWhy = "item " + n + " wrong apex"; return; }
+    // the height really is perpendicular to the base
+    const vx = apex[0] - f[0], vy = apex[1] - f[1];
+    const bx = b[0] - a[0], by = b[1] - a[1];
+    if(Math.abs(vx * bx + vy * by) > 1e-6){ hbOk = false; hbWhy = "item " + n + " not perpendicular"; }
+    // and the base label names two different corners
+    if(T.hbBase(it).length !== 2){ hbOk = false; hbWhy = "item " + n + " base label"; }
+  });
+  ok(hbOk, "every height is perpendicular to its base and named from the apex" + (hbOk ? "" : " — " + hbWhy));
+  ok(bank.AREA.every(a => a.b > 0 && a.h > 0), "every area question has a real base and height");
+
+  /* ---- the tutorial: colour, move, halve ---- */
+  ok($("scrTut").classList.contains("on"), "a first-timer starts in the tutorial");
+  ok(d.querySelectorAll("#tutStage .piece").length === 2, "stage 1 is cut into two pieces");
+  const setEq = (id, v) => { $(id).value = v; $(id).dispatchEvent(new w.Event("input")); };
+  ok($("tutNext").disabled, "Next waits until the working is finished");
+  setEq("eqA", "5");
+  ok($("eqA").classList.contains("good"), "5 cm is accepted as one of the lengths");
+  const fills = [...d.querySelectorAll('#tutStage .piece polygon')].map(p => p.getAttribute("fill"));
+  ok(fills[0] !== fills[1] && d.querySelector('#tutStage .whole').getAttribute("opacity") === "0",
+     "the first length cuts the triangle into two colours");
+  setEq("eqB", "4");
+  ok(d.querySelector('#tutStage .piece[data-piece="1"]').style.transform.indexOf("rotate(180deg)") !== -1,
+     "the loose piece spins into place");
+  ok($("tutNext").disabled, "the halving still has to be written");
+  setEq("eqC", "1");
+  ok(/10 cm²/.test($("eqResult").textContent), "5 × 4 × ½ = 10 cm²");
+  ok(!$("tutNext").disabled, "now Next opens");
+  setEq("eqA", "7");
+  ok($("tutNext").disabled, "a wrong length closes it again");
+  setEq("eqA", "4"); setEq("eqB", "5");
+  ok(/10 cm²/.test($("eqResult").textContent), "the two lengths work in either order");
+
+  // the Instructions toggle asks for the words instead
+  $("instrToggle").checked = true;
+  $("instrToggle").dispatchEvent(new w.Event("change"));
+  setEq("eqA", "base");
+  ok($("eqA").classList.contains("good"), "with Instructions on, 'base' is a valid entry");
+  setEq("eqB", "height"); setEq("eqC", "1");
+  ok(/10 cm²/.test($("eqResult").textContent), "words drive the same working");
+  $("instrToggle").checked = false;
+  $("instrToggle").dispatchEvent(new w.Event("change"));
+
+  // walk the last two stages
+  setEq("eqA", "5"); setEq("eqB", "4"); setEq("eqC", "1");
+  $("tutNext").click();
+  ok(d.querySelectorAll("#tutStage .piece").length === 3, "stage 2 splits into three");
+  setEq("eqA", "5"); setEq("eqB", "4"); setEq("eqC", "1");
+  $("tutNext").click();
+  ok(d.querySelectorAll("#tutStage .piece").length === 3, "stage 3 splits into three");
+  setEq("eqA", "5"); setEq("eqB", "4"); setEq("eqC", "1");
+  $("tutNext").click();
+  await waitFor(() => $("scrHome").classList.contains("on"), "finishing the tutorial opens the game", 5000);
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.profile && s.profile.triDone === true;
+  }, "the tutorial is remembered", 5000);
+
+  /* ---- a full round: 3 named heights, 1 wording, 4 areas ---- */
+  $("startBtn").click();
+  await waitFor(() => $("scrPlay").classList.contains("on"), "the round starts");
+  const round = T.round();
+  ok(round.length === 8, "eight questions in a round");
+  ok(round.slice(0, 3).every(q => q.type === "hb"), "three base-and-height questions first");
+  ok(round[3].type === "concept", "then the wording question");
+  ok(round.slice(4).every(q => q.type === "area"), "then four area questions");
+
+  function answerCurrent(useHint){
+    const q = T.round()[[...d.querySelectorAll("#qCount")][0].textContent.match(/(\d+)/)[1] - 1];
+    if(q.type === "hb"){
+      $("ansIn").value = T.hbAnswer(q.item);
+    } else if(q.type === "area"){
+      if(useHint) $("hintBtn").click();
+      $("ansIn").value = String(q.item.b * q.item.h / 2);
+    } else {
+      T.bank().WORDS.forEach((word, i) => {
+        if(i === q.given) return;
+        $("con" + i).value = i === 1 ? word.toUpperCase() : word;   // case must not matter
+      });
+    }
+    $("checkBtn").click();
+  }
+
+  answerCurrent(false);
+  await waitFor(() => +$("scoreVal").textContent > 0, "a correct answer scores points", 4000);
+  const afterFirst = +$("scoreVal").textContent;
+  ok(afterFirst <= 30 && afterFirst >= 3, "the first answer is worth at most 30 points");
+  await waitFor(() => /Question 2 of 8/.test($("qCount").textContent), "on to question 2", 4000);
+
+  // a wrong answer is refused, and the question stays put
+  $("ansIn").value = "ZZ";
+  $("checkBtn").click();
+  ok(/Not quite/.test($("qMsg").textContent), "a wrong answer gets a friendly no");
+  ok(/Question 2 of 8/.test($("qCount").textContent), "and the question waits");
+
+  answerCurrent(false);
+  await waitFor(() => /Question 3 of 8/.test($("qCount").textContent), "on to question 3", 4000);
+  answerCurrent(false);
+  await waitFor(() => /Question 4 of 8/.test($("qCount").textContent), "on to the wording question", 4000);
+  ok(d.querySelectorAll("#qInputs input").length === 2, "two of the three words are blanked out");
+  answerCurrent(false);
+  await waitFor(() => /Question 5 of 8/.test($("qCount").textContent), "capitals are accepted too", 4000);
+
+  // the hint halves the points for that question
+  const before = +$("scoreVal").textContent;
+  answerCurrent(true);
+  await waitFor(() => +$("scoreVal").textContent > before, "the area question scores", 4000);
+  const gained = +$("scoreVal").textContent - before;
+  ok(gained <= 15, "using the hint pays only half (" + gained + ")");
+  ok($("hintBox").classList.contains("on") && /×/.test($("hintBox").textContent)
+     && /½/.test($("hintBox").textContent), "the hint spells out base × height × ½");
+
+  await waitFor(() => /Question 6 of 8/.test($("qCount").textContent), "on to question 6", 4000);
+  answerCurrent(false);
+  await waitFor(() => /Question 7 of 8/.test($("qCount").textContent), "on to question 7", 4000);
+  answerCurrent(false);
+  await waitFor(() => /Question 8 of 8/.test($("qCount").textContent), "on to the last question", 4000);
+  answerCurrent(false);
+
+  await waitFor(() => $("scrDone").classList.contains("on"), "the round finishes", 6000);
+  const total = +$("scoreVal").textContent;
+  ok(/points/.test($("doneScore").textContent), "the final score is shown");
+  await waitFor(() => d.querySelectorAll("#doneBoard .brow").length === 1, "my score lands on the board", 5000);
+  ok(/Top 10|Great effort/.test($("doneTitle").textContent), "the finish tells me how I did");
+
+  // a first score is a personal best: 2 Whare, with a reason
+  await waitFor(() => /\+2 Whare/.test($("doneReward").textContent), "a personal best pays 2 Whare", 5000);
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.money === 2;
+  }, "the Whare really lands in my purse", 5000);
+
+  // the board keeps the best score, and never the real name by default
+  const blob = await w.CharlieStore.getMachine("triangle-scores");
+  ok(blob.entries.length === 1 && blob.entries[0].score === total, "the board stores my best");
+  ok(!/Willow/.test($("doneBoard").textContent), "classmates see an alias, not my name");
+  try{ dom.window.close(); }catch(e){}
+}
+
 async function testHub(){
   console.log("\nhub.html");
   const dom = await load("hub.html", w => {
@@ -1718,10 +1882,11 @@ async function testHub(){
   $("talkBack").click();
 
   const cards = d.querySelectorAll(".games .game");
-  ok(cards.length === 3, "the three games — no 'More games' placeholder");
+  ok(cards.length === 4, "the four games — no 'More games' placeholder");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
   ok(/Paving Race/.test(cards[2].textContent), "Paving Race joins the row");
+  ok(/Try Triangles/.test(cards[3].textContent), "Try Triangles rounds out the row");
   // title + Play now only: the art icon, the title and the badge, nothing else
   [...cards].forEach((c, i) => {
     const kids = [...c.children].map(k => k.className);
@@ -1750,6 +1915,7 @@ async function testHub(){
     await testAlZebra();
     await testPaving();
     await testHub();
+    await testTriangles();
   }catch(e){
     failed++;
     console.error("\nUnexpected error:", e);
