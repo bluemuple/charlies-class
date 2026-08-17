@@ -85,6 +85,28 @@ async function testConfig(){
      "the roster query never selects the code column");
 }
 
+/* a rested game must never be painted, not even for one frame */
+async function testHiddenGamesNeverFlash(){
+  console.log("\nhub.html — hidden games never flash up");
+  const src = fs.readFileSync(path.join(__dirname, "hub.html"), "utf8");
+  ok(/\.games\{[^}]*visibility:hidden/.test(src.replace(/\s+/g, " ").replace(/; /g, ";")) ||
+     /\.games\{[\s\S]*?visibility:hidden[\s\S]*?\}/.test(src),
+     "the game row starts hidden in the stylesheet, before any script runs");
+  ok(/\.games\.ready\{visibility:visible;\}/.test(src.replace(/\s+/g, "")),
+     "only the ready class reveals it");
+  // inside revealGames, every card is hidden BEFORE the row is revealed
+  const fn = src.match(/function revealGames\(s\)\{[\s\S]*?\n  \}/);
+  ok(!!fn, "revealGames decides what to show");
+  const body = fn[0];
+  const lastHide = Math.max(body.lastIndexOf("style.display = 'none'"),
+                            body.lastIndexOf('style.display = "none"'));
+  const reveal = body.indexOf("classList.add('ready')");
+  ok(lastHide > -1 && reveal > -1 && lastHide < reveal,
+     "cards are hidden before the row is shown, so nothing can flash");
+  ok(/setTimeout\(function\(\)\{ revealGames\(null\); \}/.test(body + src),
+     "and a stalled connection still reveals the games rather than an empty page");
+}
+
 async function testBrand(){
   console.log("\nbranding");
   for(const f of ["index.html", "admin.html", "hub.html", "algebra.html", "alzebra.html", "paving.html"]){
@@ -1919,6 +1941,9 @@ async function testHub(){
   $("talkBack").click();
 
   const cards = d.querySelectorAll(".games .game");
+  // the row stays out of sight until the teacher's settings have been read
+  await waitFor(() => d.querySelector(".games").classList.contains("ready"),
+     "the game row waits for the settings before showing", 6000);
   ok(cards.length === 4, "the four games — no 'More games' placeholder");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
@@ -1942,6 +1967,7 @@ async function testHub(){
   try{
     await testConfig();
     await testBrand();
+    await testHiddenGamesNeverFlash();
     await testGameCore();
     await testAdminLock();
     await testAdmin();
