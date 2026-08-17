@@ -780,7 +780,7 @@
   function drawConcept(){
     var scale = 44, pad = 46, b = 6, h = 5;
     var pts = [[0,0],[b,0],[b/2,h]];
-    var w = b * scale + pad * 2, hh = h * scale + pad * 2;
+    var w = b * scale + pad * 2 + 200, hh = h * scale + pad * 2;
     var map = function(p){ return [pad + p[0] * scale, hh - pad - p[1] * scale]; };
     var svg = el('svg', {viewBox:'0 0 ' + w.toFixed(0) + ' ' + hh.toFixed(0), width:'100%',
                          role:'img', 'aria-label':'a triangle with its height and base labelled'});
@@ -789,20 +789,32 @@
     var top = map([b/2, h]), foot = map([b/2, 0]);
     svg.appendChild(el('line', {x1:top[0], y1:top[1], x2:foot[0], y2:foot[1],
                                 stroke:'#333', 'stroke-width':2, 'stroke-dasharray':'6 4'}));
-    var sq = [[b/2,0],[b/2+0.34,0],[b/2+0.34,0.34],[b/2,0.34]];
-    svg.appendChild(el('polygon', {points: ptsStr(sq, map), fill:'none', stroke:'#333', 'stroke-width':1.7}));
-    function tag(p, txt, anchor, dx, dy){
+    /* the right-angle mark is drawn in pink, so the word below matches it */
+    var PINK = '#e0559b';
+    var c0 = map([b/2, 0.34]), c1 = map([b/2 + 0.34, 0.34]), c2 = map([b/2 + 0.34, 0]);
+    svg.appendChild(el('polyline', {points: c0[0] + ',' + c0[1] + ' ' + c1[0] + ',' + c1[1]
+                                            + ' ' + c2[0] + ',' + c2[1],
+                                    fill:'none', stroke:PINK, 'stroke-width':3,
+                                    'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+    function tag(p, txt, anchor, dx, dy, colour, size){
       var q = map(p);
-      var g = el('g', {});
       var t = el('text', {x:q[0]+dx, y:q[1]+dy, 'text-anchor':anchor,
-                          'font-size':'16', 'font-weight':'800', fill:'#1f5a54'});
+                          'font-size': size || '16', 'font-weight':'800',
+                          fill: colour || '#1f5a54'});
       t.textContent = txt;
-      g.appendChild(t);
-      svg.appendChild(g);
+      svg.appendChild(t);
+      return t;
     }
     tag([b/2, h/2], 'height', 'end', -12, 4);
     tag([b/2, 0], 'base', 'middle', 0, 34);
-    tag([b/2 + 0.4, 0.4], 'perpendicular', 'start', 14, -2);
+    /* the wording sits clear of the triangle, with a thin leader back to the
+       right-angle mark it names */
+    var from = map([b/2 + 0.36, 0.36]), to = map([b + 0.2, 0.95]);
+    svg.appendChild(el('line', {x1:from[0], y1:from[1], x2:to[0], y2:to[1],
+                                stroke:PINK, 'stroke-width':1.4, 'stroke-dasharray':'4 3'}));
+    tag([b + 0.28, 0.95], 'perpendicular', 'start', 0, 0, PINK);
+    /* spelled out for anyone meeting the word for the first time */
+    tag([b + 0.28, 0.95], '(meeting at a 90° right angle)', 'start', 0, 17, PINK, '12');
     return svg;
   }
 
