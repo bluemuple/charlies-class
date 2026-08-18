@@ -1491,6 +1491,86 @@ async function testPaving(){
   try{ dom4.window.close(); }catch(e){}
 }
 
+async function testParallelogram(){
+  console.log("\nparallelogram.html — one-slide tutorial, then the timed round");
+  const dom = await load("parallelogram.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+    w.CHARLIE_TEST_FAST = true;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await waitFor(() => !!w.PARA_TEST, "the test hook is available");
+  await sleep(150);
+
+  const P = w.PARA_TEST, bank = P.bank();
+  ok(bank.length === 30, "thirty parallelograms in the bank");
+  // every shape really is a parallelogram: opposite sides equal and parallel
+  let shapeOk = true;
+  bank.forEach(it => {
+    const p = P.pts(it);
+    const v1 = [p[1][0]-p[0][0], p[1][1]-p[0][1]];
+    const v2 = [p[2][0]-p[3][0], p[2][1]-p[3][1]];
+    if(Math.abs(v1[0]-v2[0]) > 1e-9 || Math.abs(v1[1]-v2[1]) > 1e-9) shapeOk = false;
+    if(!(it.b > 0 && it.h > 0)) shapeOk = false;
+  });
+  ok(shapeOk, "each one is a true parallelogram with a positive base and height");
+
+  /* ---- the tutorial: one stage, two blanks, the piece slides across ---- */
+  ok($("scrTut").classList.contains("on"), "a first-timer starts in the tutorial");
+  ok(!$("eqC"), "there is no halving box — a parallelogram needs none");
+  ok($("tutNext").disabled, "Confirm sleeps until both lengths are in");
+  $("eqA").value = "4"; $("eqA").dispatchEvent(new w.Event("input"));
+  await waitFor(() => d.querySelectorAll("#tutStage .piece polygon")[1]
+     .getAttribute("fill") !== d.querySelectorAll("#tutStage .piece polygon")[0].getAttribute("fill"),
+     "the first length colours the loose piece", 4000);
+  ok($("tutNext").disabled, "one length is not enough");
+  $("eqB").value = "5"; $("eqB").dispatchEvent(new w.Event("input"));
+  await waitFor(() => {
+    const g = d.querySelectorAll("#tutStage .piece")[1];
+    return g && /translate/.test(g.style.transform || "");
+  }, "the second length slides the piece into place", 4000);
+  ok(d.querySelector("#tutStage .outline").getAttribute("opacity") === "1",
+     "a dotted outline stays where the piece used to be");
+  await waitFor(() => /4 cm × 5 cm = 20/.test($("eqResult").textContent),
+     "the finished sum reads base × height = 20 cm²");
+  ok(!$("tutNext").disabled && /Confirm/.test($("tutNext").textContent), "Confirm wakes up");
+  $("tutNext").click();
+  await waitFor(() => $("scrHome").classList.contains("on"), "Confirm leads to the game", 5000);
+  ok(/Parallelo/.test($("scrHome").textContent), "the home screen carries the two-tone name");
+
+  /* ---- a round is six area questions ---- */
+  $("startBtn").click();
+  await waitFor(() => $("scrPlay").classList.contains("on"), "the round starts");
+  ok(P.round().length === 6, "six questions in a round");
+  ok(/Question 1 of 6/.test($("qCount").textContent), "the counter agrees");
+  ok(/50 pts/.test($("ptsNow").textContent), "a quick answer is worth 50");
+
+  for(let n = 0; n < 6; n++){
+    await waitFor(() => !!$("ansIn"), "question " + (n+1) + " is on screen", 5000);
+    const q = P.round()[n];
+    $("ansIn").value = String(q.item.b * q.item.h);
+    $("checkBtn").click();
+    await sleep(140);
+  }
+  await waitFor(() => $("scrDone").classList.contains("on"), "six right answers finish the round", 6000);
+  ok(P.score() >= 120, "a clean sweep scores well (" + P.score() + ")");
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("parallelogram-scores");
+    return b && b.entries.some(e => e.id === "willow-kolo");
+  }, "the score lands on the ranking", 6000);
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("parallelogram-results");
+    const r = b && b.rows[b.rows.length - 1];
+    return r && r.turn === 1 && r.para[0] === 6 && r.para[1] === 6;
+  }, "the turn is logged as 6 out of 6", 6000);
+  await waitFor(() => /\+2 Whare/.test($("doneReward").textContent),
+     "a first score pays the 2 Whare reward", 5000);
+  try{ dom.window.close(); }catch(e){}
+}
+
 async function testTriangles(){
   console.log("\ntriangles.html — tutorial, then the timed round");
   const dom = await load("triangles.html", w => {
@@ -1965,7 +2045,7 @@ async function testHub(){
   // the row stays out of sight until the teacher's settings have been read
   await waitFor(() => d.querySelector(".games").classList.contains("ready"),
      "the game row waits for the settings before showing", 6000);
-  ok(cards.length === 4, "the four games — no 'More games' placeholder");
+  ok(cards.length === 5, "the five games — no 'More games' placeholder");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
   ok(/Paving Race/.test(cards[2].textContent), "Paving Race joins the row");
@@ -2000,6 +2080,7 @@ async function testHub(){
     await testPaving();
     await testHub();
     await testTriangles();
+  await testParallelogram();
   }catch(e){
     failed++;
     console.error("\nUnexpected error:", e);

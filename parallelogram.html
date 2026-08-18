@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallelogram — Wharenui Maths</title>
+<meta name="description" content="Slide a parallelogram into a rectangle, then race the clock finding areas with base × height.">
+<link rel="canonical" href="https://bluemuple.github.io/charlies-class/parallelogram.html">
+<style>
+  :root{
+    --teal:#2f7d74; --teal-dark:#1f5a54; --cream:#fdf6e4; --card:#ffffff;
+    --yellow:#ffd640; --accent:#e05c5c; --good:#2a9d34;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Trebuchet MS","Avenir Next",system-ui,sans-serif;
+    background:linear-gradient(160deg,#eef7f2,#dcefe6);
+    min-height:100vh; color:#233;
+  }
+  button{font-family:inherit; cursor:pointer;}
+  header{position:absolute; top:0; left:0; right:0; display:flex; align-items:center;
+         gap:12px; padding:10px 16px; z-index:20; pointer-events:none;}
+  header > *{pointer-events:auto;}
+  #backBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:7px 14px; font-size:14px; font-weight:700;
+  }
+  #meChip{
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+    background:#fff; border:2px solid #cfe3df; border-radius:24px;
+    padding:5px 14px 5px 8px; font-size:14.5px; font-weight:800; color:var(--teal-dark);
+  }
+  #meChip .em{font-size:20px;}
+  #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
+  main{max-width:1100px; margin:0 auto; padding:52px 18px 40px;}
+  .screen{display:none;}
+  .screen.on{display:block;}
+  h2{font-size:clamp(19px,2.6vw,27px); color:var(--teal-dark); text-align:center; margin:.4vh 0 .4vh;}
+  .sub{font-size:14.5px; color:#4c6b66; text-align:center; margin-bottom:12px;}
+  .card{
+    background:var(--card); border-radius:16px; padding:14px 16px;
+    box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:12px;
+  }
+
+  /* ---------------- tutorial ---------------- */
+  .tut-top{display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:8px;}
+  .stage-pips{display:flex; gap:7px;}
+  .stage-pips span{
+    width:11px; height:11px; border-radius:50%; background:#cfe3df; display:block;
+  }
+  .stage-pips span.on{background:var(--teal);}
+  .stage-pips span.done{background:var(--good);}
+  #instrWrap{
+    margin-left:auto; display:flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:700; color:#4c6b66; cursor:pointer;
+  }
+  .tut-flex{display:flex; gap:22px; align-items:center; justify-content:center; flex-wrap:wrap;}
+  .tut-stage{flex:1 1 430px; max-width:560px; min-width:300px;}
+  .tut-stage svg{max-height:52vh; display:block; margin:0 auto;}
+  .tut-side{flex:0 1 330px; min-width:280px;}
+  svg .grid{stroke:#d9e6e2; stroke-width:1;}
+  svg .frame{stroke:#b9cdc9; stroke-width:1.5; fill:none;}
+  svg .outline{fill:none; stroke:#222; stroke-width:2.5; stroke-dasharray:6 5; transition:opacity .6s;}
+  /* pin the pivot to the drawing's own coordinates — WebKit otherwise
+     measures transform-origin from each piece's own bounding box */
+  svg .piece{transition:transform .95s cubic-bezier(.35,.05,.3,1);
+             transform-box:view-box; -webkit-transform-box:view-box;}
+  svg .dim{stroke:#333; stroke-width:1.6; fill:none;}
+  svg .dimtx{font-size:15px; font-weight:800; fill:#333;}
+  /* the equation with its blanks */
+  .eq{display:flex; align-items:center; justify-content:center; gap:7px; flex-wrap:wrap;
+      font-size:20px; font-weight:800; color:var(--teal-dark);}
+  .eq input{
+    width:62px; border:2px solid #cfe3df; border-radius:10px; padding:8px 6px;
+    font-family:inherit; font-size:19px; font-weight:800; text-align:center; color:var(--teal-dark);
+    background:#fbfdfc;
+  }
+  .eq input.wide{width:110px; font-size:16px;}
+  .eq input.good{border-color:var(--good); background:#eaf7ec;}
+  .eq input.bad{animation:nudge .35s;}
+  @keyframes nudge{25%{transform:translateX(-5px)} 75%{transform:translateX(5px)}}
+  .frac{display:inline-flex; flex-direction:column; align-items:center; line-height:1;}
+  .frac .top{border-bottom:2.5px solid var(--teal-dark); padding:0 3px 2px;}
+  .frac .bot{padding-top:2px;}
+  #eqResult{
+    display:none; margin-top:12px; text-align:center; font-size:22px; font-weight:800;
+    color:#8a6d00; background:var(--yellow); border-radius:12px; padding:9px 14px;
+  }
+  #eqResult.on{display:block; animation:popIn .5s cubic-bezier(.2,1.5,.4,1);}
+  @keyframes popIn{0%{transform:scale(.7); opacity:0} 100%{transform:scale(1); opacity:1}}
+  .tut-hint{font-size:13.5px; color:#7a8f8b; line-height:1.55; margin-top:10px;}
+  .bigbtn{
+    display:block; margin:14px auto 0; border:0; border-radius:12px;
+    background:var(--good); color:#fff; font-size:16px; font-weight:800; padding:12px 30px;
+  }
+  .bigbtn[disabled]{background:#c6d6d2; cursor:default;}
+  .quietbtn{
+    display:block; margin:10px auto 0; border:0; border-radius:10px;
+    background:#eef1f0; color:#5c7671; font-size:13.5px; font-weight:700; padding:8px 18px;
+  }
+
+  /* ---------------- home + leaderboard ---------------- */
+  .p1{color:var(--teal-dark);} .p2{color:var(--accent);}
+  .board{max-width:460px; margin:0 auto;}
+  .brow{
+    display:flex; align-items:center; gap:10px; border:1.5px solid #e2edeb;
+    border-radius:12px; background:#fbfdfc; padding:7px 13px; margin-bottom:6px;
+    font-size:14.5px; font-weight:700; color:#4c6b66;
+  }
+  .brow .rk{flex:0 0 26px; text-align:center; font-weight:800; color:#8a6d00;}
+  .brow .em{font-size:19px;}
+  .brow .sc{margin-left:auto; background:var(--yellow); color:#6b5c00;
+            border-radius:12px; padding:1px 11px; font-weight:800;}
+  .brow.top1{background:#fffbe8; border-color:#f0d36b;}
+  .brow.top2{background:#f6f9f8; border-color:#cfd9d7;}
+  .brow.top3{background:#fdf4ec; border-color:#e8cdb0;}
+  .brow.me{outline:2.5px solid var(--teal); outline-offset:1px;}
+  .board .empty{text-align:center; color:#8aa19c; padding:16px 0; font-size:14px;}
+
+  /* ---------------- play ---------------- */
+  #timerWrap{height:14px; background:#e2edeb; border-radius:8px; overflow:hidden; margin-bottom:6px;}
+  #timerBar{height:100%; width:100%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .25s linear;}
+  #timerBar.mid{background:linear-gradient(90deg,#e8a33d,#f4cf6a);}
+  #timerBar.low{background:linear-gradient(90deg,#e63946,#f4a261);}
+  .pts-row{display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap;
+           font-size:13.5px; font-weight:700; color:#7a8f8b; margin-bottom:10px;}
+  #ptsNow{
+    background:var(--good); color:#fff; border-radius:12px; padding:2px 12px;
+    font-size:15px; font-weight:800;
+  }
+  #ptsNow.mid{background:#e8a33d;} #ptsNow.low{background:#e63946;}
+  #timeLeft{font-size:13px; font-weight:800; color:#8aa19c;}
+  .q-head{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:6px;}
+  .q-count{font-size:13px; font-weight:800; color:#8aa19c;}
+  #scoreLine{
+    position:relative; text-align:center; font-size:17px; font-weight:800; color:var(--teal-dark);
+    margin-bottom:8px;
+  }
+  .floatpts{
+    position:absolute; left:50%; transform:translateX(30px); color:var(--good);
+    font-size:19px; font-weight:800; pointer-events:none;
+  }
+  .q-flex{display:flex; gap:22px; align-items:center; justify-content:center; flex-wrap:wrap;}
+  .q-fig{flex:1 1 360px; max-width:420px; min-width:260px;}
+  .q-fig svg{max-height:46vh; display:block; margin:0 auto;}
+  .q-side{flex:0 1 320px; min-width:270px;}
+  .q-ask{font-size:16px; font-weight:800; color:var(--teal-dark); margin-bottom:10px; line-height:1.5;}
+  .q-ask .lbl{background:#e3f4f0; border-radius:8px; padding:1px 8px;}
+  .ansrow{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .ansrow input{
+    flex:1; min-width:110px; border:2px solid #cfe3df; border-radius:10px; padding:9px 12px;
+    font-family:inherit; font-size:17px; font-weight:800; color:var(--teal-dark); background:#fbfdfc;
+  }
+  .ansrow input.seg{text-transform:uppercase; letter-spacing:2px; text-align:center;}
+  #checkBtn{
+    border:0; border-radius:10px; background:var(--good); color:#fff;
+    font-size:15px; font-weight:800; padding:10px 20px;
+  }
+  #qMsg{font-size:14px; font-weight:700; margin-top:8px; min-height:20px;}
+  #hintBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:10px; padding:7px 14px; font-size:13.5px; font-weight:700; margin-top:10px;
+  }
+  #hintBox{
+    display:none; margin-top:8px; background:var(--yellow); color:#6b5c00;
+    border-radius:10px; padding:8px 12px; font-size:17px; font-weight:800; text-align:center;
+  }
+  #hintBox.on{display:block;}
+  .hint-note{font-size:11.5px; color:#a8bbb7; font-weight:600; margin-top:4px;}
+  /* the concept sentence */
+  .concept{font-size:19px; font-weight:800; color:var(--teal-dark); line-height:2.1; text-align:center;}
+  .concept input{
+    width:150px; border:0; border-bottom:2.5px solid var(--teal); border-radius:0;
+    background:transparent; font-family:inherit; font-size:19px; font-weight:800;
+    color:var(--accent); text-align:center; padding:2px 4px;
+  }
+  .concept .fixed{color:var(--accent);}
+
+  /* ---------------- done ---------------- */
+  #doneCard{max-width:520px; margin:0 auto; text-align:center;}
+  #doneScore{font-size:34px; font-weight:800; color:var(--teal-dark); margin:6px 0;}
+  #doneRank{font-size:16px; font-weight:800; color:#8a6d00; margin-bottom:8px;}
+  #doneReward{
+    display:none; font-size:15px; font-weight:700; color:#4c6b66;
+    background:#eef7f2; border-radius:12px; padding:9px 14px; margin-bottom:12px;
+  }
+  #doneReward.on{display:block;}
+  #confetti{position:fixed; inset:0; z-index:60; pointer-events:none;}
+  #toast{
+    position:fixed; left:50%; top:14px; transform:translateX(-50%);
+    background:#12241f; color:#fff; padding:9px 18px; border-radius:22px;
+    font-size:14.5px; font-weight:700; opacity:0; transition:opacity .3s; z-index:90;
+    pointer-events:none; max-width:92vw; text-align:center;
+  }
+  #toast.on{opacity:.95;}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="backBtn">← Back</button>
+  <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
+</header>
+
+<main>
+  <!-- ================= tutorial ================= -->
+  <section class="screen on" id="scrTut">
+    <h2 id="tutTitle">🔷 Turn the parallelogram into a rectangle</h2>
+    <p class="sub" id="tutSub">We want to find the area of this parallelogram. Fill in the gaps!</p>
+    <div class="tut-top">
+      <div class="stage-pips" id="stagePips" style="display:none"><span></span></div>
+      <label id="instrWrap"><input type="checkbox" id="instrToggle"> 🧭 Instructions</label>
+    </div>
+    <div class="card">
+      <div class="tut-flex">
+        <div class="tut-stage" id="tutStage"></div>
+        <div class="tut-side">
+          <div class="eq" id="tutEq"></div>
+          <div id="eqResult"></div>
+          <div class="tut-hint" id="tutHint"></div>
+        </div>
+      </div>
+      <button class="bigbtn" id="tutNext" disabled>Next →</button>
+    </div>
+  </section>
+
+  <!-- ================= home ================= -->
+  <section class="screen" id="scrHome">
+    <h2><span class="p1">Parallelo</span><span class="p2">gram</span></h2>
+    <p class="sub">Six questions. The faster you answer, the more points you score!</p>
+    <div class="card">
+      <h2 style="font-size:17px;margin-bottom:8px">🏆 Top 10</h2>
+      <div class="board" id="homeBoard"></div>
+      <button class="bigbtn" id="startBtn">▶ Start the game</button>
+      <button class="quietbtn" id="replayTut">↩ Watch the tutorial again</button>
+    </div>
+  </section>
+
+  <!-- ================= play ================= -->
+  <section class="screen" id="scrPlay">
+    <div id="scoreLine">Score: <span id="scoreVal">0</span></div>
+    <div id="timerWrap"><div id="timerBar"></div></div>
+    <div class="pts-row">
+      <span>The faster you solve, the more score you get.</span>
+      <span id="ptsNow">50 pts</span>
+      <span id="timeLeft">120s left</span>
+    </div>
+    <div class="card">
+      <div class="q-head"><span class="q-count" id="qCount">Question 1 of 8</span></div>
+      <div class="q-flex">
+        <div class="q-fig" id="qFig"></div>
+        <div class="q-side">
+          <div class="q-ask" id="qAsk"></div>
+          <div id="qInputs"></div>
+          <div id="qMsg"></div>
+          <div id="hintWrap" style="display:none">
+            <button id="hintBtn">💡 Show me the formula</button>
+            <div id="hintBox"></div>
+            <div class="hint-note">Using the hint gives you half the points.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= done ================= -->
+  <section class="screen" id="scrDone">
+    <div class="card" id="doneCard">
+      <h2 id="doneTitle">🎉 All done!</h2>
+      <div id="doneScore">0</div>
+      <div id="doneRank"></div>
+      <div id="doneReward"></div>
+      <div class="board" id="doneBoard"></div>
+      <button class="bigbtn" id="againBtn">🔁 Play again</button>
+      <button class="quietbtn" id="homeBtn">🏠 Back to games</button>
+    </div>
+  </section>
+</main>
+
+<canvas id="confetti"></canvas>
+<div id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script src="js/game-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var G = window.GameCore;
+  var store = window.CharlieStore;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  var toastT = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ t.classList.remove('on'); }, 2600);
+  }
+  function show(id){
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
+      s.classList.toggle('on', s.id === id);
+    });
+  }
+  function current(){
+    var on = document.querySelector('.screen.on');
+    return on ? on.id : '';
+  }
+
+  /* ---------------- session ---------------- */
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem('charlie-session')); }catch(e){}
+  if(!sess && window.CHARLIE_TEST_SESSION) sess = window.CHARLIE_TEST_SESSION;
+  if(!sess || !sess.id){ window.location.replace('index.html'); }
+  var me = null;
+
+  function renderChip(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
+    if(!me) return;
+    $('meEmoji').textContent = me.emoji || '🙂';
+    $('meName').textContent = me.name;
+    $('meMoney').textContent = (me.money || 0) + ' W';
+  }
+  $('meChip').addEventListener('click', function(){ window.location.href = 'hub.html#me'; });
+  $('backBtn').addEventListener('click', function(){
+    if(current() === 'scrPlay' && !window.CHARLIE_TEST_FAST
+       && !window.confirm('Leave the game? Your score for this round is lost.')) return;
+    stopTimer();
+    window.location.href = 'hub.html';
+  });
+
+  /* ---------------- sounds ---------------- */
+  var sndPop = null, sndVictory = null;
+  try{ sndPop = new Audio('assets/pop.mp3'); sndVictory = new Audio('assets/victory.mp3'); }catch(e){}
+  function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
+
+  /* ================= geometry helpers ================= */
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var n = document.createElementNS(NS, tag);
+    for(var k in attrs) if(attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  /* maths coords (y up) -> svg coords, given a scale and a bottom-left origin */
+  function makeMap(cm, ox, oy){
+    return function(p){ return [ox + p[0] * cm, oy - p[1] * cm]; };
+  }
+  function ptsStr(list, map){
+    return list.map(function(p){ var q = map(p); return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
+  }
+  /* foot of the perpendicular from p onto the line through a and b */
+  function footOf(p, a, b){
+    var vx = b[0] - a[0], vy = b[1] - a[1];
+    var len2 = vx * vx + vy * vy;
+    if(!len2) return [a[0], a[1]];
+    var t = ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / len2;
+    return [a[0] + t * vx, a[1] + t * vy, t];
+  }
+  function near(a, b){ return Math.abs(a[0] - b[0]) < 0.06 && Math.abs(a[1] - b[1]) < 0.06; }
+
+  /* ================= tutorial ================= */
+  var STAGES = [
+    {
+      title: '🔷 Turn the parallelogram into a rectangle',
+      gw: 7, gh: 5, dims: {base: 4, height: 5},
+      tri: [[0,0],[4,0],[6,5],[2,5]],
+      pieces: [
+        /* everything right of the cut stays put … */
+        {fill:'#a8dcae', pts:[[2,0],[4,0],[6,5],[2,5]]},
+        /* … and the left triangle slides across to fill the notch */
+        {fill:'#f3b9cd', pts:[[0,0],[2,0],[2,5]], dx:4, dy:0}
+      ],
+      marks: [
+        {type:'h', from:[0,0], to:[4,0], off:-0.62, label:'4 cm'},
+        {type:'v', from:[0,0], to:[0,5], off:-0.62, label:'5 cm'}
+      ],
+      hint: 'The pink triangle slides straight across — same shape, same area, but now it is a plain rectangle: base × height.'
+    }
+  ];
+  var NEUTRAL = '#a8dcae';
+  var stageI = 0, tutPhase = 0, instrOn = false, tutDone = false;
+
+  function renderStage(){
+    var S = STAGES[stageI];
+    /* room on the left and underneath for the measuring arrows */
+    var CM = 52, padL = 84, padR = 30, padT = 26, padB = 76;
+    var w = S.gw * CM + padL + padR, h = S.gh * CM + padT + padB;
+    var map = makeMap(CM, padL, h - padB);
+    var svg = el('svg', {viewBox: '0 0 ' + w + ' ' + h, width: '100%',
+                         role: 'img', 'aria-label': S.title});
+
+    /* the centimetre grid */
+    var gx, gy, a, b;
+    for(gx = 0; gx <= S.gw; gx++){
+      a = map([gx, 0]); b = map([gx, S.gh]);
+      svg.appendChild(el('line', {x1:a[0], y1:a[1], x2:b[0], y2:b[1], class:'grid'}));
+    }
+    for(gy = 0; gy <= S.gh; gy++){
+      a = map([0, gy]); b = map([S.gw, gy]);
+      svg.appendChild(el('line', {x1:a[0], y1:a[1], x2:b[0], y2:b[1], class:'grid'}));
+    }
+    svg.appendChild(el('rect', {x:map([0,S.gh])[0], y:map([0,S.gh])[1],
+                                width:S.gw*CM, height:S.gh*CM, class:'frame'}));
+    /* in phase 0 the pieces must read as one plain parallelogram */
+    svg.appendChild(el('polygon', {points: ptsStr(S.tri, map), class:'whole',
+                                   fill:'none', stroke:'#2b6b3a', 'stroke-width':2,
+                                   'stroke-linejoin':'round'}));
+
+    /* the pieces (they start life looking like one plain parallelogram) */
+    S.pieces.forEach(function(p, i){
+      var g = el('g', {class:'piece', 'data-piece': i});
+      g.appendChild(el('polygon', {points: ptsStr(p.pts, map), fill: NEUTRAL,
+                                   stroke: NEUTRAL, 'stroke-width':1.5,
+                                   'stroke-linejoin':'round'}));
+      svg.appendChild(g);
+    });
+    /* the ghost of every piece that will move away */
+    S.pieces.forEach(function(p){
+      if(p.rot === undefined && p.dx === undefined) return;
+      svg.appendChild(el('polygon', {points: ptsStr(p.pts, map), class:'outline', opacity:0}));
+    });
+
+    /* the base and height marks */
+    S.marks.forEach(function(m){
+      var f = map(m.from), t = map(m.to), node;
+      if(m.type === 'h'){
+        var yy = f[1] + 32;
+        svg.appendChild(el('line', {x1:f[0], y1:yy, x2:t[0], y2:yy, class:'dim'}));
+        svg.appendChild(el('line', {x1:f[0], y1:yy-6, x2:f[0], y2:yy+6, class:'dim'}));
+        svg.appendChild(el('line', {x1:t[0], y1:yy-6, x2:t[0], y2:yy+6, class:'dim'}));
+        node = el('text', {x:(f[0]+t[0])/2, y:yy+21, class:'dimtx', 'text-anchor':'middle'});
+      } else {
+        var xx = f[0] - 34;
+        svg.appendChild(el('line', {x1:xx, y1:f[1], x2:xx, y2:t[1], class:'dim'}));
+        svg.appendChild(el('line', {x1:xx-6, y1:f[1], x2:xx+6, y2:f[1], class:'dim'}));
+        svg.appendChild(el('line', {x1:xx-6, y1:t[1], x2:xx+6, y2:t[1], class:'dim'}));
+        node = el('text', {x:xx-9, y:(f[1]+t[1])/2 + 5, class:'dimtx', 'text-anchor':'end'});
+      }
+      node.textContent = m.label;
+      svg.appendChild(node);
+    });
+
+    $('tutStage').innerHTML = '';
+    $('tutStage').appendChild(svg);
+    $('tutTitle').textContent = S.title;
+    $('tutHint').textContent = '';
+    Array.prototype.forEach.call($('stagePips').children, function(s, i){
+      s.classList.toggle('on', i === stageI);
+      s.classList.toggle('done', i < stageI);
+    });
+    /* remember where each piece has to land */
+    tutMap = map; tutCM = CM;
+  }
+  var tutMap = null, tutCM = 52;
+
+  function renderEq(){
+    var box = $('tutEq');
+    box.innerHTML = '';
+    function inp(id, wide){
+      var i = document.createElement('input');
+      i.id = id; i.autocomplete = 'off';
+      if(wide){ i.className = 'wide'; i.placeholder = 'base / height'; }
+      else { i.inputMode = 'numeric'; i.maxLength = 2; }
+      i.addEventListener('input', checkTut);
+      return i;
+    }
+    box.appendChild(inp('eqA', instrOn));
+    if(!instrOn) box.appendChild(document.createTextNode('cm'));
+    box.appendChild(document.createTextNode('×'));
+    box.appendChild(inp('eqB', instrOn));
+    if(!instrOn) box.appendChild(document.createTextNode('cm'));
+    $('eqResult').classList.remove('on');
+    $('eqResult').textContent = '';
+    $('tutSub').textContent = instrOn
+      ? 'We want to find the area of this parallelogram. Which two lengths do we multiply?'
+      : 'We want to find the area of this parallelogram. Fill in the gaps!';
+  }
+
+  /* which of the two dimension boxes are filled in correctly */
+  function dimState(){
+    var S = STAGES[stageI];
+    var a = ($('eqA').value || '').trim().toLowerCase();
+    var b = ($('eqB').value || '').trim().toLowerCase();
+    var wanted = instrOn ? ['base', 'height']
+                         : [String(S.dims.base), String(S.dims.height)];
+    var okA = wanted.indexOf(a) !== -1;
+    var okB = wanted.indexOf(b) !== -1;
+    var both = okA && okB && a !== b;
+    return {a: okA, b: okB, both: both, n: both ? 2 : (okA || okB ? 1 : 0)};
+  }
+
+  function checkTut(){
+    var d = dimState();
+    $('eqA').classList.toggle('good', d.a);
+    $('eqB').classList.toggle('good', d.b);
+    setPhase(d.n);
+  }
+
+  function setPhase(p){
+    if(p === tutPhase) return;
+    var S = STAGES[stageI];
+    var svg = $('tutStage').querySelector('svg');
+    if(!svg) return;
+    tutPhase = p;
+
+    /* phase 1+: the cut shows, every piece takes its own colour */
+    Array.prototype.forEach.call(svg.querySelectorAll('.piece polygon'), function(poly, i){
+      poly.setAttribute('fill', p >= 1 ? S.pieces[i].fill : NEUTRAL);
+      poly.setAttribute('stroke', p >= 1 ? '#2b6b3a' : NEUTRAL);
+    });
+    var whole = svg.querySelector('.whole');
+    if(whole) whole.setAttribute('opacity', p >= 1 ? 0 : 1);
+    /* phase 2+: the loose pieces travel to their places */
+    Array.prototype.forEach.call(svg.querySelectorAll('.piece'), function(g, i){
+      var piece = S.pieces[i];
+      if(piece.rot === undefined && piece.dx === undefined) return;
+      if(p >= 2){
+        if(piece.rot !== undefined){
+          var c = tutMap(piece.about);
+          g.style.transformOrigin = c[0].toFixed(1) + 'px ' + c[1].toFixed(1) + 'px';
+          g.style.transform = 'rotate(' + piece.rot + 'deg)';
+        } else {
+          g.style.transformOrigin = '0px 0px';
+          g.style.transform = 'translate(' + (piece.dx * tutCM) + 'px,' + (-(piece.dy || 0) * tutCM) + 'px)';
+        }
+      } else {
+        g.style.transform = 'none';
+      }
+    });
+    /* the dotted ghost shows where the piece used to be, and stays there */
+    Array.prototype.forEach.call(svg.querySelectorAll('.outline'), function(o){
+      o.setAttribute('opacity', p >= 2 ? 1 : 0);
+    });
+
+    if(p === 2){
+      var area = S.dims.base * S.dims.height;
+      $('eqResult').textContent = S.dims.base + ' cm × ' + S.dims.height
+        + ' cm = ' + area + ' cm²';
+      $('eqResult').classList.add('on');
+      $('tutHint').textContent = S.hint;
+      $('tutNext').disabled = false;
+      play(sndPop);
+    } else {
+      $('eqResult').classList.remove('on');
+      $('tutNext').disabled = true;
+      if(p === 1) $('tutHint').textContent = 'Good! Now the other length.';
+      else $('tutHint').textContent = '';
+    }
+  }
+
+  function loadStage(i){
+    stageI = i; tutPhase = 0;
+    renderStage();
+    renderEq();
+    $('tutNext').textContent = '✓ Confirm';
+    $('tutNext').disabled = true;
+  }
+  $('instrToggle').addEventListener('change', function(){
+    instrOn = $('instrToggle').checked;
+    tutPhase = 0;
+    renderStage();
+    renderEq();
+    $('tutNext').disabled = true;
+  });
+  $('tutNext').addEventListener('click', function(){
+    if(stageI < STAGES.length - 1){ loadStage(stageI + 1); return; }
+    finishTutorial();
+  });
+  function finishTutorial(){
+    tutDone = true;
+    var p = Object.assign({}, (me && me.profile) || {}, {paraDone: true});
+    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
+    goHome();
+  }
+  $('replayTut').addEventListener('click', function(){ loadStage(0); show('scrTut'); });
+
+
+  /* ================= question bank ================= */
+  /* Every question is base × height, the way the worksheet sets them out:
+     the base along the bottom, the base along the top, or the base up one
+     side — with the height always drawn perpendicular to it. */
+  var PARA = [
+    {b:10, h:4, kind:'bottom', lean:2},  {b:6, h:9, kind:'top', lean:2},
+    {b:6, h:5, kind:'side', lean:1},     {b:7, h:3, kind:'bottom', lean:2},
+    {b:8, h:6, kind:'top', lean:-2},     {b:5, h:7, kind:'side', lean:2},
+    {b:9, h:4, kind:'bottom', lean:3},   {b:4, h:8, kind:'top', lean:1},
+    {b:12, h:3, kind:'bottom', lean:-3}, {b:11, h:5, kind:'side', lean:2},
+    {b:3, h:9, kind:'top', lean:1},      {b:7, h:7, kind:'bottom', lean:2},
+    {b:6, h:4, kind:'side', lean:-1},    {b:8, h:5, kind:'bottom', lean:3},
+    {b:10, h:6, kind:'top', lean:-2},    {b:5, h:5, kind:'side', lean:1},
+    {b:9, h:7, kind:'bottom', lean:2},   {b:4, h:6, kind:'top', lean:2},
+    {b:13, h:2, kind:'bottom', lean:3},  {b:6, h:8, kind:'side', lean:2},
+    {b:7, h:5, kind:'top', lean:-2},     {b:8, h:3, kind:'bottom', lean:2},
+    {b:5, h:9, kind:'side', lean:1},     {b:12, h:4, kind:'bottom', lean:-3},
+    {b:6, h:6, kind:'top', lean:2},      {b:9, h:3, kind:'side', lean:2},
+    {b:10, h:5, kind:'bottom', lean:2},  {b:4, h:7, kind:'top', lean:1},
+    {b:11, h:3, kind:'bottom', lean:3},  {b:8, h:8, kind:'side', lean:-2}
+  ];
+
+  /* ---------------- drawing a parallelogram ---------------- */
+  function paraPts(item){
+    var b = item.b, h = item.h, k = Math.max(-h + .5, Math.min(h - .5, item.lean));
+    if(item.kind === 'side'){
+      /* the base runs UP the left-hand side; the height reaches across */
+      return [[0,0],[0,b],[h,b + k],[h,k]];
+    }
+    /* the base lies along the bottom (or the top), the height stands up */
+    return [[0,0],[b,0],[b + k,h],[k,h]];
+  }
+  function drawPara(item){
+    var pts = paraPts(item);
+    var xs = pts.map(function(p){ return p[0]; }), ys = pts.map(function(p){ return p[1]; });
+    var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+    var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+    var spanX = maxX - minX, spanY = maxY - minY;
+    var scale = Math.min(42, 330 / Math.max(spanX, 1), 210 / Math.max(spanY, 1));
+    /* the arrows and their labels live outside the shape — leave them room */
+    var pad = 92;
+    var w = spanX * scale + pad * 2, hh = spanY * scale + pad * 2;
+    var map = function(p){
+      return [pad + (p[0] - minX) * scale, hh - pad - (p[1] - minY) * scale];
+    };
+    var svg = el('svg', {viewBox:'0 0 ' + w.toFixed(0) + ' ' + hh.toFixed(0), width:'100%',
+                         role:'img', 'aria-label':'parallelogram with base ' + item.b
+                                       + ' and height ' + item.h});
+    svg.appendChild(el('polygon', {points: ptsStr(pts, map), fill:'#d8d8d8',
+                                   stroke:'#333', 'stroke-width':2.2, 'stroke-linejoin':'round'}));
+
+    function dash(p1, p2){
+      var a = map(p1), b2 = map(p2);
+      svg.appendChild(el('line', {x1:a[0], y1:a[1], x2:b2[0], y2:b2[1],
+                                  stroke:'#333', 'stroke-width':2, 'stroke-dasharray':'6 4'}));
+    }
+    function sqAt(corner, ux, uy, vx, vy){
+      var s = 0.34 * Math.max(1, 6 / scale * 4);
+      s = 0.4;
+      var q = [[corner[0], corner[1]],
+               [corner[0] + ux * s, corner[1] + uy * s],
+               [corner[0] + (ux + vx) * s, corner[1] + (uy + vy) * s],
+               [corner[0] + vx * s, corner[1] + vy * s]];
+      svg.appendChild(el('polygon', {points: ptsStr(q, map), fill:'none',
+                                     stroke:'#333', 'stroke-width':1.6}));
+    }
+    function arrow(p1, p2, label, side){
+      var a = map(p1), b2 = map(p2);
+      var dx = side === 'below' || side === 'above' ? 0 : (side === 'left' ? -26 : 26);
+      var dy = side === 'below' ? 28 : side === 'above' ? -26 : 0;
+      var x1 = a[0] + dx, y1 = a[1] + dy, x2 = b2[0] + dx, y2 = b2[1] + dy;
+      svg.appendChild(el('line', {x1:x1, y1:y1, x2:x2, y2:y2, stroke:'#333', 'stroke-width':1.6}));
+      var capx = (side === 'left' || side === 'right') ? 6 : 0;
+      var capy = (side === 'left' || side === 'right') ? 0 : 6;
+      svg.appendChild(el('line', {x1:x1-capx, y1:y1-capy, x2:x1+capx, y2:y1+capy,
+                                  stroke:'#333', 'stroke-width':1.6}));
+      svg.appendChild(el('line', {x1:x2-capx, y1:y2-capy, x2:x2+capx, y2:y2+capy,
+                                  stroke:'#333', 'stroke-width':1.6}));
+      var tx = (x1 + x2) / 2, ty = (y1 + y2) / 2;
+      var t = el('text', {'font-size':'17', 'font-weight':'800', fill:'#333',
+                          stroke:'#fff', 'stroke-width':'4', 'paint-order':'stroke'});
+      if(side === 'below'){ t.setAttribute('x', tx); t.setAttribute('y', ty + 20); t.setAttribute('text-anchor','middle'); }
+      else if(side === 'above'){ t.setAttribute('x', tx); t.setAttribute('y', ty - 9); t.setAttribute('text-anchor','middle'); }
+      else if(side === 'left'){ t.setAttribute('x', tx - 9); t.setAttribute('y', ty + 5); t.setAttribute('text-anchor','end'); }
+      else { t.setAttribute('x', tx + 9); t.setAttribute('y', ty + 5); t.setAttribute('text-anchor','start'); }
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+
+    var k = pts[3][0] - pts[0][0];            /* how far the shape leans */
+    if(item.kind === 'bottom'){
+      /* base along the bottom, height dropping from the top-left corner */
+      var footX = pts[3][0];
+      dash(pts[3], [footX, 0]);
+      sqAt([footX, 0], (k >= 0 ? -1 : 1), 0, 0, 1);
+      arrow([0,0], [item.b,0], item.b + ' cm', 'below');
+      arrow([footX, 0], [footX, item.h], item.h + ' cm', k >= 0 ? 'left' : 'right');
+    } else if(item.kind === 'top'){
+      /* base along the top, height standing on the left */
+      var topFootX = pts[0][0];
+      dash(pts[0], [topFootX, item.h]);
+      sqAt([topFootX, item.h], (k >= 0 ? 1 : -1), 0, 0, -1);
+      arrow(pts[3], pts[2], item.b + ' cm', 'above');
+      arrow([topFootX, 0], [topFootX, item.h], item.h + ' cm', 'left');
+    } else {
+      /* base up the left side, height reaching across at mid-height */
+      var lo = Math.max(0, k), hi = Math.min(item.b, item.b + k);
+      var midY = (lo + hi) / 2;
+      dash([0, midY], [item.h, midY]);
+      sqAt([0, midY], 0, -1, 1, 0);
+      arrow([0,0], [0,item.b], item.b + ' cm', 'left');
+      arrow([0, midY], [item.h, midY], item.h + ' cm', 'above');
+    }
+    return svg;
+  }
+
+  /* ================= the game ================= */
+  var MAXT = 120, BEST_PAY = 2, round = [], qi = 0, score = 0, hintUsed = false;
+  /* how many of each kind were right this turn — the teacher sees these */
+  var tally = null;
+  function freshTally(){ return {para:{ok:0, n:0}}; }
+  /* 50 points for a really quick answer, easing down 1 point every 2 seconds,
+     and never below 20 once a minute has gone — slow thinking still pays */
+  var PTS_MAX = 50, PTS_FLOOR = 20, FLOOR_AT = 60;
+  var qStart = 0, timerIv = null, answering = false;
+  var roster = [], TRI_NICK = false, scoreBlob = null;
+
+  function ptsFor(t){
+    if(t >= FLOOR_AT) return PTS_FLOOR;
+    return Math.max(PTS_FLOOR, PTS_MAX - Math.floor(t / 2));
+  }
+  function elapsed(){ return (Date.now() - qStart) / 1000; }
+  function stopTimer(){ if(timerIv){ clearInterval(timerIv); timerIv = null; } }
+  function startTimer(){
+    stopTimer();
+    qStart = Date.now();
+    tick();
+    timerIv = setInterval(tick, 200);
+  }
+  function tick(){
+    var t = Math.min(MAXT, elapsed());
+    var left = Math.max(0, MAXT - t);
+    $('timerBar').style.width = (left / MAXT * 100).toFixed(1) + '%';
+    var p = ptsFor(t);
+    $('ptsNow').textContent = p + ' pts';
+    $('timeLeft').textContent = Math.ceil(left) + 's left';
+    var warm = t >= 30 && t < FLOOR_AT, cold = t >= FLOOR_AT;
+    $('timerBar').classList.toggle('mid', warm);
+    $('timerBar').classList.toggle('low', cold);
+    $('ptsNow').classList.toggle('mid', warm);
+    $('ptsNow').classList.toggle('low', cold);
+    if(elapsed() >= MAXT && !answering) timeUp();
+  }
+  function timeUp(){
+    answering = true;
+    stopTimer();
+    $('qMsg').style.color = '#c3323f';
+    $('qMsg').textContent = "⏰ Out of time — the answer was " + answerText(round[qi]) + '.';
+    setTimeout(nextQuestion, window.CHARLIE_TEST_FAST ? 60 : 2200);
+  }
+
+  function buildRound(){
+    return G.shuffle(PARA.slice()).slice(0, 6).map(function(it){ return {type:'para', item:it}; });
+  }
+  function answerText(q){ return (q.item.b * q.item.h) + ' cm²'; }
+
+  function renderQuestion(){
+    var q = round[qi];
+    answering = false; hintUsed = false;
+    if(tally && tally[q.type]) tally[q.type].n++;
+    $('qCount').textContent = 'Question ' + (qi + 1) + ' of ' + round.length;
+    $('qMsg').textContent = '';
+    $('hintWrap').style.display = '';
+    $('hintBox').classList.remove('on');
+    $('hintBox').textContent = q.item.b + ' × ' + q.item.h;
+    $('qFig').innerHTML = '';
+    $('qInputs').innerHTML = '';
+    $('qFig').appendChild(drawPara(q.item));
+    $('qAsk').innerHTML = 'Find the <b>area</b> of this parallelogram.';
+    var row = document.createElement('div');
+    row.className = 'ansrow';
+    var n = document.createElement('input');
+    n.id = 'ansIn'; n.inputMode = 'decimal'; n.autocomplete = 'off'; n.placeholder = 'cm²';
+    row.appendChild(n);
+    row.appendChild(document.createTextNode('cm²'));
+    row.appendChild(mkCheck());
+    $('qInputs').appendChild(row);
+    var first = $('qInputs').querySelector('input');
+    if(first && !window.CHARLIE_TEST_FAST) first.focus();
+    Array.prototype.forEach.call($('qInputs').querySelectorAll('input'), function(inp){
+      inp.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); checkAnswer(); }
+      });
+    });
+    startTimer();
+  }
+
+  function mkCheck(){
+    var b = document.createElement('button');
+    b.id = 'checkBtn'; b.textContent = '✓ Check';
+    b.addEventListener('click', checkAnswer);
+    return b;
+  }
+
+  function checkAnswer(){
+    if(answering) return;
+    var q = round[qi];
+    var raw = ($('ansIn').value || '').trim().replace(/cm.*$/i, '').trim();
+    var n = parseFloat(raw);
+    var ok = raw !== '' && !isNaN(n) && Math.abs(n - q.item.b * q.item.h) < 1e-9;
+    if(!ok){
+      $('qMsg').style.color = '#c3323f';
+      $('qMsg').textContent = '❌ Not quite — have another look!';
+      return;
+    }
+    answering = true;
+    stopTimer();
+    if(tally && tally[q.type]) tally[q.type].ok++;
+    var pts = ptsFor(Math.min(MAXT, elapsed()));
+    if(hintUsed) pts = Math.ceil(pts / 2);
+    score += pts;
+    $('scoreVal').textContent = score;
+    floatPts(pts);
+    play(sndPop);
+    $('qMsg').style.color = '#2a9d34';
+    $('qMsg').textContent = '✅ Yes! +' + pts + ' points';
+    setTimeout(nextQuestion, window.CHARLIE_TEST_FAST ? 60 : 1200);
+  }
+
+  function floatPts(pts){
+    var s = document.createElement('span');
+    s.className = 'floatpts';
+    s.textContent = '+' + pts;
+    $('scoreLine').appendChild(s);
+    try{
+      s.animate([{transform:'translateX(30px) translateY(0)', opacity:1},
+                 {transform:'translateX(30px) translateY(-34px)', opacity:0}],
+                {duration:1100, easing:'ease-out'});
+    }catch(e){}
+    setTimeout(function(){ if(s.parentNode) s.remove(); }, 1150);
+  }
+  $('hintBtn').addEventListener('click', function(){
+    if(answering) return;
+    hintUsed = true;
+    $('hintBox').classList.add('on');
+  });
+
+  function nextQuestion(){
+    qi++;
+    if(qi >= round.length){ finishRound(); return; }
+    renderQuestion();
+  }
+
+  /* ---------------- leaderboard ---------------- */
+  function boardName(id, name){
+    /* real names by default; the admin page can switch the whole board to
+       nicknames for a class that would rather stay anonymous */
+    return TRI_NICK ? '🎈 ' + G.aliasFor(id) : name;
+  }
+  function entries(){
+    return ((scoreBlob && scoreBlob.entries) || []).slice()
+      .sort(function(a, b){ return b.score - a.score; });
+  }
+  function renderBoard(el2, list){
+    if(!list.length){
+      el2.innerHTML = '<div class="empty">Nobody has played yet — be the first! 📐</div>';
+      return;
+    }
+    el2.innerHTML = list.slice(0, 10).map(function(e, i){
+      var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+      var cls = 'brow' + (i < 3 ? ' top' + (i + 1) : '') + (e.id === me.id ? ' me' : '');
+      return '<div class="' + cls + '"><span class="rk">' + medal + '</span>'
+        + '<span class="em">' + esc(e.emoji || '🙂') + '</span>'
+        + '<span>' + esc(boardName(e.id, e.name)) + '</span>'
+        + '<span class="sc">' + e.score + '</span></div>';
+    }).join('');
+  }
+  function loadBoard(){
+    return store.getMachine('parallelogram-scores').then(function(b){
+      scoreBlob = b || {id:'parallelogram-scores', type:'scores', created: Date.now(), entries:[]};
+      return scoreBlob;
+    }).catch(function(){
+      scoreBlob = scoreBlob || {id:'parallelogram-scores', type:'scores', created: Date.now(), entries:[]};
+      return scoreBlob;
+    });
+  }
+  /* keep each player's personal best, then hand back the fresh table */
+  function saveScore(mine){
+    return store.getMachine('parallelogram-scores').then(function(b){
+      b = b || {id:'parallelogram-scores', type:'scores', created: Date.now(), entries:[]};
+      var prev = null;
+      b.entries.forEach(function(e){ if(e.id === me.id) prev = e; });
+      var beat = false, had = !!prev;
+      if(prev){
+        if(mine > prev.score){ prev.score = mine; prev.t = Date.now(); beat = true; }
+        prev.name = me.name; prev.emoji = me.emoji || '🙂';
+      } else {
+        b.entries.push({id:me.id, name:me.name, emoji:me.emoji || '🙂', score:mine, t:Date.now()});
+        beat = true;                       /* a first run is a personal best too */
+      }
+      b.created = Date.now();
+      return store.saveMachine(b).then(function(){
+        scoreBlob = b;
+        return {blob: b, beat: beat, hadBefore: had};
+      });
+    }).catch(function(){ return {blob: scoreBlob, beat: false, hadBefore: true}; });
+  }
+  /* one row per finished turn, so the teacher can follow each child's progress */
+  function saveResult(){
+    return store.getMachine('parallelogram-results').then(function(b){
+      b = b || {id:'parallelogram-results', type:'results', created: Date.now(), rows:[]};
+      var mineRows = b.rows.filter(function(r){ return r.id === me.id; });
+      b.rows.push({
+        id: me.id, name: me.name, emoji: me.emoji || '🙂',
+        turn: mineRows.length + 1, score: score, t: Date.now(),
+        para: [tally.para.ok, tally.para.n]
+      });
+      if(b.rows.length > 600) b.rows = b.rows.slice(-600);   /* keep the log tidy */
+      b.created = Date.now();
+      return store.saveMachine(b);
+    }).catch(function(){});
+  }
+
+  /* a personal best is worth 2 Whare — paid once per new best */
+  function payBest(){
+    return store.list().then(function(all){
+      var mine2 = all.filter(function(s){ return s.id === me.id; })[0];
+      if(!mine2) return;
+      return store.update(me.id, {money: (mine2.money || 0) + BEST_PAY}).then(function(){
+        me.money = (mine2.money || 0) + BEST_PAY;
+        renderChip();
+      });
+    }).catch(function(){});
+  }
+
+  function finishRound(){
+    stopTimer();
+    show('scrDone');
+    $('doneScore').textContent = score + ' points';
+    $('doneRank').textContent = 'Saving your score…';
+    $('doneReward').classList.remove('on');
+    saveResult();
+    saveScore(score).then(function(res){
+      var list = entries();
+      var rank = -1;
+      list.forEach(function(e, i){ if(e.id === me.id && rank < 0) rank = i; });
+      renderBoard($('doneBoard'), list);
+      var best = list.filter(function(e){ return e.id === me.id; })[0];
+      var inTop = rank >= 0 && rank < 10;
+      $('doneTitle').textContent = inTop ? '🏆 You made the Top 10!' : '🎉 Great effort!';
+      $('doneRank').textContent = inTop
+        ? 'You are number ' + (rank + 1) + ' with a best of ' + (best ? best.score : score) + ' points.'
+        : 'Your best so far: ' + (best ? best.score : score) + ' points. Have another go!';
+      if(inTop){ play(sndVictory); confetti(); }
+      if(res && res.beat){
+        $('doneReward').innerHTML = '💰 <b>+' + BEST_PAY + ' Whare!</b> '
+          + (res.hadBefore ? 'You beat your own best score.' : 'That is your first score to beat!');
+        $('doneReward').classList.add('on');
+        return payBest();
+      }
+      $('doneReward').innerHTML = '💡 Beat your best of <b>' + (best ? best.score : score)
+        + '</b> points to earn <b>' + BEST_PAY + ' Whare</b>.';
+      $('doneReward').classList.add('on');
+    });
+  }
+
+  /* ---------------- confetti ---------------- */
+  function confetti(){
+    var cv = $('confetti'), ctx = null;
+    try{ ctx = cv.getContext('2d'); }catch(e){}
+    if(!ctx) return;
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var cols = ['#ffd640','#e05c5c','#2a9d34','#4fb0ff','#c9a8e4'];
+    var bits = [];
+    for(var i = 0; i < 130; i++){
+      bits.push({x:Math.random()*cv.width, y:-20 - Math.random()*cv.height,
+                 w:6+Math.random()*7, h:9+Math.random()*9,
+                 c:cols[Math.floor(Math.random()*cols.length)],
+                 vy:1.6+Math.random()*2.6, vx:-.7+Math.random()*1.4,
+                 rot:Math.random()*6.28, vr:-.12+Math.random()*.24});
+    }
+    var end = Date.now() + 4200;
+    (function frame(){
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      bits.forEach(function(b){
+        b.x += b.vx; b.y += b.vy; b.rot += b.vr;
+        ctx.save();
+        ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+        ctx.fillStyle = b.c;
+        ctx.fillRect(-b.w/2, -b.h/2, b.w, b.h);
+        ctx.restore();
+      });
+      if(Date.now() < end) requestAnimationFrame(frame);
+      else ctx.clearRect(0, 0, cv.width, cv.height);
+    })();
+  }
+
+  /* ---------------- navigation ---------------- */
+  function goHome(){
+    stopTimer();
+    loadBoard().then(function(){
+      renderBoard($('homeBoard'), entries());
+      show('scrHome');
+    });
+  }
+  function startGame(){
+    round = buildRound(); qi = 0; score = 0; tally = freshTally();
+    $('scoreVal').textContent = '0';
+    show('scrPlay');
+    renderQuestion();
+  }
+  $('startBtn').addEventListener('click', startGame);
+  $('againBtn').addEventListener('click', startGame);
+  $('homeBtn').addEventListener('click', goHome);
+
+  /* ---------------- init ---------------- */
+  store.init().then(function(){
+    store.getMachine('game-settings').then(function(s){
+      if(s && s.parallelogram) TRI_NICK = !!s.parallelogram.nicknames;
+      if(s && s.hidden && s.hidden.parallelogram){
+        toast('🔷 Your teacher has closed Parallelogram for now.');
+        setTimeout(function(){ window.location.href = 'hub.html'; }, 1600);
+      }
+    }).catch(function(){});
+    store.onChange(function(){ refreshMe(); });
+    return refreshMe();
+  }).then(function(){
+    tutDone = !!(me && me.profile && me.profile.paraDone);
+    return loadBoard();
+  }).then(function(){
+    if(tutDone){ renderBoard($('homeBoard'), entries()); show('scrHome'); }
+    else loadStage(0);
+  }).catch(function(){
+    toast('Hmm, the game can\'t reach the class database. Ask your teacher!');
+    loadStage(0);
+  });
+  if(window.CHARLIE_TEST_FAST){
+    window.PARA_TEST = {
+      bank: function(){ return PARA; },
+      round: function(){ return round; },
+      pts: paraPts,
+      setRound: function(r){ round = r; qi = 0; score = 0; },
+      score: function(){ return score; }
+    };
+  }
+  function refreshMe(){
+    return store.list().then(function(all){
+      roster = all;
+      me = all.filter(function(s){ return s.id === sess.id; })[0] || me;
+      if(!me){ window.location.replace('index.html'); return; }
+      renderChip();
+    });
+  }
+})();
+
+</script>
+</body>
+</html>

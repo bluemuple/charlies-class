@@ -276,6 +276,16 @@
         <button id="triResults" style="border:2px solid #cfe3df;background:#fff;color:#1f5a54;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:6px">📊 Results</button>
         <button id="triReset" style="border:2px solid #e6c9c9;background:#fff;color:#c3323f;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer">🗑 Clear the ranking</button>
         <span id="triResetMsg" style="font-size:12.5px;font-weight:700;color:#2a9d34;margin-left:6px"></span>
+      </div>
+      <div style="min-width:220px">
+        <h3 style="margin:4px 0 8px">🔷 Parallelogram</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setParaOn" checked> Visible to students</label>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setParaNick"> Use nicknames on the ranking</label>
+        <button id="paraResults" style="border:2px solid #cfe3df;background:#fff;color:#1f5a54;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:6px">📊 Results</button>
+        <button id="paraReset" style="border:2px solid #e6c9c9;background:#fff;color:#c3323f;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer">🗑 Clear the ranking</button>
+        <span id="paraResetMsg" style="font-size:12.5px;font-weight:700;color:#2a9d34;margin-left:6px"></span>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setPaveNick"> Use nicknames instead of real names</label>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:4px">
@@ -298,6 +308,13 @@
   <section class="card" id="fbCard2">
     <h2>💬 Student feedback <span id="fbAvg" style="color:#8a6d00;font-size:16px"></span></h2>
     <div id="fbList" style="font-size:14.5px;color:#4c6b66">No feedback yet.</div>
+  </section>
+
+  <section class="card" id="paraResultsCard" style="display:none">
+    <h2>📊 Parallelogram — results</h2>
+    <p class="note">One row per turn: how many of the six area questions each student
+    answered correctly. Clearing the ranking does not clear this record.</p>
+    <div id="paraResultsBox" style="font-size:14px;color:#4c6b66"></div>
   </section>
 
   <section class="card" id="triResultsCard" style="display:none">
@@ -644,6 +661,61 @@
       }).join('');
     }).catch(function(){ box.textContent = 'Could not load the results — try again.'; });
   });
+  document.getElementById('paraResults').addEventListener('click', function(){
+    var card = document.getElementById('paraResultsCard');
+    var openNow = card.style.display === 'none';
+    card.style.display = openNow ? '' : 'none';
+    if(!openNow) return;
+    var box = document.getElementById('paraResultsBox');
+    box.textContent = 'Loading…';
+    store.getMachine('parallelogram-results').then(function(b){
+      var rows = (b && b.rows) || [];
+      if(!rows.length){ box.textContent = 'No games played yet.'; return; }
+      var byId = {}, order = [];
+      rows.forEach(function(r){
+        if(!byId[r.id]){ byId[r.id] = []; order.push(r.id); }
+        byId[r.id].push(r);
+      });
+      order.sort(function(a, c){
+        var la = byId[a][byId[a].length-1].t || 0, lc = byId[c][byId[c].length-1].t || 0;
+        return lc - la;
+      });
+      box.innerHTML = order.map(function(id){
+        var list = byId[id].slice().sort(function(a, c){ return (a.turn||0) - (c.turn||0); });
+        var who = list[list.length-1];
+        var best = Math.max.apply(null, list.map(function(r){ return r.score || 0; }));
+        return '<div style="border:1.5px solid #e2edeb;border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fbfdfc">'
+          + '<div style="font-weight:800;color:#1f5a54;margin-bottom:6px">'
+          +   esc2(who.emoji || '🙂') + ' ' + esc2(who.name || id)
+          +   '<span style="float:right;color:#8a6d00">best ' + best + ' pts</span></div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:13.5px">'
+          + '<thead><tr style="color:#7a8f8b;text-align:left">'
+          +   '<th style="padding:2px 6px">turn</th><th style="padding:2px 6px">areas</th>'
+          +   '<th style="padding:2px 6px">score</th><th style="padding:2px 6px">when</th></tr></thead><tbody>'
+          + list.map(function(r){
+              return '<tr style="border-top:1px solid #edf4f3">'
+                + '<td style="padding:3px 6px;font-weight:800">' + (r.turn || '?') + '</td>'
+                + '<td style="padding:3px 6px">' + frac(r.para) + '</td>'
+                + '<td style="padding:3px 6px;font-weight:800">' + (r.score || 0) + '</td>'
+                + '<td style="padding:3px 6px;color:#8aa19c">'
+                +   (r.t ? new Date(r.t).toLocaleDateString() : '') + '</td></tr>';
+            }).join('')
+          + '</tbody></table></div>';
+      }).join('');
+    }).catch(function(){ box.textContent = 'Could not load the results — try again.'; });
+  });
+  document.getElementById('paraReset').addEventListener('click', function(){
+    if(!window.confirm('Clear the Parallelogram ranking for the whole class?')) return;
+    var btn = document.getElementById('paraReset'), msg = document.getElementById('paraResetMsg');
+    btn.disabled = true;
+    store.saveMachine({id:'parallelogram-scores', type:'scores', created: Date.now(), entries:[]})
+      .then(function(){
+        msg.textContent = 'Ranking cleared ✓';
+        setTimeout(function(){ msg.textContent = ''; }, 2200);
+      })
+      .catch(function(){ msg.style.color = '#c3323f'; msg.textContent = 'Could not clear — try again'; })
+      .then(function(){ btn.disabled = false; });
+  });
   document.getElementById('triReset').addEventListener('click', function(){
     if(!window.confirm('Clear the Try Triangles ranking for the whole class?')) return;
     var btn = document.getElementById('triReset'), msg = document.getElementById('triResetMsg');
@@ -679,7 +751,8 @@
   }
 
   /* ---------------- per-game settings (shared blob in the machines store) --- */
-  var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false, triangles:false},
+  var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false, triangles:false,
+                               parallelogram:false},
                        paving:{nicknames:false, extraSecs:0, measure:3, build:5},
                        algebra:{turnSecs:40},
                        alzebra:{limits:{'+':18,'-':22,'*':28,'/':32}}};
@@ -707,6 +780,8 @@
       document.getElementById('setPaveOn').checked = !hid.paving;
       document.getElementById('setTriOn').checked = !hid.triangles;
       document.getElementById('setTriNick').checked = !!(g.triangles && g.triangles.nicknames);
+      document.getElementById('setParaOn').checked = !hid.parallelogram;
+      document.getElementById('setParaNick').checked = !!(g.parallelogram && g.parallelogram.nicknames);
       document.getElementById('setPaveNick').checked = !!(g.paving && g.paving.nicknames);
       document.getElementById('setPaveSecs').value =
         (g.paving && g.paving.extraSecs) || GAME_DEFAULTS.paving.extraSecs;
@@ -728,8 +803,10 @@
         hidden:{alzebra: !document.getElementById('setZebraOn').checked,
                 algebra: !document.getElementById('setAlgOn').checked,
                 paving: !document.getElementById('setPaveOn').checked,
-                triangles: !document.getElementById('setTriOn').checked},
+                triangles: !document.getElementById('setTriOn').checked,
+                parallelogram: !document.getElementById('setParaOn').checked},
         triangles:{nicknames: document.getElementById('setTriNick').checked},
+        parallelogram:{nicknames: document.getElementById('setParaNick').checked},
         paving:{nicknames: document.getElementById('setPaveNick').checked,
                 extraSecs: Math.max(0, +document.getElementById('setPaveSecs').value || 0),
                 measure: document.getElementById('setPaveMeasureOn').checked
@@ -757,7 +834,7 @@
   }
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
    'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
-   'setPaveOn','setPaveNick','setPaveSecs','setTriOn','setTriNick',
+   'setPaveOn','setPaveNick','setPaveSecs','setTriOn','setTriNick','setParaOn','setParaNick',
    'setPaveMeasureOn','setPaveMeasure','setPaveBuildOn','setPaveBuild']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);
