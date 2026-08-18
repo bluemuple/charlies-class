@@ -1138,6 +1138,7 @@
   }
 
   /* ---------------- confetti ---------------- */
+  var confettiRun = 0;
   function confetti(){
     var cv = $('confetti'), ctx = null;
     try{ ctx = cv.getContext('2d'); }catch(e){}
@@ -1152,18 +1153,25 @@
                  vy:1.6+Math.random()*2.6, vx:-.7+Math.random()*1.4,
                  rot:Math.random()*6.28, vr:-.12+Math.random()*.24});
     }
-    var end = Date.now() + 4200;
+    var end = Date.now() + 20000;
+    var mine = ++confettiRun;      /* only the newest burst gets to draw */
     (function frame(){
+      if(mine !== confettiRun) return;
       ctx.clearRect(0, 0, cv.width, cv.height);
+      var flying = 0;
       bits.forEach(function(b){
         b.x += b.vx; b.y += b.vy; b.rot += b.vr;
+        /* once a piece is past the bottom edge it is gone for good */
+        if(b.y - (b.w + b.h) > cv.height) return;
+        flying++;
         ctx.save();
         ctx.translate(b.x, b.y); ctx.rotate(b.rot);
         ctx.fillStyle = b.c;
         ctx.fillRect(-b.w/2, -b.h/2, b.w, b.h);
         ctx.restore();
       });
-      if(Date.now() < end) requestAnimationFrame(frame);
+      /* keep falling until every last piece has left the screen */
+      if(flying && Date.now() < end) requestAnimationFrame(frame);
       else ctx.clearRect(0, 0, cv.width, cv.height);
     })();
   }
