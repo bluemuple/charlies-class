@@ -659,8 +659,7 @@
       svg.appendChild(el('line', {x1:x2-capx, y1:y2-capy, x2:x2+capx, y2:y2+capy,
                                   stroke:'#333', 'stroke-width':1.6}));
       var tx = (x1 + x2) / 2, ty = (y1 + y2) / 2;
-      var t = el('text', {'font-size':'17', 'font-weight':'800', fill:'#333',
-                          stroke:'#fff', 'stroke-width':'4', 'paint-order':'stroke'});
+      var t = el('text', {'font-size':'17', 'font-weight':'800', fill:'#333'});
       if(side === 'below'){ t.setAttribute('x', tx); t.setAttribute('y', ty + 20); t.setAttribute('text-anchor','middle'); }
       else if(side === 'above'){ t.setAttribute('x', tx); t.setAttribute('y', ty - 9); t.setAttribute('text-anchor','middle'); }
       else if(side === 'left'){ t.setAttribute('x', tx - 9); t.setAttribute('y', ty + 5); t.setAttribute('text-anchor','end'); }
@@ -669,29 +668,49 @@
       svg.appendChild(t);
     }
 
-    var k = pts[3][0] - pts[0][0];            /* how far the shape leans */
+    /* if the height lands beyond the end of the base, the base line is carried
+       on with dashes so the two meet at a proper right-angled corner */
+    function extendBase(foot, e1, e2, horizontal){
+      var lo = horizontal ? Math.min(e1[0], e2[0]) : Math.min(e1[1], e2[1]);
+      var hi = horizontal ? Math.max(e1[0], e2[0]) : Math.max(e1[1], e2[1]);
+      var at = horizontal ? foot[0] : foot[1];
+      if(at >= lo - 1e-9 && at <= hi + 1e-9) return;      /* already on the base */
+      var near = (Math.abs(at - lo) < Math.abs(at - hi))
+        ? (horizontal ? [lo, foot[1]] : [foot[0], lo])
+        : (horizontal ? [hi, foot[1]] : [foot[0], hi]);
+      dash(near, foot);
+    }
+
+    /* how far the shape leans: sideways for a bottom/top base, up-and-down
+       for a base that runs up the side */
+    var k = item.kind === 'side' ? pts[3][1] - pts[0][1]
+                                 : pts[3][0] - pts[0][0];
     if(item.kind === 'bottom'){
       /* base along the bottom, height dropping from the top-left corner */
       var footX = pts[3][0];
+      extendBase([footX, 0], [0,0], [item.b,0], true);
       dash(pts[3], [footX, 0]);
       sqAt([footX, 0], (k >= 0 ? -1 : 1), 0, 0, 1);
       arrow([0,0], [item.b,0], item.b + ' cm', 'below');
-      arrow([footX, 0], [footX, item.h], item.h + ' cm', k >= 0 ? 'left' : 'right');
+      arrow([footX, 0], [footX, item.h], item.h + ' cm', k >= 0 ? 'right' : 'left');
     } else if(item.kind === 'top'){
       /* base along the top, height standing on the left */
       var topFootX = pts[0][0];
+      extendBase([topFootX, item.h], pts[3], pts[2], true);
       dash(pts[0], [topFootX, item.h]);
       sqAt([topFootX, item.h], (k >= 0 ? 1 : -1), 0, 0, -1);
       arrow(pts[3], pts[2], item.b + ' cm', 'above');
       arrow([topFootX, 0], [topFootX, item.h], item.h + ' cm', 'left');
     } else {
-      /* base up the left side, height reaching across at mid-height */
-      var lo = Math.max(0, k), hi = Math.min(item.b, item.b + k);
-      var midY = (lo + hi) / 2;
-      dash([0, midY], [item.h, midY]);
-      sqAt([0, midY], 0, -1, 1, 0);
+      /* base up the left side; the height comes off the far corner and meets
+         the base line outside the shape, the way the worksheet draws it */
+      var corner = k >= 0 ? pts[2] : pts[3];      /* the corner past the base */
+      var footY = corner[1];
+      extendBase([0, footY], [0,0], [0,item.b], false);   /* base carried on */
+      dash([0, footY], corner);                           /* the height itself */
+      sqAt([0, footY], 0, (k >= 0 ? -1 : 1), 1, 0);
       arrow([0,0], [0,item.b], item.b + ' cm', 'left');
-      arrow([0, midY], [item.h, midY], item.h + ' cm', 'above');
+      arrow([0, footY], [item.h, footY], item.h + ' cm', k >= 0 ? 'above' : 'below');
     }
     return svg;
   }
@@ -1028,7 +1047,7 @@
     window.PARA_TEST = {
       bank: function(){ return PARA; },
       round: function(){ return round; },
-      pts: paraPts,
+      pts: paraPts, draw: drawPara,
       setRound: function(r){ round = r; qi = 0; score = 0; },
       score: function(){ return score; }
     };
