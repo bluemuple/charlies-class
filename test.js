@@ -254,8 +254,8 @@ async function testAdmin(){
   $("setFriendsNames").dispatchEvent(new w.Event("change"));
   await waitFor(async () => {
     const s = await w.CharlieStore.getMachine("game-settings");
-    return s && s.friends && s.friends.showNames === true && s.friends.hidden === false;
-  }, "the Friends real-name switch lands in the blob", 5000);
+    return s && s.friends && s.friends.nicknames === true && s.friends.hidden === false;
+  }, "the Friends nickname switch lands in the blob", 5000);
   ok(!$("setAlgMusic").checked, "background music starts switched off");
   $("setAlgMusic").checked = true;
   $("setAlgMusic").dispatchEvent(new w.Event("change"));
@@ -485,6 +485,10 @@ async function testGamePlay(){
     if(roll !== firstRoll) rerolled = true;
   }
   ok(rerolled, "pressing again rolls a different basket");
+  ok(/surprise basket/i.test($("toast").textContent),
+     "the surprise button gets all the way through to its message");
+  ok(d.querySelector('.shelf-tabs button[data-shelf="s"]').classList.contains("active"),
+     "and lands the seller back on the snacks shelf");
   [...d.querySelectorAll(".shelf button.sel")].forEach(b => b.click());   // clear for the next checks
 
   // pick limits: 8 snacks → only 7 stick; 4 non-snacks → only 3
@@ -2100,9 +2104,8 @@ async function testHub(){
   ok(d.querySelectorAll("#frGrid .frbar").length === 1, "one classmate bar on show");
   ok(/Bubbles/.test($("frGrid").textContent) && /Lv 4/.test($("frGrid").textContent),
      "the card shows the pet's name and level");
-  ok(!/Willow/.test($("frGrid").textContent)
-     && /🎈 [A-Z][a-z]+ [A-Z][a-z]+/.test($("frGrid").textContent),
-     "the owner hides behind a stable animal pseudonym by default");
+  ok(/Willow/.test($("frGrid").textContent),
+     "each pet bar is headed by its owner's real name");
   ok(/Taylor Swift/.test($("frGrid").textContent) && /football/.test($("frGrid").textContent),
      "favourite music and hobby show on the card");
   await w.CharlieStore.update("cj-rapata", {profile:{stats:{solved:9, cracked:2, made:1}}});
@@ -2113,7 +2116,7 @@ async function testHub(){
   const solverRows = d.querySelectorAll("#frSolvers .brow");
   ok(/🥇/.test(solverRows[0].textContent) && /9/.test(solverRows[0].textContent),
      "rank one wears the gold with the biggest count");
-  ok(!/CJ|Jason/.test($("frSolvers").textContent), "solver names stay anonymous");
+  ok(/CJ/.test($("frSolvers").textContent), "solver boards name the classmates too");
   ok(d.querySelectorAll("#frBreakers .brow").length === 1
      && d.querySelectorAll("#frMakers .brow").length === 2,
      "breaker and maker boards fill from the same stats");
@@ -2135,18 +2138,12 @@ async function testHub(){
   await waitFor(() => /1 \/ 2/.test($("petBox").textContent), "the left arrow slides back to Bubbles");
   ok(/Bubbles/.test($("petBox").textContent), "Bubbles is on stage again");
 
-  // name options: results-name starts CHECKED (show), friends-name UNchecked
+  // the results-name option stays; Class pets simply names everyone now
   ok($("showResultsName").checked === true, "results-name option starts on (show)");
-  ok($("showFriendsName").checked === false, "friends-name option starts off (anonymous)");
-  $("showFriendsName").checked = true;
-  $("showFriendsName").dispatchEvent(new w.Event("change"));
-  await waitFor(async () => {
-    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
-    return s.profile && s.profile.showFriends === true;
-  }, "opting in saves showFriends on the profile", 5000);
+  ok(!$("showFriendsName"), "the Friends opt-in is gone — the wall names everyone");
   $("friendsBtn").click();
   await waitFor(() => /Willow/.test($("frGrid").textContent),
-     "with the opt-in, Friends shows my real name", 5000);
+     "Class pets shows my real name", 5000);
   $("friendsClose").click();
 
   // the superpower glow was a one-time guide: it stays retired now

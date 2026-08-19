@@ -454,7 +454,7 @@
           <input type="checkbox" id="showResultsName" checked> 🙋 Show my name in the game results
         </label>
         <label style="display:block;text-align:center;font-size:14px;color:#5c7671;font-weight:700;margin:0 0 10px;cursor:pointer">
-          <input type="checkbox" id="showFriendsName"> 👥 Show my name in Friends
+          👥 Class pets shows everyone by name
           <button id="goFriends" style="margin-left:8px;border:0;background:var(--teal);color:#fff;border-radius:10px;padding:3px 12px;font-size:12px;font-weight:800;cursor:pointer">Go</button>
         </label>
         <button class="prof-btn" id="editEmojiBtn">🙂 Change my emoji</button>
@@ -1305,7 +1305,7 @@
     var p = me.profile || {};
     if(document.activeElement !== $('likeMusic')) $('likeMusic').value = p.music || '';
     if(document.activeElement !== $('likeHobby')) $('likeHobby').value = p.hobby || '';
-    $('showFriendsName').checked = !!p.showFriends;
+
   }
   function saveLikes(){
     /* capture NOW — a refresh between keystroke and debounce can't erase it */
@@ -1323,15 +1323,16 @@
   $('likeHobby').addEventListener('input', saveLikes);
 
   /* ---------------- friends: everyone's pets, anonymous by default ------- */
-  var FR_SETTINGS = {hidden:false, showNames:false};
+  var FR_SETTINGS = {hidden:false, nicknames:false};
   function petsOf(s){
     var p = s.pet;
     if(!p) return [];
     return Array.isArray(p) ? p : [p];
   }
+  /* classmates go by their own names here; the teacher can switch the whole
+     wall to nicknames from the admin page */
   function frName(s){
-    return (FR_SETTINGS.showNames || (s.profile && s.profile.showFriends))
-      ? esc(s.name) : '🎈 ' + esc(G.aliasFor(s.id));
+    return FR_SETTINGS.nicknames ? '🎈 ' + esc(G.aliasFor(s.id)) : esc(s.name);
   }
   function renderBoard(el, all, statKey){
     var rows = all.map(function(s){
@@ -1455,11 +1456,6 @@
     e.preventDefault();
     closeProf();
     document.getElementById('friendsBtn').click();
-  });
-  document.getElementById('showFriendsName').addEventListener('change', function(){
-    var on = this.checked;
-    var p = Object.assign({}, (me && me.profile) || {}, {showFriends: on});
-    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
   });
   /* the teacher can rest a game: its card never appears at all */
   var gamesShown = false;

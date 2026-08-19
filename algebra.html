@@ -1229,13 +1229,16 @@
     picked.push(k); renderPick();
     ghostFly(k, fromEl);
   }
+  function showShelf(which){
+    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
+      x.classList.toggle('active', x.dataset.shelf === which);
+    });
+    $('shelfS').classList.toggle('on', which === 's');
+    $('shelfN').classList.toggle('on', which === 'n');
+  }
   document.querySelector('.shelf-tabs').addEventListener('click', function(e){
     var b = e.target.closest('button[data-shelf]'); if(!b) return;
-    Array.prototype.forEach.call(document.querySelectorAll('.shelf-tabs button'), function(x){
-      x.classList.toggle('active', x === b);
-    });
-    $('shelfS').classList.toggle('on', b.dataset.shelf==='s');
-    $('shelfN').classList.toggle('on', b.dataset.shelf==='n');
+    showShelf(b.dataset.shelf);
   });
   $('shelfS').addEventListener('click', shelfClick);
   $('shelfN').addEventListener('click', shelfClick);
