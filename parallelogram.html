@@ -862,8 +862,12 @@
   /* ---------------- leaderboard ---------------- */
   function boardName(id, name){
     /* real names by default; the admin page can switch the whole board to
-       nicknames for a class that would rather stay anonymous */
-    return TRI_NICK ? '🎈 ' + G.aliasFor(id) : name;
+       nicknames, and any child who has turned their own name off in My room
+       shows as a nickname here too */
+    if(TRI_NICK) return '🎈 ' + G.aliasFor(id);
+    var s = roster.filter(function(x){ return x.id === id; })[0];
+    if(s && s.profile && s.profile.hideResults) return '🎈 ' + G.aliasFor(id);
+    return name;
   }
   function entries(){
     return ((scoreBlob && scoreBlob.entries) || []).slice()

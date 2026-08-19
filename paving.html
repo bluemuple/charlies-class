@@ -523,7 +523,12 @@
   /* -------- names: the plot list shows an alias, inside the room the real
      name (unless the teacher switched the class to nicknames) -------- */
   function nickMode(){ return !!(SETTINGS && SETTINGS.paving && SETTINGS.paving.nicknames); }
-  function hidePref(){ try{ return localStorage.getItem('charlie-hide-real') === '1'; }catch(e){ return false; } }
+  function hidePref(){
+    /* the child's own choice, taken from the profile so it follows them to
+       any device; this browser's copy is the fallback */
+    if(me && me.profile && me.profile.hideResults !== undefined) return !!me.profile.hideResults;
+    try{ return localStorage.getItem('charlie-hide-real') === '1'; }catch(e){ return false; }
+  }
   function dispName(m, p, inRoom){
     if(!p) return '';
     var alias = p.alias || (m && m.seller && p.id === m.seller.id && m.alias) || 'Mystery Player';

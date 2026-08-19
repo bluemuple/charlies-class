@@ -1851,6 +1851,15 @@ async function testTriangles(){
   const blob = await w.CharlieStore.getMachine("triangle-scores");
   ok(blob.entries.length === 1 && blob.entries[0].score === total, "the board stores my best");
   ok(/Willow/.test($("doneBoard").textContent), "the ranking shows real names by default");
+  // …unless that child turned their own name off in My room
+  await w.CharlieStore.update("willow-kolo", {profile:{hideResults:true}});
+  await sleep(200);
+  $("homeBtn").click();
+  await waitFor(() => $("scrHome").classList.contains("on"), "back to the home screen");
+  await waitFor(() => !/Willow/.test($("homeBoard").textContent)
+     && /🎈/.test($("homeBoard").textContent),
+     "a child who opted out appears as a nickname on the board", 5000);
+  await w.CharlieStore.update("willow-kolo", {profile:{hideResults:false}});
   await waitFor(async () => {
     const b = await w.CharlieStore.getMachine("triangle-results");
     if(!b || !b.rows.length) return false;
@@ -2138,8 +2147,21 @@ async function testHub(){
   await waitFor(() => /1 \/ 2/.test($("petBox").textContent), "the left arrow slides back to Bubbles");
   ok(/Bubbles/.test($("petBox").textContent), "Bubbles is on stage again");
 
-  // the results-name option stays; Class pets simply names everyone now
+  // the results-name option starts ticked and, once cleared, follows the
+  // child everywhere — it is saved on the profile, not just this browser
   ok($("showResultsName").checked === true, "results-name option starts on (show)");
+  $("showResultsName").checked = false;
+  $("showResultsName").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.profile && s.profile.hideResults === true;
+  }, "unticking it saves the choice on the profile for every device", 5000);
+  $("showResultsName").checked = true;
+  $("showResultsName").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.profile.hideResults === false;
+  }, "ticking it again puts the name back", 5000);
   ok(!$("showFriendsName"), "the Friends opt-in is gone — the wall names everyone");
   $("friendsBtn").click();
   await waitFor(() => /Willow/.test($("frGrid").textContent),

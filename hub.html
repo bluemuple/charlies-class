@@ -1033,6 +1033,7 @@
       me = list.filter(function(s){ return s.id === sess.id; })[0] || null;
       if(!me){ window.location.replace('index.html'); return; }
       fillLikes();
+      fillResultsName();
       render();
     });
   }
@@ -1446,10 +1447,21 @@
   /* ---------------- init ---------------- */
   /* results-name: checked = show (the stored flag still means "hide");
      markup defaults to checked so blocked storage still lands on "show" */
-  try{ if(localStorage.getItem('charlie-hide-real') === '1')
-         document.getElementById('showResultsName').checked = false; }catch(e){}
+  /* the box starts ticked: names show unless a child says otherwise. The
+     choice is kept on the profile so it follows them to any device AND so
+     the score boards, drawn in other children's browsers, can honour it. */
+  function fillResultsName(){
+    var hidden = !!(me && me.profile && me.profile.hideResults);
+    try{ if(!me || !me.profile || me.profile.hideResults === undefined)
+           hidden = localStorage.getItem('charlie-hide-real') === '1'; }catch(e){}
+    document.getElementById('showResultsName').checked = !hidden;
+  }
+  fillResultsName();
   document.getElementById('showResultsName').addEventListener('change', function(){
-    try{ localStorage.setItem('charlie-hide-real', this.checked ? '' : '1'); }catch(e){}
+    var hide = !this.checked;
+    try{ localStorage.setItem('charlie-hide-real', hide ? '1' : ''); }catch(e){}
+    var p = Object.assign({}, (me && me.profile) || {}, {hideResults: hide});
+    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
   });
   /* friends-name: off by default; lives on the profile so classmates see it */
   document.getElementById('goFriends').addEventListener('click', function(e){

@@ -1102,6 +1102,7 @@
   $('penShowName').addEventListener('change', function(){
     var show = $('penShowName').checked;
     try{ localStorage.setItem('charlie-hide-real', show ? '' : '1'); }catch(e){}
+    savePref(!show);
     var id = penId; if(!id) return;
     store.getMachine(id).then(function(m){
       if(!m || !!m.seller.hideReal === !show) return;
@@ -1197,6 +1198,7 @@
   $('zHideRealCk').addEventListener('change', function(){
     var show = $('zHideRealCk').checked;
     try{ localStorage.setItem('charlie-hide-real', show ? '' : '1'); }catch(e){}
+    savePref(!show);
     var id = penId; if(!id) return;
     store.getMachine(id).then(function(m){
       var b = m && m.buyers.filter(function(x){ return x.id === me.id; })[0];
@@ -1672,7 +1674,18 @@
 
   /* -------- stage names: alias during play, real name at the results --------
      (unless the player asked to stay hidden — hub option or the lobby tick) */
-  function hidePref(){ try{ return localStorage.getItem('charlie-hide-real') === '1'; }catch(e){ return false; } }
+  /* keep the same choice on the profile so every screen agrees */
+  function savePref(hide){
+    if(!me) return;
+    var p = Object.assign({}, me.profile || {}, {hideResults: hide});
+    store.update(me.id, {profile: p}).then(function(){ me.profile = p; }).catch(function(){});
+  }
+  function hidePref(){
+    /* the child's own choice, taken from the profile so it follows them to
+       any device; this browser's copy is the fallback */
+    if(me && me.profile && me.profile.hideResults !== undefined) return !!me.profile.hideResults;
+    try{ return localStorage.getItem('charlie-hide-real') === '1'; }catch(e){ return false; }
+  }
   function dispName(m, p, reveal){
     if(!p) return '';
     var alias = p.alias || (m && m.seller && p.id === m.seller.id && m.alias) || 'Mystery Player';
