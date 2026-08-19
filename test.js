@@ -1571,6 +1571,99 @@ async function testParallelogram(){
   try{ dom.window.close(); }catch(e){}
 }
 
+async function testReview(){
+  console.log("\nreview.html — the 90-second mixed sprint");
+  const dom = await load("review.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+    w.CHARLIE_TEST_FAST = true;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await waitFor(() => !!w.REVIEW_TEST, "the test hook is available");
+  await sleep(150);
+  const R = w.REVIEW_TEST;
+
+  /* ---- the bank: fifty questions, evenly split, every type present ---- */
+  const bank = R.bank();
+  const all = bank.tri.concat(bank.para);
+  ok(all.length === 50, "fifty questions in the review bank (" + all.length + ")");
+  ok(bank.tri.length === 25 && bank.para.length === 25, "triangles and parallelograms 1:1");
+  const byType = {};
+  all.forEach(q => { byType[q.type] = (byType[q.type] || 0) + 1; });
+  ok(Object.keys(byType).length === 4, "four question types are drawn on");
+  ok(Object.keys(byType).every(k => byType[k] >= 5),
+     "at least five of every type: " + JSON.stringify(byType));
+
+  /* ---- scoring: 0.5 s steps, quick bonuses, a floor of 10 ---- */
+  ok(R.pts(0) === 100, "an instant answer is 80 + 20 bonus = 100");
+  ok(R.pts(0.5) === 97 && R.pts(1) === 94, "each half second costs 3 points");
+  ok(R.pts(1.5) === 81, "past a second the 20-point bonus becomes 10");
+  ok(R.pts(2.5) === 65, "past two seconds the bonus is gone");
+  ok(R.pts(60) === 10 && R.pts(200) === 10, "a slow answer still earns the 10-point floor");
+  let prev = 101;
+  for(let t = 0; t <= 30; t += 0.5){ const v = R.pts(t); if(v > prev) prev = -1; else prev = v; }
+  ok(prev !== -1, "the score never goes back up as time passes");
+
+  /* ---- a round: the clock runs for the whole sprint ---- */
+  $("startBtn").click();
+  await waitFor(() => $("scrPlay").classList.contains("on"), "the sprint starts");
+  await waitFor(() => /Question 1/.test($("qCount").textContent), "question one is up");
+  ok(/90/.test($("timeLeft").textContent), "ninety seconds on the clock");
+  ok(!!$("skipBtn"), "there is a button to move on");
+
+  /* a wrong answer keeps the question on screen */
+  const q1 = R.round()[0];
+  if(q1.type !== "concept"){
+    $("ansIn").value = "999999";
+    $("checkBtn").click();
+    await sleep(60);
+    ok(/try again/i.test($("qMsg").textContent), "a wrong answer invites another go");
+    ok(/Question 1/.test($("qCount").textContent), "and stays on the same question");
+  }
+  /* skipping moves on without scoring */
+  const before = R.score();
+  $("skipBtn").click();
+  await waitFor(() => /Question 2/.test($("qCount").textContent), "Next moves to question two", 4000);
+  ok(R.score() === before, "skipping scores nothing");
+
+  /* answer one correctly */
+  const q2 = R.round()[1];
+  if(q2.type === "hb"){ $("ansIn").value = R.hbAnswer(q2.item); }
+  else if(q2.type === "area"){ $("ansIn").value = String(q2.item.b * q2.item.h / 2); }
+  else if(q2.type === "para"){ $("ansIn").value = String(q2.item.b * q2.item.h); }
+  else { ["height","perpendicular","base"].forEach((wd, i) => { if($("con" + i)) $("con" + i).value = wd; }); }
+  $("checkBtn").click();
+  await waitFor(() => R.score() > 0, "a right answer scores", 4000);
+  ok(R.solved() === 1, "one question solved so far");
+
+  /* ---- the sprint ends on the clock, not on the bank ---- */
+  R.endNow();
+  await waitFor(() => $("scrDone").classList.contains("on"), "ninety seconds ends the round", 6000);
+  ok(/question/.test($("doneSolved").textContent), "the finish screen counts what was solved");
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("review-scores");
+    return b && b.entries.some(e => e.id === "willow-kolo");
+  }, "the score lands on its own ranking", 6000);
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("review-results");
+    const r = b && b.rows[b.rows.length - 1];
+    return r && r.turn === 1 && typeof r.solved === "number";
+  }, "the turn is logged for the teacher", 6000);
+
+  /* ---- word problems stay out until the teacher approves them ---- */
+  ok(R.round().every(q => q.type !== "applied"), "no word problems until they are switched on");
+  R.setApplied([{shape:"triangle", text:"A flag is a triangle with base 10 cm and perpendicular height 6 cm. What is its area?",
+                 base:10, height:6, answer:30, unit:"cm2", working:"10 x 6 / 2 = 30"}]);
+  $("againBtn").click();
+  await waitFor(() => $("scrPlay").classList.contains("on"), "a fresh sprint starts");
+  const idx = R.round().findIndex(q => q.type === "applied");
+  ok(idx === -1 || idx >= 6, "word problems only appear from question 7 onwards (at " + idx + ")");
+  try{ dom.window.close(); }catch(e){}
+}
+
 async function testTriangles(){
   console.log("\ntriangles.html — tutorial, then the timed round");
   const dom = await load("triangles.html", w => {
@@ -2045,7 +2138,7 @@ async function testHub(){
   // the row stays out of sight until the teacher's settings have been read
   await waitFor(() => d.querySelector(".games").classList.contains("ready"),
      "the game row waits for the settings before showing", 6000);
-  ok(cards.length === 5, "the five games — no 'More games' placeholder");
+  ok(cards.length === 6, "the six games — no 'More games' placeholder");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
   ok(/Paving Race/.test(cards[2].textContent), "Paving Race joins the row");
@@ -2081,6 +2174,7 @@ async function testHub(){
     await testHub();
     await testTriangles();
   await testParallelogram();
+  await testReview();
   }catch(e){
     failed++;
     console.error("\nUnexpected error:", e);

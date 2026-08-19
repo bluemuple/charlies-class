@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shape Review — Wharenui Maths</title>
+<meta name="description" content="A 90-second review sprint: triangle and parallelogram areas, bases and heights, mixed together.">
+<link rel="canonical" href="https://bluemuple.github.io/charlies-class/review.html">
+<style>
+  :root{
+    --teal:#2f7d74; --teal-dark:#1f5a54; --cream:#fdf6e4; --card:#ffffff;
+    --yellow:#ffd640; --accent:#e05c5c; --good:#2a9d34;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Trebuchet MS","Avenir Next",system-ui,sans-serif;
+    background:linear-gradient(160deg,#eef7f2,#dcefe6);
+    min-height:100vh; color:#233;
+  }
+  button{font-family:inherit; cursor:pointer;}
+  header{position:absolute; top:0; left:0; right:0; display:flex; align-items:center;
+         gap:12px; padding:10px 16px; z-index:20; pointer-events:none;}
+  header > *{pointer-events:auto;}
+  #backBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:7px 14px; font-size:14px; font-weight:700;
+  }
+  #meChip{
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+    background:#fff; border:2px solid #cfe3df; border-radius:24px;
+    padding:5px 14px 5px 8px; font-size:14.5px; font-weight:800; color:var(--teal-dark);
+  }
+  #meChip .em{font-size:20px;}
+  #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
+  main{max-width:1100px; margin:0 auto; padding:52px 18px 40px;}
+  .screen{display:none;}
+  .screen.on{display:block;}
+  h2{font-size:clamp(19px,2.6vw,27px); color:var(--teal-dark); text-align:center; margin:.4vh 0 .4vh;}
+  .sub{font-size:14.5px; color:#4c6b66; text-align:center; margin-bottom:12px;}
+  .card{
+    background:var(--card); border-radius:16px; padding:14px 16px;
+    box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:12px;
+  }
+
+  /* ---------------- home + leaderboard ---------------- */
+  .board{max-width:460px; margin:0 auto;}
+  .brow{
+    display:flex; align-items:center; gap:10px; border:1.5px solid #e2edeb;
+    border-radius:12px; background:#fbfdfc; padding:7px 13px; margin-bottom:6px;
+    font-size:14.5px; font-weight:700; color:#4c6b66;
+  }
+  .brow .rk{flex:0 0 26px; text-align:center; font-weight:800; color:#8a6d00;}
+  .brow .em{font-size:19px;}
+  .brow .sc{margin-left:auto; background:var(--yellow); color:#6b5c00;
+            border-radius:12px; padding:1px 11px; font-weight:800;}
+  .brow.top1{background:#fffbe8; border-color:#f0d36b;}
+  .brow.top2{background:#f6f9f8; border-color:#cfd9d7;}
+  .brow.top3{background:#fdf4ec; border-color:#e8cdb0;}
+  .brow.me{outline:2.5px solid var(--teal); outline-offset:1px;}
+  .board .empty{text-align:center; color:#8aa19c; padding:16px 0; font-size:14px;}
+
+  /* ---------------- play ---------------- */
+  #timerWrap{height:14px; background:#e2edeb; border-radius:8px; overflow:hidden; margin-bottom:6px;}
+  #timerBar{height:100%; width:100%; background:linear-gradient(90deg,#2a9d34,#7ac943); transition:width .25s linear;}
+  #timerBar.mid{background:linear-gradient(90deg,#e8a33d,#f4cf6a);}
+  #timerBar.low{background:linear-gradient(90deg,#e63946,#f4a261);}
+  .pts-row{display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap;
+           font-size:13.5px; font-weight:700; color:#7a8f8b; margin-bottom:10px;}
+  #ptsNow{
+    background:var(--good); color:#fff; border-radius:12px; padding:2px 12px;
+    font-size:15px; font-weight:800;
+  }
+  #ptsNow.mid{background:#e8a33d;} #ptsNow.low{background:#e63946;}
+  #timeLeft{font-size:13px; font-weight:800; color:#8aa19c;}
+  .q-head{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:6px;}
+  .q-count{font-size:13px; font-weight:800; color:#8aa19c;}
+  #scoreLine{
+    position:relative; text-align:center; font-size:17px; font-weight:800; color:var(--teal-dark);
+    margin-bottom:8px;
+  }
+  .floatpts{
+    position:absolute; left:50%; transform:translateX(30px); color:var(--good);
+    font-size:19px; font-weight:800; pointer-events:none;
+  }
+  .q-flex{display:flex; gap:22px; align-items:center; justify-content:center; flex-wrap:wrap;}
+  .q-fig{flex:1 1 360px; max-width:420px; min-width:260px;}
+  .q-fig svg{max-height:46vh; display:block; margin:0 auto;}
+  .q-side{flex:0 1 320px; min-width:270px;}
+  .q-ask{font-size:16px; font-weight:800; color:var(--teal-dark); margin-bottom:10px; line-height:1.5;}
+  .q-ask .lbl{background:#e3f4f0; border-radius:8px; padding:1px 8px;}
+  .ansrow{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .ansrow input{
+    flex:1; min-width:110px; border:2px solid #cfe3df; border-radius:10px; padding:9px 12px;
+    font-family:inherit; font-size:17px; font-weight:800; color:var(--teal-dark); background:#fbfdfc;
+  }
+  .ansrow input.seg{text-transform:uppercase; letter-spacing:2px; text-align:center;}
+  #checkBtn{
+    border:0; border-radius:10px; background:var(--good); color:#fff;
+    font-size:15px; font-weight:800; padding:10px 20px;
+  }
+  #skipBtn{
+    border:2px solid #cfe3df; background:#fff; color:#7a8f8b;
+    border-radius:10px; font-size:14px; font-weight:700; padding:9px 14px;
+  }
+  #skipBtn:hover{background:var(--cream); color:var(--teal-dark);}
+  .q-ask{min-height:1.5em;}
+  #qMsg{font-size:14px; font-weight:700; margin-top:8px; min-height:20px;}
+  #hintBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:10px; padding:7px 14px; font-size:13.5px; font-weight:700; margin-top:10px;
+  }
+  #hintBox{
+    display:none; margin-top:8px; background:var(--yellow); color:#6b5c00;
+    border-radius:10px; padding:8px 12px; font-size:17px; font-weight:800; text-align:center;
+  }
+  #hintBox.on{display:block;}
+  .hint-note{font-size:11.5px; color:#a8bbb7; font-weight:600; margin-top:4px;}
+  /* the concept sentence */
+  .concept{font-size:19px; font-weight:800; color:var(--teal-dark); line-height:2.1; text-align:center;}
+  .concept input{
+    width:150px; border:0; border-bottom:2.5px solid var(--teal); border-radius:0;
+    background:transparent; font-family:inherit; font-size:19px; font-weight:800;
+    color:var(--accent); text-align:center; padding:2px 4px;
+  }
+  .concept .fixed{color:var(--accent);}
+
+  /* ---------------- done ---------------- */
+  #doneCard{max-width:520px; margin:0 auto; text-align:center;}
+  #doneScore{font-size:34px; font-weight:800; color:var(--teal-dark); margin:6px 0;}
+  #doneRank{font-size:16px; font-weight:800; color:#8a6d00; margin-bottom:8px;}
+  #doneReward{
+    display:none; font-size:15px; font-weight:700; color:#4c6b66;
+    background:#eef7f2; border-radius:12px; padding:9px 14px; margin-bottom:12px;
+  }
+  #doneReward.on{display:block;}
+  #confetti{position:fixed; inset:0; z-index:60; pointer-events:none;}
+  #toast{
+    position:fixed; left:50%; top:14px; transform:translateX(-50%);
+    background:#12241f; color:#fff; padding:9px 18px; border-radius:22px;
+    font-size:14.5px; font-weight:700; opacity:0; transition:opacity .3s; z-index:90;
+    pointer-events:none; max-width:92vw; text-align:center;
+  }
+  #toast.on{opacity:.95;}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="backBtn">← Back</button>
+  <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
+</header>
+
+<main>
+  <!-- ================= home ================= -->
+  <section class="screen" id="scrHome">
+    <h2>🔁 Shape Review</h2>
+    <p class="sub">Ninety seconds. Triangles and parallelograms, all mixed up —
+       answer as many as you can. The faster you are, the more each one is worth.</p>
+    <div class="card">
+      <h2 style="font-size:17px;margin-bottom:8px">🏆 Top 10</h2>
+      <div class="board" id="homeBoard"></div>
+      <button class="bigbtn" id="startBtn">▶ Start the game</button>
+
+    </div>
+  </section>
+
+  <!-- ================= play ================= -->
+  <section class="screen" id="scrPlay">
+    <div id="scoreLine">Score: <span id="scoreVal">0</span></div>
+    <div id="timerWrap"><div id="timerBar"></div></div>
+    <div class="pts-row">
+      <span>Answer within 1s for +20 bonus, within 2s for +10.</span>
+      <span id="ptsNow">100 pts</span>
+      <span id="timeLeft">90.0s left</span>
+    </div>
+    <div class="card">
+      <div class="q-head"><span class="q-count" id="qCount">Question 1</span></div>
+      <div class="q-flex">
+        <div class="q-fig" id="qFig"></div>
+        <div class="q-side">
+          <div class="q-ask" id="qAsk"></div>
+          <div id="qInputs"></div>
+          <div id="qMsg"></div>
+          <div id="hintWrap" style="display:none">
+            <button id="hintBtn">💡 Show me the formula</button>
+            <div id="hintBox"></div>
+            <div class="hint-note">Using the hint gives you half the points.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= done ================= -->
+  <section class="screen" id="scrDone">
+    <div class="card" id="doneCard">
+      <h2 id="doneTitle">🎉 All done!</h2>
+      <div id="doneScore">0</div>
+      <div id="doneSolved" style="font-size:15px;font-weight:700;color:#7a8f8b;margin-bottom:8px"></div>
+      <div id="doneRank"></div>
+      <div id="doneReward"></div>
+      <div class="board" id="doneBoard"></div>
+      <button class="bigbtn" id="againBtn">🔁 Play again</button>
+      <button class="quietbtn" id="homeBtn">🏠 Back to games</button>
+    </div>
+  </section>
+</main>
+
+<canvas id="confetti"></canvas>
+<div id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script src="js/game-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var G = window.GameCore;
+  var store = window.CharlieStore;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  var toastT = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ t.classList.remove('on'); }, 2600);
+  }
+  function show(id){
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
+      s.classList.toggle('on', s.id === id);
+    });
+  }
+  function current(){
+    var on = document.querySelector('.screen.on');
+    return on ? on.id : '';
+  }
+
+  /* ---------------- session ---------------- */
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem('charlie-session')); }catch(e){}
+  if(!sess && window.CHARLIE_TEST_SESSION) sess = window.CHARLIE_TEST_SESSION;
+  if(!sess || !sess.id){ window.location.replace('index.html'); }
+  var me = null;
+
+  function renderChip(){
+    if(typeof document === 'undefined' || !document || !document.body) return;
+    if(!me) return;
+    $('meEmoji').textContent = me.emoji || '🙂';
+    $('meName').textContent = me.name;
+    $('meMoney').textContent = (me.money || 0) + ' W';
+  }
+  $('meChip').addEventListener('click', function(){ window.location.href = 'hub.html#me'; });
+  $('backBtn').addEventListener('click', function(){
+    if(current() === 'scrPlay' && !window.CHARLIE_TEST_FAST
+       && !window.confirm('Leave the game? Your score for this round is lost.')) return;
+    stopTimer();
+    window.location.href = 'hub.html';
+  });
+
+  /* ---------------- sounds ---------------- */
+  var sndPop = null, sndVictory = null;
+  try{ sndPop = new Audio('assets/pop.mp3'); sndVictory = new Audio('assets/victory.mp3'); }catch(e){}
+  function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
+
+  /* ================= geometry helpers ================= */
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var n = document.createElementNS(NS, tag);
+    for(var k in attrs) if(attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  /* maths coords (y up) -> svg coords, given a scale and a bottom-left origin */
+  function makeMap(cm, ox, oy){
+    return function(p){ return [ox + p[0] * cm, oy - p[1] * cm]; };
+  }
+  function ptsStr(list, map){
+    return list.map(function(p){ var q = map(p); return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
+  }
+  /* foot of the perpendicular from p onto the line through a and b */
+  function footOf(p, a, b){
+    var vx = b[0] - a[0], vy = b[1] - a[1];
+    var len2 = vx * vx + vy * vy;
+    if(!len2) return [a[0], a[1]];
+    var t = ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / len2;
+    return [a[0] + t * vx, a[1] + t * vy, t];
+  }
+  function near(a, b){ return Math.abs(a[0] - b[0]) < 0.06 && Math.abs(a[1] - b[1]) < 0.06; }
+
+  /* ================= question banks ================= */
+  /* Worksheet 2 style: name the height for the given base.
+     Each item gives three corners, which one the height drops from, and which
+     two make the base — the foot (and so the answer) is worked out from the
+     geometry, so it can never disagree with the picture. */
+  var HB = [
+    {pts:[[1,6],[1,1],[6,1]],       letters:['A','B','C'], apex:0, base:[1,2], foot:'D'},
+    {pts:[[1,6.5],[7,6.5],[1,2]],   letters:['P','Q','R'], apex:2, base:[0,1], foot:'S'},
+    {pts:[[1,1.5],[4,6.5],[7.5,2.5]], letters:['X','Y','Z'], apex:1, base:[0,2], foot:'W'},
+    {pts:[[1,1.5],[5,6.8],[8,1.5]], letters:['D','E','F'], apex:1, base:[0,2], foot:'G'},
+    {pts:[[1.5,6.5],[1,1.5],[7.5,4]], letters:['K','M','L'], apex:2, base:[0,1], foot:'N'},
+    {pts:[[1,2],[5,7],[6,2.6]],     letters:['E','F','G'], apex:0, base:[1,2], foot:'H'},
+    {pts:[[4,6.5],[7.5,6.5],[1.5,1.5]], letters:['R','S','T'], apex:2, base:[0,1], foot:'U'},
+    {pts:[[1,1],[6.5,1],[6.5,5.5]], letters:['J','K','L'], apex:2, base:[0,1], foot:'M'},
+    {pts:[[1,2],[4.5,7],[8,2.5]],   letters:['M','N','O'], apex:1, base:[0,2], foot:'P'},
+    {pts:[[2,6.8],[1,2],[8,3]],     letters:['A','B','C'], apex:2, base:[0,1], foot:'D'}
+  ];
+  /* Worksheet 3 style: find the area from the base and the height. */
+  var AREA = [
+    {b:5, h:8, kind:'right'},   {b:9, h:4, kind:'acute'},   {b:8, h:11, kind:'obtuse'},
+    {b:6, h:7, kind:'acute'},   {b:10, h:3, kind:'right'},  {b:12, h:5, kind:'acute'},
+    {b:7, h:6, kind:'obtuse'},  {b:4, h:9, kind:'right'},   {b:11, h:2, kind:'acute'},
+    {b:3, h:14, kind:'right'},  {b:6, h:10, kind:'obtuse'}, {b:8, h:5, kind:'acute'},
+    {b:9, h:8, kind:'right'},   {b:5, h:12, kind:'obtuse'}, {b:7, h:4, kind:'acute'},
+    {b:10, h:7, kind:'right'},  {b:13, h:4, kind:'acute'},  {b:6, h:3, kind:'obtuse'},
+    {b:8, h:9, kind:'acute'},   {b:12, h:6, kind:'right'}
+  ];
+  var CONCEPT_WORDS = ['height', 'perpendicular', 'base'];
+
+  var PARA = [
+    {b:10, h:4, kind:'bottom', lean:2},  {b:6, h:9, kind:'top', lean:2},
+    {b:6, h:5, kind:'side', lean:1},     {b:7, h:3, kind:'bottom', lean:2},
+    {b:8, h:6, kind:'top', lean:-2},     {b:5, h:7, kind:'side', lean:2},
+    {b:9, h:4, kind:'bottom', lean:3},   {b:4, h:8, kind:'top', lean:1},
+    {b:12, h:3, kind:'bottom', lean:-3}, {b:11, h:5, kind:'side', lean:2},
+    {b:3, h:9, kind:'top', lean:1},      {b:7, h:7, kind:'bottom', lean:2},
+    {b:6, h:4, kind:'side', lean:-1},    {b:8, h:5, kind:'bottom', lean:3},
+    {b:10, h:6, kind:'top', lean:-2},    {b:5, h:5, kind:'side', lean:1},
+    {b:9, h:7, kind:'bottom', lean:2},   {b:4, h:6, kind:'top', lean:2},
+    {b:13, h:2, kind:'bottom', lean:3},  {b:6, h:8, kind:'side', lean:2},
+    {b:7, h:5, kind:'top', lean:-2},     {b:8, h:3, kind:'bottom', lean:2},
+    {b:5, h:9, kind:'side', lean:1},     {b:12, h:4, kind:'bottom', lean:-3},
+    {b:6, h:6, kind:'top', lean:2},      {b:9, h:3, kind:'side', lean:2},
+    {b:10, h:5, kind:'bottom', lean:2},  {b:4, h:7, kind:'top', lean:1},
+    {b:11, h:3, kind:'bottom', lean:3},  {b:8, h:8, kind:'side', lean:-2}
+  ];
+
+  /* ---------------- drawing a parallelogram ---------------- */
+  function paraPts(item){
+    var b = item.b, h = item.h, k = Math.max(-h + .5, Math.min(h - .5, item.lean));
+    if(item.kind === 'side'){
+      /* the base runs UP the left-hand side; the height reaches across */
+      return [[0,0],[0,b],[h,b + k],[h,k]];
+    }
+    /* the base lies along the bottom (or the top), the height stands up */
+    return [[0,0],[b,0],[b + k,h],[k,h]];
+  }
+  function drawPara(item){
+    var pts = paraPts(item);
+    var xs = pts.map(function(p){ return p[0]; }), ys = pts.map(function(p){ return p[1]; });
+    var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+    var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+    var spanX = maxX - minX, spanY = maxY - minY;
+    var scale = Math.min(42, 330 / Math.max(spanX, 1), 210 / Math.max(spanY, 1));
+    /* the arrows and their labels live outside the shape — leave them room */
+    var pad = 92;
+    var w = spanX * scale + pad * 2, hh = spanY * scale + pad * 2;
+    var map = function(p){
+      return [pad + (p[0] - minX) * scale, hh - pad - (p[1] - minY) * scale];
+    };
+    var svg = el('svg', {viewBox:'0 0 ' + w.toFixed(0) + ' ' + hh.toFixed(0), width:'100%',
+                         role:'img', 'aria-label':'parallelogram with base ' + item.b
+                                       + ' and height ' + item.h});
+    svg.appendChild(el('polygon', {points: ptsStr(pts, map), fill:'#d8d8d8',
+                                   stroke:'#333', 'stroke-width':2.2, 'stroke-linejoin':'round'}));
+
+    function dash(p1, p2){
+      var a = map(p1), b2 = map(p2);
+      svg.appendChild(el('line', {x1:a[0], y1:a[1], x2:b2[0], y2:b2[1],
+                                  stroke:'#333', 'stroke-width':2, 'stroke-dasharray':'6 4'}));
+    }
+    function sqAt(corner, ux, uy, vx, vy){
+      var s = 0.34 * Math.max(1, 6 / scale * 4);
+      s = 0.4;
+      var q = [[corner[0], corner[1]],
+               [corner[0] + ux * s, corner[1] + uy * s],
+               [corner[0] + (ux + vx) * s, corner[1] + (uy + vy) * s],
+               [corner[0] + vx * s, corner[1] + vy * s]];
+      svg.appendChild(el('polygon', {points: ptsStr(q, map), fill:'none',
+                                     stroke:'#333', 'stroke-width':1.6}));
+    }
+    function arrow(p1, p2, label, side){
+      var a = map(p1), b2 = map(p2);
+      var dx = side === 'below' || side === 'above' ? 0 : (side === 'left' ? -26 : 26);
+      var dy = side === 'below' ? 28 : side === 'above' ? -26 : 0;
+      var x1 = a[0] + dx, y1 = a[1] + dy, x2 = b2[0] + dx, y2 = b2[1] + dy;
+      svg.appendChild(el('line', {x1:x1, y1:y1, x2:x2, y2:y2, stroke:'#333', 'stroke-width':1.6}));
+      var capx = (side === 'left' || side === 'right') ? 6 : 0;
+      var capy = (side === 'left' || side === 'right') ? 0 : 6;
+      svg.appendChild(el('line', {x1:x1-capx, y1:y1-capy, x2:x1+capx, y2:y1+capy,
+                                  stroke:'#333', 'stroke-width':1.6}));
+      svg.appendChild(el('line', {x1:x2-capx, y1:y2-capy, x2:x2+capx, y2:y2+capy,
+                                  stroke:'#333', 'stroke-width':1.6}));
+      var tx = (x1 + x2) / 2, ty = (y1 + y2) / 2;
+      var t = el('text', {'font-size':'17', 'font-weight':'800', fill:'#333'});
+      if(side === 'below'){ t.setAttribute('x', tx); t.setAttribute('y', ty + 20); t.setAttribute('text-anchor','middle'); }
+      else if(side === 'above'){ t.setAttribute('x', tx); t.setAttribute('y', ty - 9); t.setAttribute('text-anchor','middle'); }
+      else if(side === 'left'){ t.setAttribute('x', tx - 9); t.setAttribute('y', ty + 5); t.setAttribute('text-anchor','end'); }
+      else { t.setAttribute('x', tx + 9); t.setAttribute('y', ty + 5); t.setAttribute('text-anchor','start'); }
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+
+    /* if the height lands beyond the end of the base, the base line is carried
+       on with dashes so the two meet at a proper right-angled corner */
+    function extendBase(foot, e1, e2, horizontal){
+      var lo = horizontal ? Math.min(e1[0], e2[0]) : Math.min(e1[1], e2[1]);
+      var hi = horizontal ? Math.max(e1[0], e2[0]) : Math.max(e1[1], e2[1]);
+      var at = horizontal ? foot[0] : foot[1];
+      if(at >= lo - 1e-9 && at <= hi + 1e-9) return;      /* already on the base */
+      var near = (Math.abs(at - lo) < Math.abs(at - hi))
+        ? (horizontal ? [lo, foot[1]] : [foot[0], lo])
+        : (horizontal ? [hi, foot[1]] : [foot[0], hi]);
+      dash(near, foot);
+    }
+
+    /* how far the shape leans: sideways for a bottom/top base, up-and-down
+       for a base that runs up the side */
+    var k = item.kind === 'side' ? pts[3][1] - pts[0][1]
+                                 : pts[3][0] - pts[0][0];
+    if(item.kind === 'bottom'){
+      /* base along the bottom, height dropping from the top-left corner */
+      var footX = pts[3][0];
+      extendBase([footX, 0], [0,0], [item.b,0], true);
+      dash(pts[3], [footX, 0]);
+      sqAt([footX, 0], (k >= 0 ? -1 : 1), 0, 0, 1);
+      arrow([0,0], [item.b,0], item.b + ' cm', 'below');
+      arrow([footX, 0], [footX, item.h], item.h + ' cm', k >= 0 ? 'right' : 'left');
+    } else if(item.kind === 'top'){
+      /* base along the top, height standing on the left */
+      var topFootX = pts[0][0];
+      extendBase([topFootX, item.h], pts[3], pts[2], true);
+      dash(pts[0], [topFootX, item.h]);
+      sqAt([topFootX, item.h], (k >= 0 ? 1 : -1), 0, 0, -1);
+      arrow(pts[3], pts[2], item.b + ' cm', 'above');
+      arrow([topFootX, 0], [topFootX, item.h], item.h + ' cm', 'left');
+    } else {
+      /* base up the left side; the height comes off the far corner and meets
+         the base line outside the shape, the way the worksheet draws it */
+      var corner = k >= 0 ? pts[2] : pts[3];      /* the corner past the base */
+      var footY = corner[1];
+      extendBase([0, footY], [0,0], [0,item.b], false);   /* base carried on */
+      dash([0, footY], corner);                           /* the height itself */
+      sqAt([0, footY], 0, (k >= 0 ? -1 : 1), 1, 0);
+      arrow([0,0], [0,item.b], item.b + ' cm', 'left');
+      arrow([0, footY], [item.h, footY], item.h + ' cm', k >= 0 ? 'above' : 'below');
+    }
+    return svg;
+  }
+
+  /* ---------------- drawing a lettered triangle ---------------- */
+  function drawHB(item){
+    var CM = 46, pad = 34;
+    var xs = item.pts.map(function(p){ return p[0]; });
+    var ys = item.pts.map(function(p){ return p[1]; });
+    var a = item.pts[item.base[0]], b = item.pts[item.base[1]], apex = item.pts[item.apex];
+    var f = footOf(apex, a, b);
+    xs.push(f[0]); ys.push(f[1]);
+    var minX = Math.min.apply(null, xs) - 0.6, maxX = Math.max.apply(null, xs) + 0.6;
+    var minY = Math.min.apply(null, ys) - 0.6, maxY = Math.max.apply(null, ys) + 0.6;
+    var w = (maxX - minX) * CM + pad * 2, h = (maxY - minY) * CM + pad * 2;
+    var map = function(p){ return [pad + (p[0] - minX) * CM, h - pad - (p[1] - minY) * CM]; };
+    var svg = el('svg', {viewBox:'0 0 ' + w.toFixed(0) + ' ' + h.toFixed(0), width:'100%',
+                         role:'img', 'aria-label':'triangle ' + item.letters.join('')});
+
+    /* if the foot sits off the side, show the base carrying on to meet it */
+    if(f[2] < 0 || f[2] > 1){
+      var far = f[2] < 0 ? a : b;
+      var A = map(far), F = map(f);
+      svg.appendChild(el('line', {x1:A[0], y1:A[1], x2:F[0], y2:F[1],
+                                  stroke:'#8aa19c', 'stroke-width':1.6, 'stroke-dasharray':'5 4'}));
+    }
+    svg.appendChild(el('polygon', {points: ptsStr(item.pts, map), fill:'#d8d8d8',
+                                   stroke:'#333', 'stroke-width':2.2, 'stroke-linejoin':'round'}));
+    /* the height itself, dashed from the apex down to its foot */
+    var P = map(apex), F2 = map(f);
+    svg.appendChild(el('line', {x1:P[0], y1:P[1], x2:F2[0], y2:F2[1],
+                                stroke:'#333', 'stroke-width':2, 'stroke-dasharray':'6 4'}));
+    /* the little square that says "this is a right angle" */
+    var bx = b[0] - a[0], by = b[1] - a[1];
+    var bl = Math.sqrt(bx * bx + by * by) || 1;
+    var ux = bx / bl, uy = by / bl;                       /* along the base */
+    var vx = apex[0] - f[0], vy = apex[1] - f[1];
+    var vl = Math.sqrt(vx * vx + vy * vy) || 1;
+    vx /= vl; vy /= vl;                                   /* towards the apex */
+    var s = 0.42;
+    var sq = [ [f[0], f[1]],
+               [f[0] + ux * s, f[1] + uy * s],
+               [f[0] + (ux + vx) * s, f[1] + (uy + vy) * s],
+               [f[0] + vx * s, f[1] + vy * s] ];
+    svg.appendChild(el('polygon', {points: ptsStr(sq, map), fill:'none',
+                                   stroke:'#333', 'stroke-width':1.6}));
+    /* the letters, nudged away from the middle so they never sit on a line */
+    var cx = (item.pts[0][0] + item.pts[1][0] + item.pts[2][0]) / 3;
+    var cy = (item.pts[0][1] + item.pts[1][1] + item.pts[2][1]) / 3;
+    function label(p, txt){
+      var dx = p[0] - cx, dy = p[1] - cy;
+      var d = Math.sqrt(dx * dx + dy * dy) || 1;
+      var q = map([p[0] + dx / d * 0.42, p[1] + dy / d * 0.42]);
+      var t = el('text', {x:q[0], y:q[1] + 6, 'text-anchor':'middle',
+                          'font-size':'21', 'font-weight':'800', fill:'#222'});
+      t.textContent = txt;
+      svg.appendChild(t);
+    }
+    item.pts.forEach(function(p, i){ label(p, item.letters[i]); });
+    if(!footIsVertex(item)) label([f[0], f[1]], item.foot);
+    return svg;
+  }
+  function footIsVertex(item){
+    var a = item.pts[item.base[0]], b = item.pts[item.base[1]];
+    var f = footOf(item.pts[item.apex], a, b);
+    return near(f, a) || near(f, b);
+  }
+  /* what the height is called for this item */
+  function hbAnswer(item){
+    var a = item.pts[item.base[0]], b = item.pts[item.base[1]];
+    var f = footOf(item.pts[item.apex], a, b);
+    var footLetter = near(f, a) ? item.letters[item.base[0]]
+                   : near(f, b) ? item.letters[item.base[1]]
+                   : item.foot;
+    return item.letters[item.apex] + footLetter;
+  }
+  function hbBase(item){ return item.letters[item.base[0]] + item.letters[item.base[1]]; }
+
+  /* ---------------- drawing a base-and-height triangle ---------------- */
+  function drawArea(item){
+    var b = item.b, h = item.h;
+    var scale = Math.min(46, 340 / Math.max(b, 1), 240 / Math.max(h, 1));
+    var apexX = item.kind === 'right' ? 0 : item.kind === 'acute' ? b / 2 : b * 1.35;
+    var pts = [[0,0],[b,0],[apexX,h]];
+    var pad = 52;
+    var minX = Math.min(0, apexX) - 0.3, maxX = Math.max(b, apexX) + 1.5;
+    var w = (maxX - minX) * scale + pad * 2, hh = h * scale + pad * 2;
+    var map = function(p){ return [pad + (p[0] - minX) * scale, hh - pad - p[1] * scale]; };
+    var svg = el('svg', {viewBox:'0 0 ' + w.toFixed(0) + ' ' + hh.toFixed(0), width:'100%',
+                         role:'img', 'aria-label':'triangle with base ' + b + ' and height ' + h});
+    /* the base line carries on when the apex leans past it */
+    if(apexX > b){
+      var e1 = map([b,0]), e2 = map([apexX,0]);
+      svg.appendChild(el('line', {x1:e1[0], y1:e1[1], x2:e2[0], y2:e2[1],
+                                  stroke:'#8aa19c', 'stroke-width':1.6, 'stroke-dasharray':'5 4'}));
+    }
+    svg.appendChild(el('polygon', {points: ptsStr(pts, map), fill:'#d8d8d8',
+                                   stroke:'#333', 'stroke-width':2.2, 'stroke-linejoin':'round'}));
+    /* the height, dashed, with its right-angle square */
+    var top = map([apexX, h]), foot = map([apexX, 0]);
+    svg.appendChild(el('line', {x1:top[0], y1:top[1], x2:foot[0], y2:foot[1],
+                                stroke:'#333', 'stroke-width':2, 'stroke-dasharray':'6 4'}));
+    var sgn = apexX > b ? -1 : 1;
+    var sq = [[apexX,0],[apexX + 0.32 * sgn,0],[apexX + 0.32 * sgn,0.32],[apexX,0.32]];
+    svg.appendChild(el('polygon', {points: ptsStr(sq, map), fill:'none', stroke:'#333', 'stroke-width':1.6}));
+    /* keep the label clear of the triangle: outside on a leaning triangle */
+    var lean = apexX > b - 0.001;
+    var ht = el('text', {x: top[0] + (lean ? 10 : -10), y:(top[1] + foot[1]) / 2,
+                         'text-anchor': lean ? 'start' : 'end',
+                         'font-size':'17', 'font-weight':'800', fill:'#333'});
+    ht.textContent = h + ' cm';
+    svg.appendChild(ht);
+    /* the base arrow underneath */
+    var b1 = map([0,0]), b2 = map([b,0]), yy = b1[1] + 26;
+    svg.appendChild(el('line', {x1:b1[0], y1:yy, x2:b2[0], y2:yy, stroke:'#333', 'stroke-width':1.6}));
+    svg.appendChild(el('line', {x1:b1[0], y1:yy-6, x2:b1[0], y2:yy+6, stroke:'#333', 'stroke-width':1.6}));
+    svg.appendChild(el('line', {x1:b2[0], y1:yy-6, x2:b2[0], y2:yy+6, stroke:'#333', 'stroke-width':1.6}));
+    var bt = el('text', {x:(b1[0]+b2[0])/2, y:yy+22, 'text-anchor':'middle',
+                         'font-size':'17', 'font-weight':'800', fill:'#333'});
+    bt.textContent = b + ' cm';
+    svg.appendChild(bt);
+    return svg;
+  }
+
+  /* ---------------- the labelled triangle for the wording question ------- */
+  function drawConcept(){
+    var scale = 44, pad = 46, b = 6, h = 5;
+    var pts = [[0,0],[b,0],[b/2,h]];
+    var w = b * scale + pad * 2 + 200, hh = h * scale + pad * 2;
+    var map = function(p){ return [pad + p[0] * scale, hh - pad - p[1] * scale]; };
+    var svg = el('svg', {viewBox:'0 0 ' + w.toFixed(0) + ' ' + hh.toFixed(0), width:'100%',
+                         role:'img', 'aria-label':'a triangle with its height and base labelled'});
+    svg.appendChild(el('polygon', {points: ptsStr(pts, map), fill:'#d8d8d8',
+                                   stroke:'#333', 'stroke-width':2.2, 'stroke-linejoin':'round'}));
+    var top = map([b/2, h]), foot = map([b/2, 0]);
+    svg.appendChild(el('line', {x1:top[0], y1:top[1], x2:foot[0], y2:foot[1],
+                                stroke:'#333', 'stroke-width':2, 'stroke-dasharray':'6 4'}));
+    /* the right-angle mark is drawn in pink, so the word below matches it */
+    var PINK = '#e0559b';
+    var c0 = map([b/2, 0.34]), c1 = map([b/2 + 0.34, 0.34]), c2 = map([b/2 + 0.34, 0]);
+    svg.appendChild(el('polyline', {points: c0[0] + ',' + c0[1] + ' ' + c1[0] + ',' + c1[1]
+                                            + ' ' + c2[0] + ',' + c2[1],
+                                    fill:'none', stroke:PINK, 'stroke-width':3,
+                                    'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+    function tag(p, txt, anchor, dx, dy, colour, size){
+      var q = map(p);
+      var t = el('text', {x:q[0]+dx, y:q[1]+dy, 'text-anchor':anchor,
+                          'font-size': size || '16', 'font-weight':'800',
+                          fill: colour || '#1f5a54'});
+      t.textContent = txt;
+      svg.appendChild(t);
+      return t;
+    }
+    tag([b/2, h/2], 'height', 'end', -12, 4);
+    tag([b/2, 0], 'base', 'middle', 0, 34);
+    /* the wording sits clear of the triangle, with a thin leader back to the
+       right-angle mark it names */
+    var from = map([b/2 + 0.36, 0.36]), to = map([b + 0.2, 0.95]);
+    svg.appendChild(el('line', {x1:from[0], y1:from[1], x2:to[0], y2:to[1],
+                                stroke:PINK, 'stroke-width':1.4, 'stroke-dasharray':'4 3'}));
+    tag([b + 0.28, 0.95], 'perpendicular', 'start', 0, 0, PINK);
+    /* spelled out for anyone meeting the word for the first time */
+    tag([b + 0.28, 0.95], '(meeting at a 90° right angle)', 'start', 0, 17, PINK, '12');
+    return svg;
+  }
+
+  /* ================= the game ================= */
+  var ROUND_SECS = 90, BEST_PAY = 2, round = [], qi = 0, score = 0, hintUsed = false;
+  var APPLIED = [];        /* word problems — empty until the teacher approves them */
+  /* how many of each kind were right this turn — the teacher sees these */
+  var tally = null;
+  function freshTally(){
+    return {hb:{ok:0, n:0}, concept:{ok:0, n:0}, area:{ok:0, n:0},
+            para:{ok:0, n:0}, applied:{ok:0, n:0}};
+  }
+  /* Speed pays. An instant answer is worth 80, easing down 3 points every half
+     second to a floor of 10 — plus 20 for answering inside a second, 10 inside
+     two. So a sharp answer is ~100 and a slow one still earns something. */
+  var PTS_MAX = 80, PTS_FLOOR = 10, PTS_STEP = 3;
+  var qStart = 0, roundStart = 0, timerIv = null, answering = false;
+  var roster = [], TRI_NICK = false, scoreBlob = null;
+
+  function basePts(t){
+    return Math.max(PTS_FLOOR, PTS_MAX - PTS_STEP * Math.floor(t / 0.5));
+  }
+  function bonusPts(t){ return t <= 1 ? 20 : (t <= 2 ? 10 : 0); }
+  function ptsFor(t){ return basePts(t) + bonusPts(t); }
+  function elapsed(){ return (Date.now() - qStart) / 1000; }        /* this question */
+  function roundLeft(){ return Math.max(0, ROUND_SECS - (Date.now() - roundStart) / 1000); }
+  function stopTimer(){ if(timerIv){ clearInterval(timerIv); timerIv = null; } }
+  /* one clock for the whole round; each question just notes when it started */
+  function startTimer(){
+    qStart = Date.now();
+    if(timerIv) return;
+    tick();
+    timerIv = setInterval(tick, 100);
+  }
+  function tick(){
+    var left = roundLeft();
+    $('timerBar').style.width = (left / ROUND_SECS * 100).toFixed(1) + '%';
+    $('timeLeft').textContent = left.toFixed(1) + 's left';
+    var p = ptsFor(elapsed());
+    $('ptsNow').textContent = p + ' pts';
+    $('timerBar').classList.toggle('mid', left <= 30 && left > 10);
+    $('timerBar').classList.toggle('low', left <= 10);
+    $('ptsNow').classList.toggle('mid', p <= 45 && p > 20);
+    $('ptsNow').classList.toggle('low', p <= 20);
+    if(left <= 0){ stopTimer(); finishRound(); }
+  }
+
+  /* ---------------- the review bank ----------------
+     Fifty questions, half about triangles and half about parallelograms,
+     with every kind of question the two games teach represented. */
+  var BANK = null;
+  function buildBank(){
+    if(BANK) return BANK;
+    var tri = [];
+    HB.forEach(function(it){ tri.push({type:'hb', item:it}); });                    /* 10 */
+    G.shuffle(AREA.slice()).slice(0, 10).forEach(function(it){                      /* 10 */
+      tri.push({type:'area', item:it});
+    });
+    for(var g = 0; g < 5; g++) tri.push({type:'concept', given:g % 3});              /*  5 */
+    /* keep the three parallelogram layouts evenly represented */
+    var byKind = {bottom:[], top:[], side:[]};
+    PARA.forEach(function(it){ byKind[it.kind].push(it); });
+    var para = [];
+    ['bottom','top','side'].forEach(function(k){
+      G.shuffle(byKind[k]).slice(0, 9).forEach(function(it){ para.push({type:'para', item:it}); });
+    });
+    para = G.shuffle(para).slice(0, 25);                                             /* 25 */
+    BANK = {tri: tri, para: para};
+    return BANK;
+  }
+  /* one run interleaves the two halves so a child never gets a long run of
+     the same shape; application questions may only appear from question 7 */
+  function buildRound(){
+    var b = buildBank();
+    var t = G.shuffle(b.tri.slice()), p = G.shuffle(b.para.slice());
+    var out = [];
+    while(t.length || p.length){
+      if(t.length) out.push(t.pop());
+      if(p.length) out.push(p.pop());
+    }
+    if(APPLIED.length){
+      var apps = G.shuffle(APPLIED.slice());
+      apps.forEach(function(a, i){
+        var at = 6 + i * 3;                       /* from question 7 onwards */
+        if(at < out.length) out.splice(at, 0, {type:'applied', item:a});
+      });
+    }
+    return out;
+  }
+  function answerText(q){
+    if(q.type === 'hb') return hbAnswer(q.item);
+    if(q.type === 'area') return (q.item.b * q.item.h / 2) + ' cm²';
+    if(q.type === 'para') return (q.item.b * q.item.h) + ' cm²';
+    if(q.type === 'applied') return q.item.answer + ' ' + q.item.unit;
+    return CONCEPT_WORDS.filter(function(w, i){ return i !== q.given; }).join(' … ');
+  }
+
+  function renderQuestion(){
+    var q = round[qi];
+    answering = false; hintUsed = false;
+    if(tally && tally[q.type]) tally[q.type].n++;
+    $('qCount').textContent = 'Question ' + (qi + 1);
+    $('qMsg').textContent = '';
+    $('hintWrap').style.display = q.type === 'area' ? '' : 'none';   /* the branches below may turn it on */
+    $('hintBox').classList.remove('on');
+    $('hintBox').textContent = '';
+    $('qFig').innerHTML = '';
+    $('qInputs').innerHTML = '';
+
+    if(q.type === 'para'){
+      $('qFig').appendChild(drawPara(q.item));
+      $('qAsk').innerHTML = 'Find the <b>area</b> of this parallelogram.';
+      var rowP = document.createElement('div');
+      rowP.className = 'ansrow';
+      var np = document.createElement('input');
+      np.id = 'ansIn'; np.inputMode = 'decimal'; np.autocomplete = 'off'; np.placeholder = 'cm²';
+      rowP.appendChild(np);
+      rowP.appendChild(document.createTextNode('cm²'));
+      rowP.appendChild(mkCheck());
+      $('qInputs').appendChild(rowP);
+      $('hintWrap').style.display = '';
+      $('hintBox').textContent = q.item.b + ' × ' + q.item.h;
+    } else if(q.type === 'applied'){
+      $('qAsk').innerHTML = esc(q.item.text);
+      var rowW = document.createElement('div');
+      rowW.className = 'ansrow';
+      var nw = document.createElement('input');
+      nw.id = 'ansIn'; nw.inputMode = 'decimal'; nw.autocomplete = 'off';
+      nw.placeholder = q.item.unit;
+      rowW.appendChild(nw);
+      rowW.appendChild(document.createTextNode(q.item.unit));
+      rowW.appendChild(mkCheck());
+      $('qInputs').appendChild(rowW);
+      $('hintWrap').style.display = '';
+      $('hintBox').textContent = q.item.working.split('=')[0].trim();
+    } else if(q.type === 'hb'){
+      $('qFig').appendChild(drawHB(q.item));
+      $('qAsk').innerHTML = 'The base is <span class="lbl">' + esc(hbBase(q.item))
+        + '</span>. Name the <b>height</b>.';
+      var row = document.createElement('div');
+      row.className = 'ansrow';
+      var i = document.createElement('input');
+      i.id = 'ansIn'; i.className = 'seg'; i.maxLength = 2;
+      i.autocomplete = 'off'; i.placeholder = 'AB';
+      i.addEventListener('input', function(){
+        var up = i.value.toUpperCase().replace(/[^A-Z]/g, '');
+        if(i.value !== up) i.value = up;
+      });
+      row.appendChild(i);
+      row.appendChild(mkCheck());
+      $('qInputs').appendChild(row);
+    } else if(q.type === 'area'){
+      $('qFig').appendChild(drawArea(q.item));
+      $('qAsk').innerHTML = 'Find the <b>area</b> of this triangle.';
+      var row2 = document.createElement('div');
+      row2.className = 'ansrow';
+      var n = document.createElement('input');
+      n.id = 'ansIn'; n.inputMode = 'decimal'; n.autocomplete = 'off'; n.placeholder = 'cm²';
+      row2.appendChild(n);
+      row2.appendChild(document.createTextNode('cm²'));
+      row2.appendChild(mkCheck());
+      $('qInputs').appendChild(row2);
+      $('hintBox').textContent = q.item.b + ' × ' + q.item.h + ' × ½';
+    } else {
+      $('qFig').appendChild(drawConcept());
+      $('qAsk').innerHTML = 'Look at the triangle and fill in the gaps.';
+      var wrap = document.createElement('div');
+      wrap.className = 'concept';
+      var parts = ['The ', ' of a triangle is always ', ' to the ', '.'];
+      CONCEPT_WORDS.forEach(function(word, i){
+        wrap.appendChild(document.createTextNode(parts[i]));
+        if(i === q.given){
+          var sp = document.createElement('span');
+          sp.className = 'fixed'; sp.textContent = word;
+          wrap.appendChild(sp);
+        } else {
+          var ci = document.createElement('input');
+          ci.id = 'con' + i; ci.autocomplete = 'off';
+          wrap.appendChild(ci);
+        }
+      });
+      wrap.appendChild(document.createTextNode(parts[3]));
+      $('qInputs').appendChild(wrap);
+      var r3 = document.createElement('div');
+      r3.className = 'ansrow';
+      r3.style.marginTop = '12px';
+      r3.style.justifyContent = 'center';
+      r3.appendChild(mkCheck());
+      $('qInputs').appendChild(r3);
+    }
+    var first = $('qInputs').querySelector('input');
+    if(first && !window.CHARLIE_TEST_FAST) first.focus();
+    Array.prototype.forEach.call($('qInputs').querySelectorAll('input'), function(inp){
+      inp.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); checkAnswer(); }
+      });
+    });
+    startTimer();
+  }
+  function mkCheck(){
+    var wrap = document.createDocumentFragment();
+    var b = document.createElement('button');
+    b.id = 'checkBtn'; b.textContent = '✓ Check';
+    b.addEventListener('click', checkAnswer);
+    var s = document.createElement('button');
+    s.id = 'skipBtn'; s.textContent = 'Next →';
+    s.title = 'Move on without answering';
+    s.addEventListener('click', function(){
+      if(answering) return;
+      answering = true;
+      $('qMsg').style.color = '#8aa19c';
+      $('qMsg').textContent = 'Moved on — the answer was ' + answerText(round[qi]) + '.';
+      setTimeout(nextQuestion, window.CHARLIE_TEST_FAST ? 40 : 900);
+    });
+    wrap.appendChild(b); wrap.appendChild(s);
+    return wrap;
+  }
+
+  function checkAnswer(){
+    if(answering) return;
+    var q = round[qi], ok = false;
+    if(q.type === 'hb'){
+      var v = ($('ansIn').value || '').toUpperCase().replace(/[^A-Z]/g, '');
+      var want = hbAnswer(q.item);
+      ok = v === want || v === want.charAt(1) + want.charAt(0);
+    } else if(q.type === 'area' || q.type === 'para' || q.type === 'applied'){
+      var raw = ($('ansIn').value || '').trim().replace(/[^0-9.\-]/g, '');
+      var n = parseFloat(raw);
+      var want2 = q.type === 'area' ? q.item.b * q.item.h / 2
+                : q.type === 'para' ? q.item.b * q.item.h
+                : q.item.answer;
+      ok = raw !== '' && !isNaN(n) && Math.abs(n - want2) < 1e-9;
+    } else {
+      ok = true;
+      CONCEPT_WORDS.forEach(function(word, i){
+        if(i === q.given) return;
+        var got = (($('con' + i) || {}).value || '').trim().toLowerCase();
+        if(got !== word) ok = false;
+      });
+    }
+    if(!ok){
+      /* no penalty and no skipping ahead — have another go, the clock runs on */
+      $('qMsg').style.color = '#c3323f';
+      $('qMsg').textContent = '❌ Not quite — try again, or move on.';
+      var again = $('ansIn') || $('con0') || $('con1') || $('con2');
+      if(again && !window.CHARLIE_TEST_FAST){ again.focus(); again.select && again.select(); }
+      return;
+    }
+    answering = true;
+    if(tally && tally[q.type]) tally[q.type].ok++;
+    var pts = ptsFor(elapsed());
+    if(hintUsed) pts = Math.ceil(pts / 2);
+    score += pts;
+    solved++;
+    $('scoreVal').textContent = score;
+    floatPts(pts);
+    play(sndPop);
+    $('qMsg').style.color = '#2a9d34';
+    $('qMsg').textContent = '✅ Yes! +' + pts + ' points';
+    setTimeout(nextQuestion, window.CHARLIE_TEST_FAST ? 40 : 650);
+  }
+
+  function floatPts(pts){
+    var s = document.createElement('span');
+    s.className = 'floatpts';
+    s.textContent = '+' + pts;
+    $('scoreLine').appendChild(s);
+    try{
+      s.animate([{transform:'translateX(30px) translateY(0)', opacity:1},
+                 {transform:'translateX(30px) translateY(-34px)', opacity:0}],
+                {duration:1100, easing:'ease-out'});
+    }catch(e){}
+    setTimeout(function(){ if(s.parentNode) s.remove(); }, 1150);
+  }
+  $('hintBtn').addEventListener('click', function(){
+    if(answering) return;
+    hintUsed = true;
+    $('hintBox').classList.add('on');
+  });
+
+  var solved = 0;
+  function nextQuestion(){
+    if(roundLeft() <= 0){ stopTimer(); finishRound(); return; }
+    qi++;
+    if(qi >= round.length){ round = round.concat(buildRound()); }   /* keep them coming */
+    renderQuestion();
+  }
+
+  /* ---------------- leaderboard ---------------- */
+  function boardName(id, name){
+    /* real names by default; the admin page can switch the whole board to
+       nicknames for a class that would rather stay anonymous */
+    return TRI_NICK ? '🎈 ' + G.aliasFor(id) : name;
+  }
+  function entries(){
+    return ((scoreBlob && scoreBlob.entries) || []).slice()
+      .sort(function(a, b){ return b.score - a.score; });
+  }
+  function renderBoard(el2, list){
+    if(!list.length){
+      el2.innerHTML = '<div class="empty">Nobody has played yet — be the first! 📐</div>';
+      return;
+    }
+    el2.innerHTML = list.slice(0, 10).map(function(e, i){
+      var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+      var cls = 'brow' + (i < 3 ? ' top' + (i + 1) : '') + (e.id === me.id ? ' me' : '');
+      return '<div class="' + cls + '"><span class="rk">' + medal + '</span>'
+        + '<span class="em">' + esc(e.emoji || '🙂') + '</span>'
+        + '<span>' + esc(boardName(e.id, e.name)) + '</span>'
+        + '<span class="sc">' + e.score + '</span></div>';
+    }).join('');
+  }
+  function loadBoard(){
+    return store.getMachine('review-scores').then(function(b){
+      scoreBlob = b || {id:'review-scores', type:'scores', created: Date.now(), entries:[]};
+      return scoreBlob;
+    }).catch(function(){
+      scoreBlob = scoreBlob || {id:'review-scores', type:'scores', created: Date.now(), entries:[]};
+      return scoreBlob;
+    });
+  }
+  /* keep each player's personal best, then hand back the fresh table */
+  function saveScore(mine){
+    return store.getMachine('review-scores').then(function(b){
+      b = b || {id:'review-scores', type:'scores', created: Date.now(), entries:[]};
+      var prev = null;
+      b.entries.forEach(function(e){ if(e.id === me.id) prev = e; });
+      var beat = false, had = !!prev;
+      if(prev){
+        if(mine > prev.score){ prev.score = mine; prev.t = Date.now(); beat = true; }
+        prev.name = me.name; prev.emoji = me.emoji || '🙂';
+      } else {
+        b.entries.push({id:me.id, name:me.name, emoji:me.emoji || '🙂', score:mine, t:Date.now()});
+        beat = true;                       /* a first run is a personal best too */
+      }
+      b.created = Date.now();
+      return store.saveMachine(b).then(function(){
+        scoreBlob = b;
+        return {blob: b, beat: beat, hadBefore: had};
+      });
+    }).catch(function(){ return {blob: scoreBlob, beat: false, hadBefore: true}; });
+  }
+  /* one row per finished turn, so the teacher can follow each child's progress */
+  function saveResult(){
+    return store.getMachine('review-results').then(function(b){
+      b = b || {id:'review-results', type:'results', created: Date.now(), rows:[]};
+      var mineRows = b.rows.filter(function(r){ return r.id === me.id; });
+      b.rows.push({
+        id: me.id, name: me.name, emoji: me.emoji || '🙂',
+        turn: mineRows.length + 1, score: score, t: Date.now(),
+        hb: [tally.hb.ok, tally.hb.n],
+        concept: [tally.concept.ok, tally.concept.n],
+        area: [tally.area.ok, tally.area.n],
+        para: [tally.para.ok, tally.para.n],
+        applied: [tally.applied.ok, tally.applied.n],
+        solved: solved
+      });
+      if(b.rows.length > 600) b.rows = b.rows.slice(-600);   /* keep the log tidy */
+      b.created = Date.now();
+      return store.saveMachine(b);
+    }).catch(function(){});
+  }
+
+  /* a personal best is worth 2 Whare — paid once per new best */
+  function payBest(){
+    return store.list().then(function(all){
+      var mine2 = all.filter(function(s){ return s.id === me.id; })[0];
+      if(!mine2) return;
+      return store.update(me.id, {money: (mine2.money || 0) + BEST_PAY}).then(function(){
+        me.money = (mine2.money || 0) + BEST_PAY;
+        renderChip();
+      });
+    }).catch(function(){});
+  }
+
+  function finishRound(){
+    stopTimer();
+    show('scrDone');
+    $('doneScore').textContent = score + ' points';
+    $('doneSolved').textContent = solved + ' question' + (solved === 1 ? '' : 's') + ' in 90 seconds';
+    $('doneRank').textContent = 'Saving your score…';
+    $('doneReward').classList.remove('on');
+    saveResult();
+    saveScore(score).then(function(res){
+      var list = entries();
+      var rank = -1;
+      list.forEach(function(e, i){ if(e.id === me.id && rank < 0) rank = i; });
+      renderBoard($('doneBoard'), list);
+      var best = list.filter(function(e){ return e.id === me.id; })[0];
+      var inTop = rank >= 0 && rank < 10;
+      $('doneTitle').textContent = inTop ? '🏆 You made the Top 10!' : '🎉 Great effort!';
+      $('doneRank').textContent = inTop
+        ? 'You are number ' + (rank + 1) + ' with a best of ' + (best ? best.score : score) + ' points.'
+        : 'Your best so far: ' + (best ? best.score : score) + ' points. Have another go!';
+      if(inTop){ play(sndVictory); confetti(); }
+      if(res && res.beat){
+        $('doneReward').innerHTML = '💰 <b>+' + BEST_PAY + ' Whare!</b> '
+          + (res.hadBefore ? 'You beat your own best score.' : 'That is your first score to beat!');
+        $('doneReward').classList.add('on');
+        return payBest();
+      }
+      $('doneReward').innerHTML = '💡 Beat your best of <b>' + (best ? best.score : score)
+        + '</b> points to earn <b>' + BEST_PAY + ' Whare</b>.';
+      $('doneReward').classList.add('on');
+    });
+  }
+
+  /* ---------------- confetti ---------------- */
+  var confettiRun = 0;
+  function confetti(){
+    var cv = $('confetti'), ctx = null;
+    try{ ctx = cv.getContext('2d'); }catch(e){}
+    if(!ctx) return;
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var cols = ['#ffd640','#e05c5c','#2a9d34','#4fb0ff','#c9a8e4'];
+    var bits = [];
+    for(var i = 0; i < 130; i++){
+      bits.push({x:Math.random()*cv.width, y:-20 - Math.random()*cv.height,
+                 w:6+Math.random()*7, h:9+Math.random()*9,
+                 c:cols[Math.floor(Math.random()*cols.length)],
+                 vy:1.6+Math.random()*2.6, vx:-.7+Math.random()*1.4,
+                 rot:Math.random()*6.28, vr:-.12+Math.random()*.24});
+    }
+    var end = Date.now() + 20000;
+    var mine = ++confettiRun;      /* only the newest burst gets to draw */
+    (function frame(){
+      if(mine !== confettiRun) return;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      var flying = 0;
+      bits.forEach(function(b){
+        b.x += b.vx; b.y += b.vy; b.rot += b.vr;
+        /* once a piece is past the bottom edge it is gone for good */
+        if(b.y - (b.w + b.h) > cv.height) return;
+        flying++;
+        ctx.save();
+        ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+        ctx.fillStyle = b.c;
+        ctx.fillRect(-b.w/2, -b.h/2, b.w, b.h);
+        ctx.restore();
+      });
+      /* keep falling until every last piece has left the screen */
+      if(flying && Date.now() < end) requestAnimationFrame(frame);
+      else ctx.clearRect(0, 0, cv.width, cv.height);
+    })();
+  }
+
+  /* ---------------- navigation ---------------- */
+  function goHome(){
+    stopTimer();
+    loadBoard().then(function(){
+      renderBoard($('homeBoard'), entries());
+      show('scrHome');
+    });
+  }
+  function startGame(){
+    round = buildRound(); qi = 0; score = 0; solved = 0; tally = freshTally();
+    $('scoreVal').textContent = '0';
+    roundStart = Date.now();
+    stopTimer();
+    show('scrPlay');
+    renderQuestion();
+  }
+  $('startBtn').addEventListener('click', startGame);
+  $('againBtn').addEventListener('click', startGame);
+  $('homeBtn').addEventListener('click', goHome);
+
+  /* ---------------- init ---------------- */
+  store.init().then(function(){
+    store.getMachine('game-settings').then(function(s){
+      if(s && s.review) TRI_NICK = !!s.review.nicknames;
+      if(s && s.hidden && s.hidden.review){
+        toast('🔁 Your teacher has closed Shape Review for now.');
+        setTimeout(function(){ window.location.href = 'hub.html'; }, 1600);
+      }
+    }).catch(function(){});
+    store.onChange(function(){ refreshMe(); });
+    return refreshMe();
+  }).then(function(){
+    return loadBoard();
+  }).then(function(){
+    renderBoard($('homeBoard'), entries());
+    show('scrHome');
+  }).catch(function(){
+    toast('Hmm, the game can\'t reach the class database. Ask your teacher!');
+    show('scrHome');
+  });
+  if(window.CHARLIE_TEST_FAST){
+    window.REVIEW_TEST = {
+      bank: function(){ return buildBank(); },
+      round: function(){ return round; },
+      hbAnswer: hbAnswer, hbBase: hbBase, footOf: footOf, paraPts: paraPts,
+      pts: function(t){ return ptsFor(t); },
+      setRound: function(r){ round = r; qi = 0; },
+      setApplied: function(list){ APPLIED = list; },
+      score: function(){ return score; },
+      solved: function(){ return solved; },
+      endNow: function(){ roundStart = Date.now() - ROUND_SECS * 1000; }
+    };
+  }
+  function refreshMe(){
+    return store.list().then(function(all){
+      roster = all;
+      me = all.filter(function(s){ return s.id === sess.id; })[0] || me;
+      if(!me){ window.location.replace('index.html'); return; }
+      renderChip();
+    });
+  }
+})();
+
+</script>
+</body>
+</html>

@@ -412,6 +412,11 @@
       <span class="t">Try Triangles</span>
       <span class="badge">▶ Play now</span>
     </button>
+    <button class="game" id="reviewGame">
+      <span class="art">🔁</span>
+      <span class="t">Shape Review</span>
+      <span class="badge">▶ Play now</span>
+    </button>
     <button class="game" id="paraGame">
       <span class="art">🔷</span>
       <span class="t"><span style="color:var(--teal-dark)">Parallelo</span><span style="color:var(--accent)">gram</span></span>
@@ -1427,6 +1432,9 @@
   $('triGame').addEventListener('click', function(){
     window.location.href = 'triangles.html';
   });
+  $('reviewGame').addEventListener('click', function(){
+    window.location.href = 'review.html';
+  });
   $('paraGame').addEventListener('click', function(){
     window.location.href = 'parallelogram.html';
   });
@@ -1464,7 +1472,8 @@
     if(hid.paving) $('pavingGame').style.display = 'none';
     if(hid.triangles) $('triGame').style.display = 'none';
     if(hid.parallelogram) $('paraGame').style.display = 'none';
-    if(hid.alzebra && hid.algebra && hid.paving && hid.triangles && hid.parallelogram){
+    if(hid.review) $('reviewGame').style.display = 'none';
+    if(hid.alzebra && hid.algebra && hid.paving && hid.triangles && hid.parallelogram && hid.review){
       document.querySelector('.games').insertAdjacentHTML('beforeend',
         '<div style="grid-column:1/-1;text-align:center;color:#7a8f8b;font-weight:700;padding:26px 0">'
         + '😴 The games are having a rest — see you next time!</div>');
