@@ -1653,14 +1653,36 @@ async function testReview(){
     return r && r.turn === 1 && typeof r.solved === "number";
   }, "the turn is logged for the teacher", 6000);
 
-  /* ---- word problems stay out until the teacher approves them ---- */
-  ok(R.round().every(q => q.type !== "applied"), "no word problems until they are switched on");
-  R.setApplied([{shape:"triangle", text:"A flag is a triangle with base 10 cm and perpendicular height 6 cm. What is its area?",
-                 base:10, height:6, answer:30, unit:"cm2", working:"10 x 6 / 2 = 30"}]);
+  /* ---- the wording question marks both true sentences ---- */
+  R.setRound([{type:"concept", given:1}]);   /* "perpendicular" is given */
+  $("againBtn") && null;
+  R.render();
+  await waitFor(() => !!$("con0") && !!$("con2"), "the wording question has two gaps");
+  ok(d.querySelectorAll(".concept .blankno").length === 2, "the two gaps are numbered ① ②");
+  $("con0").value = "base"; $("con2").value = "height";      /* the swapped sentence */
+  $("checkBtn").click();
+  await sleep(60);
+  ok(!/Not quite/.test($("qMsg").textContent),
+     "'the base is perpendicular to the height' is accepted too");
+
+  /* ---- word problems: two a round, never before question seven ---- */
+  const words = R.applied();
+  ok(words.length === 16, "sixteen word problems in the bank");
+  let sums = true;
+  words.forEach(p => {
+    if(!(p.answer > 0) || !p.unit || !p.text || !p.working) sums = false;
+  });
+  ok(sums, "each word problem carries an answer, a unit and its working");
   $("againBtn").click();
   await waitFor(() => $("scrPlay").classList.contains("on"), "a fresh sprint starts");
-  const idx = R.round().findIndex(q => q.type === "applied");
-  ok(idx === -1 || idx >= 6, "word problems only appear from question 7 onwards (at " + idx + ")");
+  for(let go = 0; go < 6; go++){
+    const spots = R.round().map((q, i) => q.type === "applied" ? i : -1).filter(i => i >= 0);
+    ok(spots.length === 2, "exactly two word problems this round (" + spots.length + ")");
+    ok(spots.every(i => i >= 6), "and none before question 7 (" + spots.join(",") + ")");
+    const cons = R.round().filter(q => q.type === "concept").length;
+    ok(cons <= 1, "the wording question shows at most once (" + cons + ")");
+    R.setRound(R.newRound());
+  }
   try{ dom.window.close(); }catch(e){}
 }
 

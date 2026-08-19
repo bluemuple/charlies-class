@@ -42,6 +42,24 @@
     box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:12px;
   }
 
+  /* chunky, pressable buttons — the same feel as the ones inside a round */
+  .bigbtn{
+    display:block; margin:18px auto 0; border:0; border-radius:16px;
+    background:var(--good); color:#fff; font-size:20px; font-weight:800;
+    padding:16px 44px; letter-spacing:.3px;
+    box-shadow:0 5px 0 #1c6b23, 0 8px 18px rgba(26,90,40,.35);
+    transition:transform .08s, box-shadow .08s, filter .15s;
+  }
+  .bigbtn:hover{filter:brightness(1.06);}
+  .bigbtn:active{transform:translateY(4px); box-shadow:0 1px 0 #1c6b23, 0 3px 8px rgba(26,90,40,.3);}
+  .bigbtn[disabled]{background:#c6d6d2; box-shadow:0 4px 0 #aebfbb; cursor:default;}
+  .quietbtn{
+    display:block; margin:12px auto 0; border:2px solid #d7e5e2; border-radius:12px;
+    background:#fff; color:#5c7671; font-size:14.5px; font-weight:700; padding:10px 22px;
+    transition:background .15s;
+  }
+  .quietbtn:hover{background:var(--cream); color:var(--teal-dark);}
+
   /* ---------------- home + leaderboard ---------------- */
   .board{max-width:460px; margin:0 auto;}
   .brow{
@@ -104,6 +122,10 @@
   }
   #skipBtn:hover{background:var(--cream); color:var(--teal-dark);}
   .q-ask{min-height:1.5em;}
+  .wordtag{
+    display:inline-block; background:var(--yellow); color:#6b5c00; border-radius:12px;
+    padding:2px 12px; font-size:12.5px; font-weight:800; margin-bottom:8px;
+  }
   #qMsg{font-size:14px; font-weight:700; margin-top:8px; min-height:20px;}
   #hintBtn{
     border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
@@ -123,6 +145,11 @@
     color:var(--accent); text-align:center; padding:2px 4px;
   }
   .concept .fixed{color:var(--accent);}
+  .concept .blankno{
+    display:inline-block; background:var(--teal); color:#fff; border-radius:50%;
+    width:22px; height:22px; line-height:22px; text-align:center;
+    font-size:13px; font-weight:800; margin-right:5px; vertical-align:2px;
+  }
 
   /* ---------------- done ---------------- */
   #doneCard{max-width:520px; margin:0 auto; text-align:center;}
@@ -587,11 +614,12 @@
                                 stroke:'#333', 'stroke-width':2, 'stroke-dasharray':'6 4'}));
     /* the right-angle mark is drawn in pink, so the word below matches it */
     var PINK = '#e0559b';
-    var c0 = map([b/2, 0.34]), c1 = map([b/2 + 0.34, 0.34]), c2 = map([b/2 + 0.34, 0]);
+    /* set in a little from both lines so the whole mark sits inside the shape */
+    var c0 = map([b/2 + 0.06, 0.46]), c1 = map([b/2 + 0.46, 0.46]), c2 = map([b/2 + 0.46, 0.06]);
     svg.appendChild(el('polyline', {points: c0[0] + ',' + c0[1] + ' ' + c1[0] + ',' + c1[1]
                                             + ' ' + c2[0] + ',' + c2[1],
                                     fill:'none', stroke:PINK, 'stroke-width':3,
-                                    'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+                                    'stroke-linecap':'butt', 'stroke-linejoin':'miter'}));
     function tag(p, txt, anchor, dx, dy, colour, size){
       var q = map(p);
       var t = el('text', {x:q[0]+dx, y:q[1]+dy, 'text-anchor':anchor,
@@ -605,7 +633,7 @@
     tag([b/2, 0], 'base', 'middle', 0, 34);
     /* the wording sits clear of the triangle, with a thin leader back to the
        right-angle mark it names */
-    var from = map([b/2 + 0.36, 0.36]), to = map([b + 0.2, 0.95]);
+    var from = map([b/2 + 0.5, 0.4]), to = map([b + 0.2, 0.95]);
     svg.appendChild(el('line', {x1:from[0], y1:from[1], x2:to[0], y2:to[1],
                                 stroke:PINK, 'stroke-width':1.4, 'stroke-dasharray':'4 3'}));
     tag([b + 0.28, 0.95], 'perpendicular', 'start', 0, 0, PINK);
@@ -616,7 +644,7 @@
 
   /* ================= the game ================= */
   var ROUND_SECS = 90, BEST_PAY = 2, round = [], qi = 0, score = 0, hintUsed = false;
-  var APPLIED = [];        /* word problems — empty until the teacher approves them */
+
   /* how many of each kind were right this turn — the teacher sees these */
   var tally = null;
   function freshTally(){
@@ -658,6 +686,30 @@
     if(left <= 0){ stopTimer(); finishRound(); }
   }
 
+  /* ---------------- word problems ----------------
+     Real jobs from around school, home and Aotearoa. They take longer to read,
+     so they pay one and a half times the normal score, and a round only ever
+     shows two of them — from question seven onwards. */
+  var APPLIED = [
+    {text:'Room 7 is making bunting for the school gala. Each flag is a triangle. The base is 18 cm and the perpendicular height is 25 cm. What is the area of one flag?', answer:225, unit:'cm²', working:'18 × 25 ÷ 2'},
+    {text:'The school garden has a parallelogram-shaped herb bed. Its base is 6 m. Its perpendicular height is 2.5 m, not the slanted side. Find the area of the bed.', answer:15, unit:'m²', working:'6 × 2.5'},
+    {text:'Tama cuts a triangle of fabric for his kite. The base is 45 cm. The perpendicular height is 60 cm. What area of fabric does he use?', answer:1350, unit:'cm²', working:'45 × 60 ÷ 2'},
+    {text:'Dad is building a deck shaped like a parallelogram. The base is 6 metres. The perpendicular height is 4.5 metres. What is the area of the deck?', answer:27, unit:'m²', working:'6 × 4.5'},
+    {text:'The marae has a triangular garden beside the wharenui. Its base measures 9 metres. The perpendicular height is 5 metres. What is the area of the garden?', answer:22.5, unit:'m²', working:'9 × 5 ÷ 2'},
+    {text:'A beach reserve has a parallelogram-shaped lawn. The base is 20 metres. The perpendicular height across the lawn is 15 metres. What is the area of the lawn?', answer:300, unit:'m²', working:'20 × 15'},
+    {text:'Mia folds an origami sail. It is a triangle. The base is 12 cm. The perpendicular height is 9 cm. What is the area of the sail?', answer:54, unit:'cm²', working:'12 × 9 ÷ 2'},
+    {text:'A craft tile is a parallelogram. Its base is 7 cm and its perpendicular height (not the slanted side) is 5 cm. What is the area of one tile?', answer:35, unit:'cm²', working:'7 × 5'},
+    {text:'A triangular corner of the school garden has an area of 12 m². Its base is 8 m long. What is its perpendicular height?', answer:3, unit:'m', working:'12 × 2 ÷ 8'},
+    {text:'The whānau vegetable patch is a triangle. Its area is 24 square metres. The base is 8 metres long. What is the perpendicular height of the patch?', answer:6, unit:'m', working:'24 × 2 ÷ 8'},
+    {text:'A triangular sail on a waka has an area of 15 square metres. Its base is 6 metres long. What is the sail\'s perpendicular height?', answer:5, unit:'m', working:'15 × 2 ÷ 6'},
+    {text:'A stained glass panel is a parallelogram. Its area is 96 cm². The base is 16 cm. Find the perpendicular height of the panel.', answer:6, unit:'cm', working:'96 ÷ 16'},
+    {text:'The library noticeboard is a parallelogram. Its base is 3 m and its perpendicular height is 1.5 m. New felt costs $8 per square metre. What will covering the board cost?', answer:36, unit:'$', working:'3 × 1.5, then × 8'},
+    {text:'Mum paints the shed wall. It is a parallelogram with base 5 metres and perpendicular height 4 metres. Paint costs $6 for each square metre. What is the total cost?', answer:120, unit:'$', working:'5 × 4, then × 6'},
+    {text:'A parallelogram planting plot for native bush is 12 metres along the base. Its perpendicular height is 7 metres. Mulch costs $3 for each square metre. Find the total cost.', answer:252, unit:'$', working:'12 × 7, then × 3'},
+    {text:'The side of a skate ramp is a triangle. Its base is 5 m. Its perpendicular height is 3 m. Both sides need paint. Paint costs $8 per square metre. Find the total cost.', answer:120, unit:'$', working:'5 × 3 ÷ 2, × 2 sides, then × 8'}
+  ];
+  var APPLIED_BOOST = 1.5, APPLIED_PER_ROUND = 2, APPLIED_FROM = 6;   /* 0-based: question 7 */
+
   /* ---------------- the review bank ----------------
      Fifty questions, half about triangles and half about parallelograms,
      with every kind of question the two games teach represented. */
@@ -686,18 +738,22 @@
   function buildRound(){
     var b = buildBank();
     var t = G.shuffle(b.tri.slice()), p = G.shuffle(b.para.slice());
+    /* the wording question is worth meeting once a round, not five times */
+    var kept = false;
+    t = t.filter(function(q){
+      if(q.type !== 'concept') return true;
+      if(kept) return false;
+      kept = true; return true;
+    });
     var out = [];
     while(t.length || p.length){
       if(t.length) out.push(t.pop());
       if(p.length) out.push(p.pop());
     }
-    if(APPLIED.length){
-      var apps = G.shuffle(APPLIED.slice());
-      apps.forEach(function(a, i){
-        var at = 6 + i * 3;                       /* from question 7 onwards */
-        if(at < out.length) out.splice(at, 0, {type:'applied', item:a});
-      });
-    }
+    G.shuffle(APPLIED.slice()).slice(0, APPLIED_PER_ROUND).forEach(function(a, i){
+      var at = APPLIED_FROM + i * 4;              /* question 7, then a few later */
+      if(at <= out.length) out.splice(at, 0, {type:'applied', item:a});
+    });
     return out;
   }
   function answerText(q){
@@ -734,7 +790,8 @@
       $('hintWrap').style.display = '';
       $('hintBox').textContent = q.item.b + ' × ' + q.item.h;
     } else if(q.type === 'applied'){
-      $('qAsk').innerHTML = esc(q.item.text);
+      $('qAsk').innerHTML = '<span class="wordtag">Word problem · 1.5× points</span><br>'
+        + esc(q.item.text);
       var rowW = document.createElement('div');
       rowW.className = 'ansrow';
       var nw = document.createElement('input');
@@ -754,7 +811,7 @@
       row.className = 'ansrow';
       var i = document.createElement('input');
       i.id = 'ansIn'; i.className = 'seg'; i.maxLength = 2;
-      i.autocomplete = 'off'; i.placeholder = 'AB';
+      i.autocomplete = 'off';
       i.addEventListener('input', function(){
         var up = i.value.toUpperCase().replace(/[^A-Z]/g, '');
         if(i.value !== up) i.value = up;
@@ -780,6 +837,7 @@
       var wrap = document.createElement('div');
       wrap.className = 'concept';
       var parts = ['The ', ' of a triangle is always ', ' to the ', '.'];
+      var blankNo = 0;
       CONCEPT_WORDS.forEach(function(word, i){
         wrap.appendChild(document.createTextNode(parts[i]));
         if(i === q.given){
@@ -787,6 +845,11 @@
           sp.className = 'fixed'; sp.textContent = word;
           wrap.appendChild(sp);
         } else {
+          /* two gaps to fill, so number them ① ② */
+          var tg = document.createElement('span');
+          tg.className = 'blankno';
+          tg.textContent = ['①','②','③'][blankNo++];
+          wrap.appendChild(tg);
           var ci = document.createElement('input');
           ci.id = 'con' + i; ci.autocomplete = 'off';
           wrap.appendChild(ci);
@@ -816,13 +879,13 @@
     b.id = 'checkBtn'; b.textContent = '✓ Check';
     b.addEventListener('click', checkAnswer);
     var s = document.createElement('button');
-    s.id = 'skipBtn'; s.textContent = 'Next →';
+    s.id = 'skipBtn'; s.textContent = 'Skip →';
     s.title = 'Move on without answering';
     s.addEventListener('click', function(){
       if(answering) return;
       answering = true;
       $('qMsg').style.color = '#8aa19c';
-      $('qMsg').textContent = 'Moved on — the answer was ' + answerText(round[qi]) + '.';
+      $('qMsg').textContent = 'Skipped — the answer was ' + answerText(round[qi]) + '.';
       setTimeout(nextQuestion, window.CHARLIE_TEST_FAST ? 40 : 900);
     });
     wrap.appendChild(b); wrap.appendChild(s);
@@ -844,12 +907,14 @@
                 : q.item.answer;
       ok = raw !== '' && !isNaN(n) && Math.abs(n - want2) < 1e-9;
     } else {
-      ok = true;
-      CONCEPT_WORDS.forEach(function(word, i){
-        if(i === q.given) return;
-        var got = (($('con' + i) || {}).value || '').trim().toLowerCase();
-        if(got !== word) ok = false;
+      var got = CONCEPT_WORDS.map(function(word, i){
+        return i === q.given ? word : ((($('con' + i) || {}).value || '').trim().toLowerCase());
       });
+      /* the sentence as taught … */
+      ok = got[0] === 'height' && got[1] === 'perpendicular' && got[2] === 'base';
+      /* … and the other way round, because perpendicular works both ways:
+         "the base is perpendicular to the height" is just as true */
+      if(!ok) ok = got[0] === 'base' && got[1] === 'perpendicular' && got[2] === 'height';
     }
     if(!ok){
       /* no penalty and no skipping ahead — have another go, the clock runs on */
@@ -862,6 +927,7 @@
     answering = true;
     if(tally && tally[q.type]) tally[q.type].ok++;
     var pts = ptsFor(elapsed());
+    if(q.type === 'applied') pts = Math.round(pts * APPLIED_BOOST);   /* longer to read */
     if(hintUsed) pts = Math.ceil(pts / 2);
     score += pts;
     solved++;
@@ -1104,7 +1170,9 @@
       hbAnswer: hbAnswer, hbBase: hbBase, footOf: footOf, paraPts: paraPts,
       pts: function(t){ return ptsFor(t); },
       setRound: function(r){ round = r; qi = 0; },
-      setApplied: function(list){ APPLIED = list; },
+      applied: function(){ return APPLIED; },
+      newRound: function(){ return buildRound(); },
+      render: function(){ renderQuestion(); },
       score: function(){ return score; },
       solved: function(){ return solved; },
       endNow: function(){ roundStart = Date.now() - ROUND_SECS * 1000; }
