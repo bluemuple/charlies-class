@@ -246,7 +246,7 @@
             <button data-d="3">3D</button>
           </div>
           <div class="dimrow" id="rowL"><label>Length =</label><button class="spin" data-for="inL" data-step="-1" aria-label="one less length">◀</button><input id="inL" inputmode="numeric" value="3"><button class="spin" data-for="inL" data-step="1" aria-label="one more length">▶</button></div>
-          <div class="dimrow" id="rowW" style="display:none"><label>Width =</label><button class="spin" data-for="inW" data-step="-1" aria-label="one less width">◀</button><input id="inW" inputmode="numeric" value="2"><button class="spin" data-for="inW" data-step="1" aria-label="one more width">▶</button></div>
+          <div class="dimrow" id="rowW" style="display:none"><label>Breadth =</label><button class="spin" data-for="inW" data-step="-1" aria-label="one less breadth">◀</button><input id="inW" inputmode="numeric" value="2"><button class="spin" data-for="inW" data-step="1" aria-label="one more breadth">▶</button></div>
           <div class="dimrow" id="rowH" style="display:none"><label>Height =</label><button class="spin" data-for="inH" data-step="-1" aria-label="one less height">◀</button><input id="inH" inputmode="numeric" value="2"><button class="spin" data-for="inH" data-step="1" aria-label="one more height">▶</button></div>
           <div class="toggles">
             <label><input type="checkbox" id="tgFormula"> 🧮 Show the formula</label>
@@ -474,8 +474,8 @@
     $('buildOut').innerHTML = buildWord() + ': ' + parts;
     $('buildNote').textContent =
       dim === 1 ? 'One row of centimetre cubes. The length is just how many there are.'
-    : dim === 2 ? 'Rows of rows! Length × width tells you how many squares cover the floor.'
-    : 'Now the floor is stacked up. Length × width × height counts every cube inside.';
+    : dim === 2 ? 'Rows of rows! Length × breadth tells you how many squares cover the floor.'
+    : 'Now the floor is stacked up. Length × breadth × height counts every cube inside.';
   }
   function setDim(d){
     dim = d;
@@ -522,7 +522,7 @@
   /* ================= the cuboids ================= */
   /* Every question is a cuboid built from 1-cm cubes, drawn the way the
      worksheet draws them: an isometric block with the cube edges ruled on
-     the three faces you can see. Volume = length x width x height. */
+     the three faces you can see. Volume = length x breadth x height. */
   var CUBOIDS = [
     {l:3, w:2, h:1}, {l:4, w:2, h:1}, {l:5, w:1, h:2}, {l:3, w:3, h:1},
     {l:4, w:3, h:1}, {l:2, w:2, h:2}, {l:6, w:1, h:2}, {l:5, w:2, h:1},
@@ -557,7 +557,8 @@
     var map = isoMap(s, pad + w * qx, pad + h * s);
     var svg = el('svg', {viewBox:'0 0 ' + width.toFixed(0) + ' ' + height.toFixed(0),
                          width:'100%', role:'img',
-                         'aria-label':'a cuboid ' + l + ' by ' + w + ' by ' + h + ' centimetre cubes'});
+                         'aria-label':'a cuboid ' + l + ' long, ' + w + ' broad and ' + h
+                                       + ' tall, in centimetre cubes'});
     function face(pts, fill){
       svg.appendChild(el('polygon', {points: facePts(pts, map), fill: fill,
                                      stroke:'#2b2b2b', 'stroke-width':1.6,

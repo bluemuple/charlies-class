@@ -1763,7 +1763,9 @@ async function testCuboid(){
      "the answer arrives with an equals sign");
 
   C.setDim(2);
-  ok($("rowW").style.display !== "none" && $("rowH").style.display === "none", "2D adds a width");
+  ok($("rowW").style.display !== "none" && $("rowH").style.display === "none", "2D adds a breadth");
+  ok(/Breadth/.test($("rowW").textContent) && !/Width/i.test($("rowW").textContent),
+     "the second side is called breadth, as the workbook does");
   $("inW").value = "3";
   $("inW").dispatchEvent(new w.Event("input"));
   await waitFor(() => d.querySelectorAll("#buildStage rect").length === 12,
