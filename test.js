@@ -1732,6 +1732,23 @@ async function testCuboid(){
   $("inL").dispatchEvent(new w.Event("input"));
   await waitFor(() => d.querySelectorAll("#buildStage rect").length === 1,
      "length 1 draws a single block");
+
+  /* the triangles either side of each box step the number by one */
+  const up = d.querySelector('.spin[data-for="inL"][data-step="1"]');
+  const down = d.querySelector('.spin[data-for="inL"][data-step="-1"]');
+  ok(!!up && !!down, "each side has an arrow either side of its box");
+  ok(down.disabled, "at 1 the down arrow is greyed out");
+  up.click();
+  await waitFor(() => $("inL").value === "2" && d.querySelectorAll("#buildStage rect").length === 2,
+     "the right arrow adds one block");
+  ok(!down.disabled, "and the down arrow wakes up");
+  down.click();
+  await waitFor(() => $("inL").value === "1" && d.querySelectorAll("#buildStage rect").length === 1,
+     "the left arrow takes one away");
+  for(let i = 0; i < 12; i++) up.click();
+  await sleep(60);
+  ok($("inL").value === "8" && up.disabled, "it stops at the biggest block it can draw");
+  down.click(); await sleep(40);
   $("inL").value = "4";
   $("inL").dispatchEvent(new w.Event("input"));
   await waitFor(() => d.querySelectorAll("#buildStage rect").length === 4, "length 4 draws four");
