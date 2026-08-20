@@ -1690,6 +1690,118 @@ async function testReview(){
   try{ dom.window.close(); }catch(e){}
 }
 
+async function testCuboid(){
+  console.log("\ncuboid.html — the builder, then the volume sprint");
+  const dom = await load("cuboid.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+    w.CHARLIE_TEST_FAST = true;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await waitFor(() => !!w.CUBOID_TEST, "the test hook is available");
+  await sleep(200);
+  const C = w.CUBOID_TEST;
+
+  /* ---- the bank ---- */
+  const bank = C.bank();
+  ok(bank.length === 30, "thirty cuboids in the bank (" + bank.length + ")");
+  ok(bank.filter(c => c.hard).length === 3, "three of them are the hard ones");
+  ok(bank.every(c => c.l > 0 && c.w > 0 && c.h > 0), "every cuboid has three real dimensions");
+  const hard = bank.filter(c => c.hard);
+  const easy = bank.filter(c => !c.hard);
+  const minHard = Math.min(...hard.map(c => c.l * c.w * c.h));
+  const maxEasy = Math.max(...easy.map(c => c.l * c.w * c.h));
+  ok(minHard > maxEasy, "the hard ones really are bigger (" + minHard + " > " + maxEasy + ")");
+
+  /* ---- the drawing matches the numbers ---- */
+  const svg = C.draw({l:3, w:2, h:2});
+  ok(svg.querySelectorAll("polygon").length === 3, "three faces are drawn");
+  // ruled lines: top (w-1)+(l-1), right (w-1)+(h-1), left (l-1)+(h-1)
+  const want = (2-1)+(3-1) + (2-1)+(2-1) + (3-1)+(2-1);
+  ok(svg.querySelectorAll("line").length === want,
+     "the cube edges are ruled on every face (" + svg.querySelectorAll("line").length + "/" + want + ")");
+
+  /* ---- the builder walks 1D → 2D → 3D ---- */
+  ok($("scrBuild").classList.contains("on"), "a newcomer meets the builder first");
+  ok($("rowW").style.display === "none" && $("rowH").style.display === "none",
+     "1D asks for a length only");
+  $("inL").value = "1";
+  $("inL").dispatchEvent(new w.Event("input"));
+  await waitFor(() => d.querySelectorAll("#buildStage rect").length === 1,
+     "length 1 draws a single block");
+  $("inL").value = "4";
+  $("inL").dispatchEvent(new w.Event("input"));
+  await waitFor(() => d.querySelectorAll("#buildStage rect").length === 4, "length 4 draws four");
+  ok(/Turn on a switch/.test($("buildOut").textContent), "the maths stays hidden until asked for");
+  $("tgFormula").checked = true;
+  $("tgFormula").dispatchEvent(new w.Event("change"));
+  ok(/Length: 4/.test($("buildOut").textContent) && !/=/.test($("buildOut").textContent),
+     "the formula shows without the answer");
+  $("tgAnswer").checked = true;
+  $("tgAnswer").dispatchEvent(new w.Event("change"));
+  ok(/=/.test($("buildOut").textContent) && /4 cm/.test($("buildOut").textContent),
+     "the answer arrives with an equals sign");
+
+  C.setDim(2);
+  ok($("rowW").style.display !== "none" && $("rowH").style.display === "none", "2D adds a width");
+  $("inW").value = "3";
+  $("inW").dispatchEvent(new w.Event("input"));
+  await waitFor(() => d.querySelectorAll("#buildStage rect").length === 12,
+     "4 by 3 draws twelve squares");
+  ok(/4 × 3/.test($("buildOut").textContent) && /12 cm²/.test($("buildOut").textContent),
+     "2D reads as an area");
+
+  C.setDim(3);
+  ok($("rowH").style.display !== "none", "3D adds a height");
+  await waitFor(() => d.querySelectorAll("#buildStage polygon").length === 3,
+     "the flat grid becomes a solid block");
+  const b = C.build();
+  ok(b.l === 4 && b.w === 3, "the 2D numbers carry over into the cuboid");
+  ok(/4 × 3 × /.test($("buildOut").textContent) && /cm³/.test($("buildOut").textContent),
+     "3D reads as a volume");
+
+  /* ---- into the game ---- */
+  $("buildDone").click();
+  await waitFor(() => $("scrHome").classList.contains("on"), "the builder hands over to the game");
+  $("startBtn").click();
+  await waitFor(() => $("scrPlay").classList.contains("on"), "the sprint starts");
+  ok(/90/.test($("timeLeft").textContent), "ninety seconds, like Shape Review");
+  ok(!!$("skipBtn") && !!$("ansIn"), "an answer box and a skip button");
+
+  const q = C.round()[0];
+  $("ansIn").value = "1";
+  $("checkBtn").click();
+  await sleep(60);
+  ok(/try again/i.test($("qMsg").textContent) || q.item.l * q.item.w * q.item.h === 1,
+     "a wrong volume invites another go");
+  $("ansIn").value = String(q.item.l * q.item.w * q.item.h);
+  $("checkBtn").click();
+  await waitFor(() => C.score() > 0, "the right volume scores", 4000);
+
+  C.endNow();
+  await waitFor(() => $("scrDone").classList.contains("on"), "the clock ends the round", 6000);
+  await waitFor(async () => {
+    const bl = await w.CharlieStore.getMachine("cuboid-scores");
+    return bl && bl.entries.some(e => e.id === "willow-kolo");
+  }, "the score lands on the Cuboid Quest ranking", 6000);
+  await waitFor(async () => {
+    const bl = await w.CharlieStore.getMachine("cuboid-results");
+    const r = bl && bl.rows[bl.rows.length - 1];
+    return r && r.cuboid && r.cuboid[1] >= 1;
+  }, "the turn is logged for the teacher", 6000);
+
+  /* the walk-through is offered, never forced, on the next visit */
+  await waitFor(async () => {
+    const s = (await w.CharlieStore.list()).find(x => x.id === "willow-kolo");
+    return s.profile && s.profile.cuboidSeen === true;
+  }, "the builder is remembered as seen", 5000);
+  ok(!!$("openBuild"), "and can always be opened again from the home screen");
+  try{ dom.window.close(); }catch(e){}
+}
+
 async function testTriangles(){
   console.log("\ntriangles.html — tutorial, then the timed round");
   const dom = await load("triangles.html", w => {
@@ -2179,7 +2291,7 @@ async function testHub(){
   // the row stays out of sight until the teacher's settings have been read
   await waitFor(() => d.querySelector(".games").classList.contains("ready"),
      "the game row waits for the settings before showing", 6000);
-  ok(cards.length === 6, "the six games — no 'More games' placeholder");
+  ok(cards.length === 7, "the seven games — no 'More games' placeholder");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
   ok(/Paving Race/.test(cards[2].textContent), "Paving Race joins the row");
@@ -2216,6 +2328,7 @@ async function testHub(){
     await testTriangles();
   await testParallelogram();
   await testReview();
+  await testCuboid();
   }catch(e){
     failed++;
     console.error("\nUnexpected error:", e);
