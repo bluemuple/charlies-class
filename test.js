@@ -268,6 +268,16 @@ async function testAdmin(){
     return s && s.algebra.skipStock === true && s.alzebra.skipStock === true
         && s.algebra.music === true;
   }, "skip-the-shelves and music switches land", 5000);
+  ok($("setPadOn").checked && !$("setPadOnly").checked,
+     "Padlet starts visible, and Padlet-only starts off");
+  $("setPadOnly").checked = true;
+  $("setPadOnly").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = await w.CharlieStore.getMachine("game-settings");
+    return s && s.padletOnly === true && s.hidden.padlet === false;
+  }, "the Padlet-only switch lands in the blob", 5000);
+  $("setPadOnly").checked = false;
+  $("setPadOnly").dispatchEvent(new w.Event("change"));
   $("setTriNick").checked = true;
   $("setTriNick").dispatchEvent(new w.Event("change"));
   await waitFor(async () => {
@@ -358,7 +368,7 @@ function refreshAdmin(w, d){
 
 async function testIndex(){
   console.log("\nindex.html — first login, student picks a code");
-  const dom = await load("index.html");
+  const dom = await load("index.html", w => { w.CHARLIE_TEST_FAST = 1; });
   const w = dom.window, d = w.document;
   const $ = id => d.getElementById(id);
   const press = k => Array.from(d.querySelectorAll("#pinPad button"))
@@ -370,6 +380,27 @@ async function testIndex(){
   await sleep(80);
 
   ok($("scrWelcome").classList.contains("on"), "welcome screen first");
+  // nothing shows until the teacher's settings are in, so a hidden half never flashes
+  await waitFor(() => $("scrWelcome").classList.contains("ready"),
+     "the welcome screen waits for the settings", 6000);
+  const wpad = $("padletBtn");
+  ok(!!wpad && /Padlet/.test(wpad.textContent), "the Padlet button is on the welcome screen");
+  ok(/^https:\/\/padlet\.com\//.test(wpad.getAttribute("href")), "it points at the Padlet wall");
+  ok(wpad.getAttribute("target") === "_blank" && /noopener/.test(wpad.getAttribute("rel")),
+     "it opens in a new tab, safely");
+  ok($("loginPart").style.display !== "none" && wpad.style.display !== "none",
+     "by default the class sees both the group buttons and the Padlet link");
+  // Padlet only: the group buttons and their prompt step aside
+  w.INDEX_TEST.welcome({padletOnly:true});
+  ok($("loginPart").style.display === "none", "Padlet only hides Boys/Girls and the prompt");
+  ok(wpad.style.display !== "none", "and leaves just the Padlet button");
+  ok($("scrWelcome").classList.contains("padonly"), "standing alone, the link is sized up");
+  // hiding the link wins over Padlet only, so the class can still log in
+  w.INDEX_TEST.welcome({padletOnly:true, hidden:{padlet:true}});
+  ok(wpad.style.display === "none", "hiding Padlet takes the link away");
+  ok($("loginPart").style.display !== "none", "and the group buttons come back, never a dead end");
+  w.INDEX_TEST.welcome(null);
+
   $("girlsBtn").click();
   await waitFor(() => d.querySelectorAll("#nameGrid button").length === 10, "Girls shows 10 name cards");
   ok(/NEW/.test($("nameGrid").textContent), "students without a code are tagged NEW");
@@ -2311,6 +2342,12 @@ async function testHub(){
   await waitFor(() => d.querySelector(".games").classList.contains("ready"),
      "the game row waits for the settings before showing", 6000);
   ok(cards.length === 7, "the seven games — no 'More games' placeholder");
+  // the Padlet link sits with them, opening the class wall in a new tab
+  const pad = $("padletLink");
+  ok(!!pad && /Padlet/.test(pad.textContent), "a Padlet link is on the games page");
+  ok(/^https:\/\/padlet\.com\//.test(pad.getAttribute("href")), "it points at the Padlet wall");
+  ok(pad.getAttribute("target") === "_blank" && /noopener/.test(pad.getAttribute("rel")),
+     "it opens in a new tab, safely");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
   ok(/Paving Race/.test(cards[2].textContent), "Paving Race joins the row");

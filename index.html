@@ -44,6 +44,22 @@
   .back:hover{background:#eef7f5;}
 
   /* gender choice */
+  /* nothing on this screen shows until we know what the teacher has set,
+     so a hidden login never flashes up first */
+  #scrWelcome.on #loginPart, #scrWelcome.on #padletBtn{visibility:hidden;}
+  #scrWelcome.ready #loginPart, #scrWelcome.ready #padletBtn{visibility:visible;}
+  #padletBtn{
+    display:inline-flex; align-items:center; gap:10px; margin-top:26px;
+    text-decoration:none; font-size:19px; font-weight:800; color:#6b5c00;
+    background:linear-gradient(160deg,#fffdf4,#ffeaa6);
+    border:2px dashed #f0d36b; border-radius:18px; padding:14px 26px;
+    box-shadow:0 4px 14px rgba(31,90,84,.16); transition:.15s;
+  }
+  #padletBtn:hover{transform:translateY(-3px); box-shadow:0 10px 22px rgba(31,90,84,.24);}
+  /* on its own, the link carries the whole screen, so it grows to suit */
+  #scrWelcome.padonly #padletBtn{margin-top:6vh; font-size:26px; padding:20px 38px; gap:14px;}
+  #scrWelcome.padonly #padletBtn .go{font-size:16px;}
+  #padletBtn .go{font-size:13.5px; background:#f6e6a8; border-radius:20px; padding:2px 10px;}
   .gender-btns{display:flex; gap:24px; justify-content:center; flex-wrap:wrap;}
   .gender-btns button{
     width:min(38vw,260px); aspect-ratio:1.15; border:0; border-radius:22px;
@@ -108,11 +124,15 @@
 <!-- 1 · welcome -->
 <section class="screen on" id="scrWelcome">
   <h1>🏫 Welcome to Charlie's Class</h1>
-  <p class="sub">Tap your group to find your name.</p>
-  <div class="gender-btns">
-    <button id="boysBtn"><span>👦</span>Boys</button>
-    <button id="girlsBtn"><span>👧</span>Girls</button>
+  <div id="loginPart">
+    <p class="sub">Tap your group to find your name.</p>
+    <div class="gender-btns">
+      <button id="boysBtn"><span>👦</span>Boys</button>
+      <button id="girlsBtn"><span>👧</span>Girls</button>
+    </div>
   </div>
+  <a id="padletBtn" href="https://padlet.com/ebsmoon/boring-words-precise-words-ltm98pke0tmb52d3"
+     target="_blank" rel="noopener noreferrer">📋 <b>Padlet</b> <span class="go">↗ Open</span></a>
 </section>
 
 <!-- 2 · pick your name -->
@@ -306,7 +326,29 @@
   });
 
   /* ---------------- init ---------------- */
+  /* padlet: is the link offered at all; padletOnly: the page is just the link */
+  var welcomeShown = false;
+  function showWelcome(s){
+    if(welcomeShown) return;
+    welcomeShown = true;
+    var hid = (s && s.hidden) || {};
+    var only = !hid.padlet && !!(s && s.padletOnly);
+    $('padletBtn').style.display = hid.padlet ? 'none' : '';
+    $('loginPart').style.display = only ? 'none' : '';
+    $('scrWelcome').classList.toggle('padonly', only);
+    $('scrWelcome').classList.add('ready');
+  }
+  setTimeout(function(){ showWelcome(null); }, 4000);   /* never leave it blank */
+  if(window.CHARLIE_TEST_FAST){
+    window.INDEX_TEST = {
+      welcome: function(s){ welcomeShown = false; showWelcome(s); }
+    };
+  }
+
   store.init().then(function(){
+    store.getMachine('game-settings')
+      .then(function(s){ showWelcome(s); })
+      .catch(function(){ showWelcome(null); });
     store.onChange(function(){
       store.list().then(function(l){ students = l; namesArrived(); });
     });
@@ -314,7 +356,7 @@
   }).then(function(list){
     students = list;
     namesArrived();
-  });
+  }).catch(function(){ showWelcome(null); });
 })();
 </script>
 </body>

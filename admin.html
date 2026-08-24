@@ -245,6 +245,16 @@
         </div>
       </div>
       <div style="min-width:220px">
+        <h3 style="margin:4px 0 8px">📋 Padlet</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setPadOn" checked> Visible to students</label>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setPadOnly"> Padlet only on the welcome page</label>
+        <p class="note" style="margin:0">The link appears on the welcome page and with the games.
+        <b>Padlet only</b> hides the Boys/Girls buttons so the class goes straight to the wall —
+        turn it off again to let them log in.</p>
+      </div>
+      <div style="min-width:220px">
         <h3 style="margin:4px 0 8px">🧊 Cuboid Quest</h3>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setCubOn" checked> Visible to students</label>
@@ -794,7 +804,9 @@
 
   /* ---------------- per-game settings (shared blob in the machines store) --- */
   var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false, triangles:false,
-                               parallelogram:false, review:false, cuboid:false},
+                               parallelogram:false, review:false, cuboid:false,
+                               padlet:false},
+                       padletOnly:false,
                        paving:{nicknames:false, extraSecs:0, measure:3, build:5},
                        algebra:{turnSecs:40},
                        alzebra:{limits:{'+':18,'-':22,'*':28,'/':32}}};
@@ -828,6 +840,8 @@
       document.getElementById('setRevNick').checked = !!(g.review && g.review.nicknames);
       document.getElementById('setCubOn').checked = !hid.cuboid;
       document.getElementById('setCubNick').checked = !!(g.cuboid && g.cuboid.nicknames);
+      document.getElementById('setPadOn').checked = !hid.padlet;
+      document.getElementById('setPadOnly').checked = !!g.padletOnly;
       document.getElementById('setPaveNick').checked = !!(g.paving && g.paving.nicknames);
       document.getElementById('setPaveSecs').value =
         (g.paving && g.paving.extraSecs) || GAME_DEFAULTS.paving.extraSecs;
@@ -852,7 +866,9 @@
                 triangles: !document.getElementById('setTriOn').checked,
                 parallelogram: !document.getElementById('setParaOn').checked,
                 review: !document.getElementById('setRevOn').checked,
-                cuboid: !document.getElementById('setCubOn').checked},
+                cuboid: !document.getElementById('setCubOn').checked,
+                padlet: !document.getElementById('setPadOn').checked},
+        padletOnly: document.getElementById('setPadOnly').checked,
         triangles:{nicknames: document.getElementById('setTriNick').checked},
         parallelogram:{nicknames: document.getElementById('setParaNick').checked},
         review:{nicknames: document.getElementById('setRevNick').checked},
@@ -885,7 +901,7 @@
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
    'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
    'setPaveOn','setPaveNick','setPaveSecs','setTriOn','setTriNick','setParaOn','setParaNick',
-   'setRevOn','setRevNick','setCubOn','setCubNick',
+   'setRevOn','setRevNick','setCubOn','setCubNick','setPadOn','setPadOnly',
    'setPaveMeasureOn','setPaveMeasure','setPaveBuildOn','setPaveBuild']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);

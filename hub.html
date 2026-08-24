@@ -42,18 +42,27 @@
   .games.ready{visibility:visible;}
   #friendsBtn{visibility:hidden;}
   #friendsBtn.ready{visibility:visible;}
-  .game{
+  .game, .tile{
     border:0; border-radius:20px; background:var(--card); padding:26px 18px;
     box-shadow:0 4px 14px rgba(31,90,84,.16); text-align:center; transition:.15s;
   }
-  .game:hover{transform:translateY(-4px); box-shadow:0 10px 22px rgba(31,90,84,.26);}
+  .game:hover, .tile:hover{transform:translateY(-4px); box-shadow:0 10px 22px rgba(31,90,84,.26);}
   /* the art sits in a fixed-height box so an emoji and a photo line up */
-  .game .art{
+  .game .art, .tile .art{
     display:flex; align-items:flex-end; justify-content:center;
     height:110px; font-size:76px; line-height:1; margin-bottom:12px;
   }
   .game .art img{max-height:110px; width:auto; filter:drop-shadow(0 5px 10px rgba(31,90,84,.28));}
-  .game .t{font-size:21px; font-weight:800; color:var(--teal-dark); display:block;}
+  .game .t, .tile .t{font-size:21px; font-weight:800; color:var(--teal-dark); display:block;}
+  .tile.link{
+    text-decoration:none; display:block;
+    background:linear-gradient(160deg,#fffdf4,#fff6da);
+    border:2px dashed #f0d36b;
+  }
+  .tile.link .badge{
+    display:inline-block; margin-top:12px; font-size:13px; font-weight:800;
+    background:#f6e6a8; color:#6b5c00; border-radius:20px; padding:3px 12px;
+  }
   .game .badge{
     display:inline-block; margin-top:12px; font-size:13px; font-weight:800;
     background:var(--yellow); color:#6b5c00; border-radius:20px; padding:3px 12px;
@@ -412,6 +421,12 @@
       <span class="t">Try Triangles</span>
       <span class="badge">▶ Play now</span>
     </button>
+    <a class="tile link" id="padletLink" href="https://padlet.com/ebsmoon/boring-words-precise-words-ltm98pke0tmb52d3"
+       target="_blank" rel="noopener noreferrer">
+      <span class="art">📋</span>
+      <span class="t">Padlet</span>
+      <span class="badge">↗ Open</span>
+    </a>
     <button class="game" id="cuboidGame">
       <span class="art">🧊</span>
       <span class="t">Cuboid Quest</span>
@@ -1490,6 +1505,7 @@
     if(hid.parallelogram) $('paraGame').style.display = 'none';
     if(hid.review) $('reviewGame').style.display = 'none';
     if(hid.cuboid) $('cuboidGame').style.display = 'none';
+    if(hid.padlet) $('padletLink').style.display = 'none';
     if(hid.alzebra && hid.algebra && hid.paving && hid.triangles && hid.parallelogram
        && hid.review && hid.cuboid){
       document.querySelector('.games').insertAdjacentHTML('beforeend',
