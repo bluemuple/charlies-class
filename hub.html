@@ -442,6 +442,11 @@
       <span class="t"><span style="color:var(--teal-dark)">Parallelo</span><span style="color:var(--accent)">gram</span></span>
       <span class="badge">▶ Play now</span>
     </button>
+    <button class="game" id="rev12Game">
+      <span class="art">📄</span>
+      <span class="t">Review 12</span>
+      <span class="badge">▶ Play now</span>
+    </button>
   </div>
 </main>
 
@@ -1466,6 +1471,9 @@
   $('pavingGame').addEventListener('click', function(){
     window.location.href = 'paving.html';
   });
+  $('rev12Game').addEventListener('click', function(){
+    window.location.href = 'review12.html';
+  });
 
   /* ---------------- init ---------------- */
   /* results-name: checked = show (the stored flag still means "hide");
@@ -1505,9 +1513,10 @@
     if(hid.parallelogram) $('paraGame').style.display = 'none';
     if(hid.review) $('reviewGame').style.display = 'none';
     if(hid.cuboid) $('cuboidGame').style.display = 'none';
+    if(hid.review12) $('rev12Game').style.display = 'none';
     if(hid.padlet) $('padletLink').style.display = 'none';
     if(hid.alzebra && hid.algebra && hid.paving && hid.triangles && hid.parallelogram
-       && hid.review && hid.cuboid){
+       && hid.review && hid.cuboid && hid.review12){
       document.querySelector('.games').insertAdjacentHTML('beforeend',
         '<div style="grid-column:1/-1;text-align:center;color:#7a8f8b;font-weight:700;padding:26px 0">'
         + '😴 The games are having a rest — see you next time!</div>');

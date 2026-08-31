@@ -176,6 +176,32 @@ stuff* (the snack flies over, the pet softly swaps to its happy picture,
 superpowers ("🎾 Fact Fetcher", "🛡️ Triple Shield"…) shown as badges.
 Snacks can't be sold — they are pet food by design.
 
+## Review 12 checkpoint 📄 (how it works)
+
+`review12.html` + `js/review12-bank.js` turn the paper *Review 12* (MNP Year 7
+Phase 3B, Chapter 12) into a computer-adaptive checkpoint for the Tuesday lesson.
+The plan-view question (paper Q5) is left out; the other four each have a ladder:
+
+- The **top level is the paper question itself** (same numbers; students are told
+  "It's one of the same questions on your paper" and type/draw what they wrote).
+- The levels below are the separate pieces of knowledge the question is built
+  from (angle facts → straight line → vertically opposite → … ). Every level has
+  a knowledge card, a hint, **3 test questions and 3 practice problems**, plus a
+  textbook reference (chapter · lesson title · pages, from the MNP teacher guides).
+- **Two right answers lock a level** (that becomes the student's level for the
+  question); **two wrong answers step down one level**. Bottoming out at level 1
+  is recorded with a `floor` flag.
+- Q4 (parts of a circle) is answered by actually drawing on the screen: tap the
+  centre + circumference for the radius; tap two opposite edge points for the
+  diameter (a chord that misses O is refused).
+
+Results land in the `review12-results` machine (one row per finished run).
+Admin → 📄 Review 12 → *Levels & worksheets* shows each student's level per
+question and the missing knowledge, with a **Download** button that prints an A4
+helper sheet: one ~10-minute Part per missing level (knowledge box + worked
+example + practice), answer key for the teacher on the last page. Downloads are
+remembered in `review12-downloads`, so already-printed buttons wear a green tick.
+
 ## Roadmap
 
 1. ✅ Teacher admin (roster, self-chosen codes, money, welcome cards, teacher lock)

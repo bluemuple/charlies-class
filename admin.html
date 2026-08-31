@@ -245,6 +245,14 @@
         </div>
       </div>
       <div style="min-width:220px">
+        <h3 style="margin:4px 0 8px">📄 Review 12</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setR12On" checked> Visible to students</label>
+        <button id="r12Results" style="border:2px solid #cfe3df;background:#fff;color:#1f5a54;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:6px">📊 Levels &amp; worksheets</button>
+        <p class="note" style="margin:0">The paper Review 12 as an adaptive checkpoint. Each
+        student climbs a ladder per question; print each one a helper sheet below.</p>
+      </div>
+      <div style="min-width:220px">
         <h3 style="margin:4px 0 8px">📋 Padlet</h3>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setPadOn" checked> Visible to students</label>
@@ -345,6 +353,16 @@
     <div id="paraResultsBox" style="font-size:14px;color:#4c6b66"></div>
   </section>
 
+  <section class="card" id="r12Card" style="display:none">
+    <h2>📄 Review 12 — levels &amp; helper sheets</h2>
+    <p class="note">Each question has a ladder: the top step is the paper question, the steps
+    below are the knowledge it is built from. <b>Download</b> prints an A4 helper sheet with
+    exactly the missing steps — one part per step, about 10 minutes each, answers for you on
+    the last page. Buttons you have already used show a green tick, so the plain ones are the
+    sheets still to print.</p>
+    <div id="r12Box" style="font-size:14px;color:#4c6b66"></div>
+  </section>
+
   <section class="card" id="triResultsCard" style="display:none">
     <h2>📊 Try Triangles — results by question type</h2>
     <p class="note">Each turn a student plays adds a row: <b>heights</b> (naming the height for a
@@ -390,6 +408,7 @@
 <script src="js/config.js"></script>
 <script src="js/roster.js"></script>
 <script src="js/store.js"></script>
+<script src="js/review12-bank.js"></script>
 <script>
 (function(){
   "use strict";
@@ -642,6 +661,119 @@
     var col = ok === n ? '#2a9d34' : ok === 0 ? '#c3323f' : '#8a6d00';
     return '<b style="color:' + col + '">' + ok + '</b> / ' + n;
   }
+  /* ---------------- Review 12: levels, needed knowledge, helper sheets -------- */
+  var r12Marks = null;      /* {"sid|q1": timestamp} — which sheets are already printed */
+  function r12LoadMarks(){
+    return store.getMachine('review12-downloads').then(function(b){
+      r12Marks = (b && b.marks) || {};
+      return r12Marks;
+    }).catch(function(){ r12Marks = r12Marks || {}; return r12Marks; });
+  }
+  function r12SaveMark(key){
+    return store.getMachine('review12-downloads').then(function(b){
+      b = b || {id:'review12-downloads', type:'marks', created:Date.now(), marks:{}};
+      b.marks = b.marks || {};
+      b.marks[key] = Date.now();
+      b.created = Date.now();
+      r12Marks = b.marks;
+      return store.saveMachine(b);
+    }).catch(function(){});
+  }
+  /* print via a throwaway iframe so one click gives the A4 print/save-as-PDF dialog */
+  function r12Print(html){
+    var fr = document.createElement('iframe');
+    fr.style.position = 'fixed'; fr.style.right = '0'; fr.style.bottom = '0';
+    fr.style.width = '0'; fr.style.height = '0'; fr.style.border = '0';
+    document.body.appendChild(fr);
+    window.R12_LAST_SHEET = html;              /* headless tests read the sheet here */
+    try{
+      var doc = fr.contentDocument || fr.contentWindow.document;
+      doc.open(); doc.write(html); doc.close();
+      setTimeout(function(){
+        try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){}
+        setTimeout(function(){ try{ document.body.removeChild(fr); }catch(e){} }, 60000);
+      }, 250);
+    }catch(e){}
+  }
+  function r12Render(){
+    var box = document.getElementById('r12Box');
+    box.textContent = 'Loading…';
+    Promise.all([store.getMachine('review12-results').catch(function(){ return null; }), r12LoadMarks()])
+    .then(function(pair){
+      var rows = (pair[0] && pair[0].rows) || [];
+      if(!rows.length){ box.textContent = 'Nobody has done the checkpoint yet.'; return; }
+      var byId = {}, order = [];
+      rows.forEach(function(r){
+        if(!byId[r.id]){ byId[r.id] = []; order.push(r.id); }
+        byId[r.id].push(r);
+      });
+      order.sort(function(a2, c){
+        var la = byId[a2][byId[a2].length-1].t || 0, lc = byId[c][byId[c].length-1].t || 0;
+        return lc - la;
+      });
+      box.innerHTML = order.map(function(id){
+        var list = byId[id];
+        var last = list[list.length - 1];       /* the latest run is the one that counts */
+        var cells = window.R12.ITEMS.map(function(it){
+          var r = last.items && last.items[it.key];
+          if(!r) return '<td style="padding:6px;color:#9ab">—</td>';
+          var full = r.lock >= it.diff && !r.floor;
+          var chip = full
+            ? '<span style="font-weight:800;color:#2a9d34">L' + r.lock + '/' + it.diff + ' ✓</span>'
+            : '<span style="font-weight:800;color:' + (r.floor ? '#c0392b' : '#8a6d00') + '">L'
+              + (r.floor ? '1−' : r.lock) + '/' + it.diff + '</span>';
+          var html = '<td style="padding:6px;vertical-align:top">' + chip;
+          if(!full){
+            var need = window.R12.neededLevels(it, r);
+            html += '<div style="font-size:12px;color:#7a8f8b;margin:3px 0">needs: '
+              + need.map(function(n){ return esc2(n.title); }).join(' · ') + '</div>';
+            var key = id + '|' + it.key;
+            var done = !!r12Marks[key];
+            html += '<button class="r12dl' + (done ? ' dl-done' : '') + '" data-sid="' + esc2(id)
+              + '" data-item="' + it.key + '" style="border:2px solid ' + (done ? '#b5e0b8' : '#cfe3df')
+              + ';background:' + (done ? '#eef9ee' : '#fff') + ';color:' + (done ? '#2a9d34' : '#1f5a54')
+              + ';border-radius:9px;padding:4px 10px;font-size:12.5px;font-weight:800;cursor:pointer">'
+              + (done ? '✓ Downloaded' : '⬇ Download') + '</button>';
+          } else {
+            html += '<div style="font-size:12px;color:#7a8f8b;margin-top:3px">nothing missing 🎉</div>';
+          }
+          return html + '</td>';
+        }).join('');
+        return '<div style="border:1.5px solid #e2edeb;border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fbfdfc">'
+          + '<div style="font-weight:800;color:#1f5a54;margin-bottom:4px">'
+          +   esc2(last.emoji || '🙂') + ' ' + esc2(last.name || id)
+          +   '<span style="float:right;color:#8aa19c;font-weight:600;font-size:12.5px">'
+          +   (list.length > 1 ? list.length + ' runs · ' : '')
+          +   (last.t ? new Date(last.t).toLocaleString() : '') + '</span></div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:13.5px"><thead>'
+          + '<tr style="color:#7a8f8b;text-align:left">'
+          +   window.R12.ITEMS.map(function(it){ return '<th style="padding:2px 6px">Q' + it.n + ' · ' + esc2(it.name) + '</th>'; }).join('')
+          + '</tr></thead><tbody><tr>' + cells + '</tr></tbody></table></div>';
+      }).join('');
+      /* the latest result rows drive the sheet content */
+      box.dataset.ready = '1';
+      window.R12_ADMIN_ROWS = byId;
+    });
+  }
+  document.getElementById('r12Results').addEventListener('click', function(){
+    var card = document.getElementById('r12Card');
+    var openNow = card.style.display === 'none';
+    card.style.display = openNow ? '' : 'none';
+    if(openNow) r12Render();
+  });
+  document.getElementById('r12Box').addEventListener('click', function(e){
+    var b = e.target.closest('.r12dl'); if(!b) return;
+    var sid = b.dataset.sid, ikey = b.dataset.item;
+    var runs = (window.R12_ADMIN_ROWS || {})[sid];
+    if(!runs || !runs.length) return;
+    var last = runs[runs.length - 1];
+    var r = last.items && last.items[ikey];
+    var it = window.R12.item(ikey);
+    if(!r || !it) return;
+    r12Print(window.R12.worksheetHTML({name:last.name || sid, emoji:last.emoji || ''}, it, r));
+    r12SaveMark(sid + '|' + ikey).then(function(){ r12Render(); });
+  });
+
   document.getElementById('triResults').addEventListener('click', function(){
     var card = document.getElementById('triResultsCard');
     var openNow = card.style.display === 'none';
@@ -805,7 +937,7 @@
   /* ---------------- per-game settings (shared blob in the machines store) --- */
   var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false, triangles:false,
                                parallelogram:false, review:false, cuboid:false,
-                               padlet:false},
+                               review12:false, padlet:false},
                        padletOnly:false,
                        paving:{nicknames:false, extraSecs:0, measure:3, build:5},
                        algebra:{turnSecs:40},
@@ -840,6 +972,7 @@
       document.getElementById('setRevNick').checked = !!(g.review && g.review.nicknames);
       document.getElementById('setCubOn').checked = !hid.cuboid;
       document.getElementById('setCubNick').checked = !!(g.cuboid && g.cuboid.nicknames);
+      document.getElementById('setR12On').checked = !hid.review12;
       document.getElementById('setPadOn').checked = !hid.padlet;
       document.getElementById('setPadOnly').checked = !!g.padletOnly;
       document.getElementById('setPaveNick').checked = !!(g.paving && g.paving.nicknames);
@@ -867,6 +1000,7 @@
                 parallelogram: !document.getElementById('setParaOn').checked,
                 review: !document.getElementById('setRevOn').checked,
                 cuboid: !document.getElementById('setCubOn').checked,
+                review12: !document.getElementById('setR12On').checked,
                 padlet: !document.getElementById('setPadOn').checked},
         padletOnly: document.getElementById('setPadOnly').checked,
         triangles:{nicknames: document.getElementById('setTriNick').checked},
@@ -901,7 +1035,7 @@
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
    'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
    'setPaveOn','setPaveNick','setPaveSecs','setTriOn','setTriNick','setParaOn','setParaNick',
-   'setRevOn','setRevNick','setCubOn','setCubNick','setPadOn','setPadOnly',
+   'setRevOn','setRevNick','setCubOn','setCubNick','setR12On','setPadOn','setPadOnly',
    'setPaveMeasureOn','setPaveMeasure','setPaveBuildOn','setPaveBuild']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review 12 — Wharenui Maths</title>
+<meta name="description" content="The Review 12 checkpoint: answer the questions from your paper on screen, with stepping-stone questions when one is tricky.">
+<link rel="canonical" href="https://bluemuple.github.io/charlies-class/review12.html">
+<style>
+  :root{
+    --teal:#2f7d74; --teal-dark:#1f5a54; --cream:#fdf6e4; --card:#ffffff;
+    --yellow:#ffd640; --accent:#e05c5c; --good:#2a9d34;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Trebuchet MS","Avenir Next",system-ui,sans-serif;
+    background:linear-gradient(160deg,#eef7f2,#dcefe6);
+    min-height:100vh; color:#233;
+  }
+  button{font-family:inherit; cursor:pointer;}
+  header{position:absolute; top:0; left:0; right:0; display:flex; align-items:center;
+         gap:12px; padding:10px 16px; z-index:20; pointer-events:none;}
+  header > *{pointer-events:auto;}
+  #backBtn{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:7px 14px; font-size:14px; font-weight:700;
+  }
+  #meChip{
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+    background:#fff; border:2px solid #cfe3df; border-radius:24px;
+    padding:5px 14px 5px 8px; font-size:14.5px; font-weight:800; color:var(--teal-dark);
+    border:2px solid #cfe3df; cursor:pointer;
+  }
+  #meChip .em{font-size:20px;}
+  #meChip .wh{color:#8a6d00; background:var(--yellow); border-radius:20px; padding:1px 9px; font-size:12.5px;}
+  main{max-width:880px; margin:0 auto; padding:56px 18px 40px;}
+  .screen{display:none;}
+  .screen.on{display:block;}
+  h2{font-size:clamp(20px,2.8vw,28px); color:var(--teal-dark); text-align:center; margin:.6vh 0 .5vh;}
+  .sub{font-size:15px; color:#4c6b66; text-align:center; margin-bottom:14px;}
+  .card{
+    background:var(--card); border-radius:16px; padding:16px 18px;
+    box-shadow:0 3px 12px rgba(31,90,84,.14); margin-bottom:12px;
+  }
+  .bigbtn{
+    display:block; margin:18px auto 0; border:0; border-radius:16px;
+    background:var(--good); color:#fff; font-size:20px; font-weight:800;
+    padding:16px 44px; letter-spacing:.3px;
+    box-shadow:0 5px 0 #1c6b23, 0 8px 18px rgba(26,90,40,.35);
+    transition:transform .12s;
+  }
+  .bigbtn:hover{transform:translateY(-2px);}
+  .bigbtn:active{transform:translateY(2px); box-shadow:0 2px 0 #1c6b23;}
+
+  /* home */
+  .steps{list-style:none; max-width:560px; margin:0 auto;}
+  .steps li{display:flex; gap:12px; align-items:flex-start; margin:10px 0; font-size:16px;}
+  .steps .ic{font-size:24px; flex:none;}
+
+  /* play */
+  #prog{display:flex; gap:8px; justify-content:center; margin-bottom:10px; flex-wrap:wrap;}
+  #prog .p{
+    font-size:13.5px; font-weight:800; color:#7a8f8b; background:#fff;
+    border:2px solid #cfe3df; border-radius:20px; padding:3px 12px;
+  }
+  #prog .p.now{color:var(--teal-dark); border-color:var(--teal); background:#e3f4f0;}
+  #prog .p.done{color:var(--good); border-color:#b5e0b8; background:#eef9ee;}
+  #paperNote{
+    display:none; max-width:640px; margin:0 auto 10px; text-align:center;
+    background:#fff8dd; border:2px dashed #e8c94f; border-radius:12px; padding:9px 14px;
+  }
+  #paperNote b{color:#8a6d00;}
+  #paperNote .pn2{font-size:13.5px; color:#7a6a20; margin-top:2px;}
+  #stepNote{display:none; text-align:center; font-size:13.5px; color:#4c6b66; margin:0 auto 8px;}
+  #qCard{max-width:720px; margin:0 auto;}
+  #qPrompt{font-size:17.5px; font-weight:700; text-align:center; margin:4px 0 10px;}
+  #qFigs{display:flex; gap:14px; justify-content:center; align-items:center; flex-wrap:wrap;}
+  #qFigs > div{flex:1 1 260px; max-width:380px;}
+  #answers{display:flex; gap:14px 22px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
+  .blank{display:flex; align-items:center; gap:7px; font-size:17px; font-weight:700;}
+  .blank input{
+    width:86px; font-size:19px; font-weight:800; text-align:center; color:var(--teal-dark);
+    border:2.5px solid #cfe3df; border-radius:10px; padding:7px 4px; font-family:inherit;
+  }
+  .blank input:focus{outline:none; border-color:var(--teal);}
+  .choices{display:flex; flex-direction:column; gap:9px; max-width:420px; margin:10px auto 0;}
+  .choices button{
+    border:2.5px solid #cfe3df; background:#fff; border-radius:12px; padding:11px 16px;
+    font-size:16.5px; font-weight:700; color:#234; text-align:left; transition:.12s;
+  }
+  .choices button:hover{border-color:var(--teal);}
+  .choices button.pick{border-color:var(--teal); background:#e3f4f0; color:var(--teal-dark);}
+  #drawWrap{max-width:420px; margin:0 auto; text-align:center;}
+  #drawStep{
+    font-size:15px; font-weight:800; color:var(--teal-dark); background:#e3f4f0;
+    border-radius:20px; display:inline-block; padding:4px 16px; margin-bottom:8px;
+  }
+  #drawSvg{touch-action:manipulation; cursor:crosshair; width:100%; height:auto;}
+  #drawRedo{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark); border-radius:10px;
+    padding:6px 14px; font-size:13.5px; font-weight:700; margin-top:6px;
+  }
+  #checkRow{display:flex; gap:16px; justify-content:center; align-items:center; margin-top:16px;}
+  #checkBtn{
+    border:0; border-radius:14px; background:var(--good); color:#fff;
+    font-size:18px; font-weight:800; padding:12px 36px;
+    box-shadow:0 4px 0 #1c6b23;
+  }
+  #checkBtn:disabled{opacity:.45; box-shadow:none; cursor:default;}
+  #notSure{
+    border:0; background:none; color:#7a8f8b; font-size:14px; font-weight:700;
+    text-decoration:underline;
+  }
+  #fb{min-height:30px; text-align:center; font-size:16.5px; font-weight:800; margin-top:10px;}
+  #fb.good{color:var(--good);}
+  #fb.bad{color:var(--accent);}
+  #fb .hint{display:block; font-size:14px; font-weight:600; color:#4c6b66; margin-top:2px;}
+
+  /* done */
+  #doneRows{max-width:600px; margin:0 auto;}
+  .drow{
+    display:flex; align-items:center; gap:12px; background:#fff; border-radius:12px;
+    box-shadow:0 2px 8px rgba(31,90,84,.12); padding:10px 16px; margin:8px 0; font-size:15.5px;
+  }
+  .drow .qn{
+    background:var(--teal-dark); color:#fff; border-radius:10px; font-weight:800;
+    padding:3px 10px; flex:none;
+  }
+  .drow .nm{flex:1; font-weight:700;}
+  .drow .lv{font-weight:800; color:var(--teal-dark); white-space:nowrap;}
+  .drow.full .lv{color:var(--good);}
+  #doneNote{max-width:600px; margin:12px auto 0; text-align:center; font-size:14.5px; color:#4c6b66;}
+  #confetti{position:fixed; inset:0; z-index:60; pointer-events:none;}
+  #toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(80px);
+    background:#1f2d3d; color:#fff; font-size:15px; font-weight:700;
+    border-radius:14px; padding:11px 22px; opacity:0; transition:.25s; z-index:70;
+    max-width:88vw; text-align:center;
+  }
+  #toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="backBtn">← Back</button>
+  <button id="meChip" title="My room"><span class="em" id="meEmoji">🙂</span><span id="meName">…</span><span class="wh" id="meMoney">0 W</span></button>
+</header>
+
+<main>
+  <!-- ================= home ================= -->
+  <section class="screen" id="scrHome">
+    <h2>📄 Review 12</h2>
+    <p class="sub">The same questions as your paper — on the screen.</p>
+    <div class="card">
+      <ul class="steps">
+        <li><span class="ic">✏️</span><span>First, finish <b>Review 12 on paper</b>.</span></li>
+        <li><span class="ic">💻</span><span>Then the screen shows the <b>same questions</b> — type the answers you wrote on your paper.</span></li>
+        <li><span class="ic">🪜</span><span>If one is tricky, you’ll get <b>stepping-stone questions</b> instead. Just do your best — this is not a race!</span></li>
+      </ul>
+      <button class="bigbtn" id="startBtn">▶ Start the checkpoint</button>
+    </div>
+  </section>
+
+  <!-- ================= play ================= -->
+  <section class="screen" id="scrPlay">
+    <div id="prog"></div>
+    <div id="paperNote">📄 <b>It’s one of the same questions on your paper.</b>
+      <div class="pn2" id="paperSub">Type the answer you wrote on your paper.</div>
+    </div>
+    <div id="stepNote">🪜 A stepping-stone question.</div>
+    <div class="card" id="qCard">
+      <div id="qPrompt"></div>
+      <div id="qFigs"></div>
+      <div id="answers"></div>
+      <div id="checkRow">
+        <button id="checkBtn">✓ Check</button>
+        <button id="notSure">I’m not sure</button>
+      </div>
+      <div id="fb"></div>
+    </div>
+  </section>
+
+  <!-- ================= done ================= -->
+  <section class="screen" id="scrDone">
+    <h2 id="doneTitle">🎉 Checkpoint finished!</h2>
+    <p class="sub" id="doneSub">Here is how far up each ladder you climbed.</p>
+    <div id="doneRows"></div>
+    <p id="doneNote">Your teacher can see this too — they might print you your very own helper sheet. 💪</p>
+    <button class="bigbtn" id="homeBtn">🏠 Back to the games</button>
+  </section>
+</main>
+
+<canvas id="confetti"></canvas>
+<div id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/roster.js"></script>
+<script src="js/store.js"></script>
+<script src="js/review12-bank.js"></script>
+<script>
+(function(){
+  "use strict";
+  var R12 = window.R12;
+  var store = window.CharlieStore;
+  var FAST = !!window.CHARLIE_TEST_FAST;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  var toastT = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ t.classList.remove('on'); }, 2600);
+  }
+  function show(id){
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
+      s.classList.toggle('on', s.id === id);
+    });
+  }
+
+  /* ---------------- session ---------------- */
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem('charlie-session')); }catch(e){}
+  if(!sess && window.CHARLIE_TEST_SESSION) sess = window.CHARLIE_TEST_SESSION;
+  if(!sess || !sess.id){ window.location.replace('index.html'); }
+  var me = null;
+  function renderChip(){
+    if(!me) return;
+    $('meEmoji').textContent = me.emoji || '🙂';
+    $('meName').textContent = me.name;
+    $('meMoney').textContent = (me.money || 0) + ' W';
+  }
+  $('meChip').addEventListener('click', function(){ window.location.href = 'hub.html#me'; });
+  $('backBtn').addEventListener('click', function(){
+    if(document.querySelector('.screen.on') && document.querySelector('.screen.on').id === 'scrPlay'
+       && !FAST && !window.confirm('Leave the checkpoint? Your answers so far are lost.')) return;
+    window.location.href = 'hub.html';
+  });
+  function refreshMe(){
+    return store.list().then(function(all){
+      me = all.filter(function(s){ return s.id === sess.id; })[0] || me;
+      if(!me){ window.location.replace('index.html'); return; }
+      renderChip();
+    });
+  }
+
+  /* ---------------- sounds ---------------- */
+  var sndPop = null, sndVictory = null;
+  try{ sndPop = new Audio('assets/pop.mp3'); sndVictory = new Audio('assets/victory.mp3'); }catch(e){}
+  function play(a){ if(!a) return; try{ a.currentTime = 0; a.play(); }catch(e){} }
+
+  /* ================= the run ================= */
+  var ii = 0;            /* which paper question */
+  var st = null;         /* adaptive state for it */
+  var results = {};      /* key -> {lock, floor, target, path} */
+  var busy = false;      /* while feedback is showing */
+  var qNow = null;
+
+  function itemNow(){ return R12.ITEMS[ii]; }
+
+  function renderProg(){
+    $('prog').innerHTML = R12.ITEMS.map(function(it, i){
+      var cls = i < ii ? 'p done' : i === ii ? 'p now' : 'p';
+      var mark = i < ii ? '✓ ' : '';
+      return '<span class="' + cls + '">' + mark + 'Question ' + it.n + '</span>';
+    }).join('');
+  }
+
+  /* ---------------- rendering one question ---------------- */
+  function renderQ(){
+    var it = itemNow();
+    qNow = R12.questionFor(it, st);
+    busy = false;
+    renderProg();
+    var isPaper = qNow.note === 'paper';
+    $('paperNote').style.display = isPaper ? 'block' : 'none';
+    $('paperSub').textContent = qNow.kind === 'draw'
+      ? 'Draw it just like you did on your paper.'
+      : 'Type the answer you wrote on your paper.';
+    $('stepNote').style.display = (!isPaper && st.lv < it.diff) ? 'block' : 'none';
+    $('qPrompt').textContent = qNow.prompt;
+    $('fb').textContent = ''; $('fb').className = '';
+    var figs = '';
+    if(qNow.kind === 'blanks2'){
+      figs = '<div>' + qNow.figA + '</div><div>' + qNow.figB + '</div>';
+    } else if(qNow.fig){
+      figs = '<div style="flex:1 1 100%;max-width:420px">' + qNow.fig + '</div>';
+    }
+    $('qFigs').innerHTML = figs;
+    var A = $('answers');
+    if(qNow.kind === 'choice'){
+      A.innerHTML = '<div class="choices">' + qNow.choices.map(function(c, i){
+        return '<button type="button" data-i="' + i + '">' + esc(c.t) + '</button>';
+      }).join('') + '</div>';
+      $('checkBtn').disabled = true;
+      A.querySelector('.choices').addEventListener('click', function(e){
+        var b = e.target.closest('button'); if(!b || busy) return;
+        Array.prototype.forEach.call(A.querySelectorAll('button'), function(x){ x.classList.remove('pick'); });
+        b.classList.add('pick');
+        $('checkBtn').disabled = false;
+      });
+      $('drawWrapHome') && 0;
+    } else if(qNow.kind === 'draw'){
+      A.innerHTML = '<div id="drawWrap"><div id="drawStep"></div>'
+        + '<div id="drawBox"></div>'
+        + '<button id="drawRedo">↺ Start my drawing again</button></div>';
+      initDraw();
+      $('checkBtn').disabled = true;
+    } else {
+      A.innerHTML = qNow.blanks.map(function(b, i){
+        return '<label class="blank">' + esc(b.pre) + ' <input inputmode="decimal" autocomplete="off" data-i="' + i + '"> ' + esc(b.post) + '</label>';
+      }).join('');
+      $('checkBtn').disabled = false;
+      var first = A.querySelector('input');
+      if(first && !FAST) first.focus();
+      A.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); doCheck(); }
+      });
+    }
+  }
+
+  /* ---------------- the circle drawing task ---------------- */
+  var CX = 175, CY = 120, CR = 92;
+  var draw = null;   /* {parts:[..], pi, pts:[], results:[], segs:[]} */
+  function initDraw(){
+    draw = {parts:qNow.parts.slice(), pi:0, pts:[], results:[], segs:[]};
+    paintDraw();
+    $('drawRedo').addEventListener('click', function(){
+      if(busy) return;
+      draw.pi = 0; draw.pts = []; draw.results = []; draw.segs = [];
+      $('checkBtn').disabled = true;
+      paintDraw();
+    });
+  }
+  function drawStepText(){
+    if(draw.pi >= draw.parts.length) return '✅ Drawing done — press Check!';
+    var part = draw.parts[draw.pi];
+    var n = (draw.pi + 1) + '. ';
+    return part === 'radius'
+      ? n + 'Radius r — tap the centre O, then tap the circumference.'
+      : n + 'Diameter d — tap two opposite points on the circumference.';
+  }
+  function paintDraw(){
+    var inner = '<circle cx="' + CX + '" cy="' + CY + '" r="' + CR + '" fill="#fff" stroke="#2b3a42" stroke-width="2.6"/>'
+      + '<circle cx="' + CX + '" cy="' + CY + '" r="4" fill="#2b3a42"/>'
+      + '<text x="' + (CX + 14) + '" y="' + (CY + 13) + '" font-size="16">O</text>';
+    draw.segs.forEach(function(s){
+      inner += '<line x1="' + s.a[0] + '" y1="' + s.a[1] + '" x2="' + s.b[0] + '" y2="' + s.b[1]
+        + '" stroke="' + (s.ok ? '#2a9d34' : '#e05c5c') + '" stroke-width="3" stroke-linecap="round"/>'
+        + '<text x="' + s.lx + '" y="' + s.ly + '" font-size="17" font-style="italic" fill="'
+        + (s.ok ? '#2a9d34' : '#e05c5c') + '">' + s.label + '</text>';
+    });
+    draw.pts.forEach(function(p){
+      inner += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5" fill="#1f5a54"/>';
+    });
+    $('drawBox').innerHTML = '<svg id="drawSvg" viewBox="0 0 350 240">' + inner + '</svg>';
+    $('drawStep').textContent = drawStepText();
+    var svg = $('drawSvg');
+    svg.addEventListener('click', function(e){
+      var r = svg.getBoundingClientRect();
+      if(!r.width) return;
+      tapAt((e.clientX - r.left) * 350 / r.width, (e.clientY - r.top) * 240 / r.height);
+    });
+  }
+  function snap(x, y){
+    var dx = x - CX, dy = y - CY, d = Math.sqrt(dx * dx + dy * dy);
+    if(d <= 20) return {p:[CX, CY], at:'centre'};
+    if(Math.abs(d - CR) <= 24){
+      var k = CR / d;
+      return {p:[Math.round(CX + dx * k), Math.round(CY + dy * k)], at:'edge'};
+    }
+    return {p:[Math.round(x), Math.round(y)], at:'off'};
+  }
+  function tapAt(x, y){
+    if(busy || !draw || draw.pi >= draw.parts.length) return;
+    draw.pts.push(snap(x, y).p);
+    if(draw.pts.length === 2) evalPart();
+    paintDraw();
+  }
+  function evalPart(){
+    var part = draw.parts[draw.pi];
+    var a = snap(draw.pts[0][0], draw.pts[0][1]), b = snap(draw.pts[1][0], draw.pts[1][1]);
+    var ok = false, A = a.p, B = b.p;
+    if(part === 'radius'){
+      ok = (a.at === 'centre' && b.at === 'edge') || (a.at === 'edge' && b.at === 'centre');
+    } else {
+      if(a.at === 'edge' && b.at === 'edge'){
+        /* does the chord pass close to the centre? */
+        var vx = B[0] - A[0], vy = B[1] - A[1], L = Math.sqrt(vx * vx + vy * vy) || 1;
+        var dist = Math.abs(vx * (CY - A[1]) - vy * (CX - A[0])) / L;
+        if(dist <= 16){
+          ok = true;
+          B = [2 * CX - A[0], 2 * CY - A[1]];   /* snap to the true diameter */
+        }
+      }
+    }
+    var mx = (A[0] + B[0]) / 2 + 12, my = (A[1] + B[1]) / 2 - 10;
+    draw.segs.push({a:A, b:B, ok:ok, label:part === 'radius' ? 'r' : 'd',
+                    lx:Math.round(mx), ly:Math.round(my)});
+    draw.results.push(ok);
+    draw.pts = [];
+    draw.pi++;
+    if(draw.pi >= draw.parts.length) $('checkBtn').disabled = false;
+  }
+
+  /* ---------------- checking + the ladder ---------------- */
+  function collectOK(){
+    if(qNow.kind === 'choice'){
+      var pick = $('answers').querySelector('button.pick');
+      if(!pick) return null;
+      return !!qNow.choices[Number(pick.dataset.i)].ok;
+    }
+    if(qNow.kind === 'draw'){
+      if(!draw || draw.results.length < draw.parts.length) return null;
+      return draw.results.every(function(r){ return r; });
+    }
+    var vals = Array.prototype.map.call($('answers').querySelectorAll('input'), function(i){ return i.value; });
+    if(vals.some(function(v){ return String(v).trim() === ''; })) return null;
+    return R12.checkBlanks(qNow, vals);
+  }
+  function doCheck(){
+    if(busy) return;
+    var ok = collectOK();
+    if(ok === null){
+      toast(qNow.kind === 'draw' ? '✏️ Finish the drawing first!' : '✏️ Fill in every box first!');
+      return;
+    }
+    submit(ok);
+  }
+  function submit(ok){
+    if(busy) return;
+    busy = true;
+    var it = itemNow();
+    var lvl = it.levels[st.lv];
+    var fb = $('fb');
+    if(ok){
+      play(sndPop);
+      fb.className = 'good';
+      fb.textContent = ['Ka pai! ✓', 'Tino pai! ✓', 'Nice one! ✓'][Math.floor(Math.random() * 3)];
+    } else {
+      fb.className = 'bad';
+      fb.innerHTML = 'Not quite ✗<span class="hint">💡 ' + esc(lvl.hint) + '</span>';
+    }
+    var ev = R12.markAnswer(it, st, ok);
+    var after = function(){
+      if(ev === 'lock'){
+        results[it.key] = {lock:st.lock, floor:st.floor, target:it.diff, path:st.path};
+        ii++;
+        if(ii < R12.ITEMS.length){
+          toast('Question ' + it.n + ' done — on to question ' + R12.ITEMS[ii].n + '!');
+          st = R12.newState(itemNow());
+          renderQ();
+        } else {
+          finish();
+        }
+      } else {
+        renderQ();
+      }
+    };
+    if(FAST) after();                       /* tests drive answers back to back */
+    else setTimeout(after, ok ? 950 : 1900);
+  }
+  $('checkBtn').addEventListener('click', doCheck);
+  $('notSure').addEventListener('click', function(){
+    if(!busy) submit(false);
+  });
+
+  /* ---------------- finishing ---------------- */
+  function saveResult(){
+    return store.getMachine('review12-results').then(function(b){
+      b = b || {id:'review12-results', type:'results', created: Date.now(), rows:[]};
+      var mineRows = b.rows.filter(function(r){ return r.id === me.id; });
+      b.rows.push({
+        id: me.id, name: me.name, emoji: me.emoji || '🙂',
+        turn: mineRows.length + 1, t: Date.now(), items: results
+      });
+      if(b.rows.length > 400) b.rows = b.rows.slice(-400);
+      b.created = Date.now();
+      return store.saveMachine(b);
+    }).catch(function(){});
+  }
+  function finish(){
+    show('scrDone');
+    var allTop = true;
+    $('doneRows').innerHTML = R12.ITEMS.map(function(it){
+      var r = results[it.key] || {lock:0, target:it.diff};
+      var full = r.lock >= it.diff && !r.floor;
+      if(!full) allTop = false;
+      var word = full ? 'right to the top! 🏆'
+        : r.floor ? 'we’ll build this one together 🌱'
+        : 'step ' + r.lock + ' of ' + it.diff + ' — climbing! 🪜';
+      return '<div class="drow' + (full ? ' full' : '') + '">'
+        + '<span class="qn">Q' + it.n + '</span>'
+        + '<span class="nm">' + esc(it.name) + '</span>'
+        + '<span class="lv">' + word + '</span></div>';
+    }).join('');
+    $('doneTitle').textContent = allTop ? '🏆 Checkpoint finished — all the way up!' : '🎉 Checkpoint finished!';
+    $('doneSub').textContent = allTop
+      ? 'Every ladder climbed to the top. Outstanding!'
+      : 'Here is how far up each ladder you climbed.';
+    if(allTop){ play(sndVictory); confetti(); }
+    saveResult();
+  }
+  function startRun(){
+    ii = 0; results = {};
+    st = R12.newState(itemNow());
+    show('scrPlay');
+    renderQ();
+  }
+  $('startBtn').addEventListener('click', startRun);
+  $('homeBtn').addEventListener('click', function(){ window.location.href = 'hub.html'; });
+
+  /* ---------------- confetti (falls all the way off the screen) -------- */
+  var confettiRun = 0;
+  function confetti(){
+    var cv = $('confetti'), ctx = null;
+    try{ ctx = cv.getContext('2d'); }catch(e){}
+    if(!ctx) return;
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var cols = ['#ffd640', '#2f7d74', '#e05c5c', '#7db8ff', '#b78be0', '#7ad17e'];
+    var bits = [], i;
+    for(i = 0; i < 130; i++){
+      bits.push({x:Math.random() * cv.width, y:-20 - Math.random() * cv.height * 0.5,
+                 s:5 + Math.random() * 6, v:2 + Math.random() * 3.2,
+                 w:Math.random() * 2 - 1, c:cols[i % cols.length], r:Math.random() * Math.PI});
+    }
+    var mine = ++confettiRun, t0 = Date.now();
+    (function frame(){
+      if(mine !== confettiRun) return;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      var live = false;
+      bits.forEach(function(b){
+        b.y += b.v; b.x += b.w; b.r += 0.08;
+        if(b.y < cv.height + 24) live = true;
+        ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.r);
+        ctx.fillStyle = b.c; ctx.fillRect(-b.s / 2, -b.s / 2, b.s, b.s * 0.62);
+        ctx.restore();
+      });
+      if(live && Date.now() - t0 < 20000) requestAnimationFrame(frame);
+      else ctx.clearRect(0, 0, cv.width, cv.height);
+    })();
+  }
+
+  /* ---------------- init ---------------- */
+  store.init().then(function(){
+    store.getMachine('game-settings').then(function(s){
+      if(s && s.hidden && s.hidden.review12){
+        toast('📄 Your teacher has closed Review 12 for now.');
+        setTimeout(function(){ window.location.href = 'hub.html'; }, 1600);
+      }
+    }).catch(function(){});
+    store.onChange(function(){ refreshMe(); });
+    return refreshMe();
+  }).then(function(){
+    show('scrHome');
+  }).catch(function(){
+    toast('Hmm, the game can\'t reach the class database. Ask your teacher!');
+    show('scrHome');
+  });
+
+  if(FAST){
+    window.R12_TEST = {
+      start: startRun,
+      state: function(){ return st; },
+      itemIndex: function(){ return ii; },
+      q: function(){ return qNow; },
+      submit: submit,
+      tap: tapAt,
+      drawState: function(){ return draw; },
+      results: function(){ return results; },
+      render: renderQ
+    };
+  }
+})();
+</script>
+</body>
+</html>

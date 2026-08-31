@@ -1606,6 +1606,180 @@ async function testParallelogram(){
   try{ dom.window.close(); }catch(e){}
 }
 
+
+async function testReview12(){
+  console.log("\nreview12.html — the adaptive Review 12 checkpoint");
+
+  /* ---- the bank on its own ---- */
+  const R12 = require("./js/review12-bank.js");
+  ok(R12.ITEMS.length === 4 && R12.ITEMS.map(i => i.n).join(",") === "1,2,3,4",
+     "four paper questions — the plan-view drawing is left out");
+  R12.ITEMS.forEach(it => {
+    let good = true, paperTagged = false;
+    for(let l = 1; l <= it.diff; l++){
+      const lv = it.levels[l];
+      if(!lv || lv.qs.length !== 3 || lv.practice.length !== 3 || !lv.know || !lv.know.title) good = false;
+      if(lv && lv.know && !lv.hint) good = false;
+    }
+    const top = it.levels[it.diff].qs[0];
+    paperTagged = top.note === "paper";
+    ok(good, "Q" + it.n + ": every level has a knowledge card, a hint, 3 questions and 3 practice problems");
+    ok(paperTagged, "Q" + it.n + ": the first top-level question is the one from the paper");
+  });
+  // the paper answers themselves
+  const q1 = R12.item("q1").levels[6].qs[0];
+  ok(q1.blanks[0].ans === 66 && q1.blanks[1].ans === 24, "Q1 paper answers: a = 66°, b = 24°");
+  const q2 = R12.item("q2").levels[7].qs[0];
+  ok(q2.blanks.map(b => b.ans).join(",") === "35,80,55,70", "Q2 paper answers: 35, 80, 55, 70");
+  const q3 = R12.item("q3").levels[7].qs[0];
+  ok(q3.blanks.map(b => b.ans).join(",") === "160,20,160,20", "Q3 paper answers: 160, 20, 160, 20");
+  ok(R12.item("q4").levels[5].qs[0].kind === "draw", "Q4 is answered by drawing on the circle");
+
+  /* ---- the ladder rules ---- */
+  const it2 = R12.item("q2");
+  let st = R12.newState(it2);
+  R12.markAnswer(it2, st, true);
+  ok(!st.done, "one right answer is not enough to lock a level");
+  R12.markAnswer(it2, st, true);
+  ok(st.done && st.lock === 7, "two right answers lock the level");
+  st = R12.newState(it2);
+  R12.markAnswer(it2, st, false);
+  ok(st.lv === 7 && st.used === 1, "one wrong answer brings a sibling question at the same level");
+  R12.markAnswer(it2, st, false);
+  ok(st.lv === 6 && st.used === 0, "two wrong answers step down a level");
+  R12.markAnswer(it2, st, true); R12.markAnswer(it2, st, false); R12.markAnswer(it2, st, true);
+  ok(st.done && st.lock === 6, "right-wrong-right still locks — three questions per level is enough");
+  ok(R12.neededLevels(it2, st).map(n => n.lv).join(",") === "7", "locked at 6 of 7 → only the level-7 knowledge is missing");
+  st = R12.newState(it2);
+  while(!st.done) R12.markAnswer(it2, st, false);
+  ok(st.lock === 1 && st.floor, "all wrong answers bottom out at level 1, flagged");
+  ok(R12.neededLevels(it2, st).length === 7, "a floored student needs every level, level 1 included");
+  ok(R12.numOK("66°", 66) && R12.numOK(" 66 degrees ", 66) && R12.numOK("4.5 cm", 4.5) && !R12.numOK("65", 66),
+     "typed answers forgive the degree sign, units and spaces");
+
+  /* ---- the worksheet ---- */
+  const ws = R12.worksheetHTML({name:"Willow", emoji:"🦋"}, it2, {lock:5, floor:false, target:7});
+  ok(/Part 1/.test(ws) && /Part 2/.test(ws) && !/Part 3/.test(ws),
+     "locked at 5 of 7 → the sheet holds exactly two ten-minute parts");
+  ok(/Isosceles triangles/.test(ws) && /Putting the angle facts together/.test(ws),
+     "the parts are the two missing knowledge steps");
+  ok(/Answers — for the teacher/.test(ws) && /Willow/.test(ws) && /size:A4/.test(ws),
+     "it is a named A4 sheet with a teacher answer key");
+  ok(/Lesson 3 — Investigating Angles in Triangles/.test(ws) && /pp\. 115–117/.test(ws),
+     "each part points at its textbook lesson and pages");
+
+  /* ---- the page itself ---- */
+  const dom = await load("review12.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+    w.CHARLIE_TEST_FAST = true;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await waitFor(() => !!w.R12_TEST, "the test hook is available");
+  await waitFor(() => $("scrHome").classList.contains("on"), "the intro screen shows");
+  ok(/same questions/.test($("scrHome").textContent), "the intro says the paper comes first");
+
+  $("startBtn").click();
+  ok($("scrPlay").classList.contains("on"), "the checkpoint starts");
+  ok($("paperNote").style.display === "block", "the paper banner shows for the identical question");
+  ok(/same questions on your paper/.test($("paperNote").textContent),
+     "…with the promised wording");
+  ok(d.querySelectorAll("#answers input").length === 2, "Q1 asks for angles a and b");
+
+  // a typed answer flows through Check
+  const ins = d.querySelectorAll("#answers input");
+  ins[0].value = "66°"; ins[1].value = "24";
+  $("checkBtn").click();
+  await waitFor(() => w.R12_TEST.state().path.length === 1, "the answer is marked");
+  ok(w.R12_TEST.state().r === 1, "…as correct, degree sign and all");
+  ok($("paperNote").style.display === "none", "the sibling question is not badged as the paper one");
+  w.R12_TEST.submit(true);
+  await waitFor(() => w.R12_TEST.itemIndex() === 1, "two rights finish question 1");
+  ok(w.R12_TEST.results().q1.lock === 6, "…locked at the top level");
+
+  // question 2: drive it down a level, then lock
+  w.R12_TEST.submit(false); w.R12_TEST.submit(false);
+  await waitFor(() => w.R12_TEST.state().lv === 6, "two wrongs on Q2 step down to level 6");
+  ok($("stepNote").style.display === "block", "the page calls it a stepping-stone question");
+  w.R12_TEST.submit(true); w.R12_TEST.submit(true);
+  await waitFor(() => w.R12_TEST.itemIndex() === 2, "level 6 locked, on to question 3");
+  ok(w.R12_TEST.results().q2.lock === 6 && w.R12_TEST.results().q2.target === 7,
+     "Q2 recorded as level 6 of 7");
+
+  // question 3 straight through
+  w.R12_TEST.submit(true); w.R12_TEST.submit(true);
+  await waitFor(() => w.R12_TEST.itemIndex() === 3, "question 4 arrives");
+
+  // question 4: really draw on the circle
+  ok(w.R12_TEST.q().kind === "draw", "the circle drawing task renders");
+  ok(/tap the centre/i.test($("drawStep").textContent), "step 1 asks for the radius from O");
+  w.R12_TEST.tap(175, 120);            // the centre
+  w.R12_TEST.tap(175, 30);             // top of the circumference (snapped)
+  ok(w.R12_TEST.drawState().results[0] === true, "centre → circumference counts as a radius");
+  w.R12_TEST.tap(85, 122);             // left edge
+  w.R12_TEST.tap(265, 118);            // right edge — the chord runs through O
+  ok(w.R12_TEST.drawState().results[1] === true, "an edge-to-edge line through O counts as the diameter");
+  ok(!$("checkBtn").disabled, "both parts drawn — Check unlocks");
+  $("checkBtn").click();
+  await waitFor(() => w.R12_TEST.state().r === 1, "the drawing is marked correct");
+
+  // second drawing: a chord that misses the centre is refused
+  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30);          // edge to edge, missing O
+  ok(w.R12_TEST.drawState().results[0] === false, "a chord that misses O is not a diameter");
+  w.R12_TEST.tap(175, 120); w.R12_TEST.tap(85, 122);
+  ok(w.R12_TEST.drawState().results[1] === true, "…but O to the edge is still a radius");
+  $("checkBtn").click();
+  await waitFor(() => w.R12_TEST.state().w === 1, "the flawed drawing is marked wrong");
+  w.R12_TEST.submit(true);
+  await waitFor(() => $("scrDone").classList.contains("on"), "the summary screen arrives", 6000);
+  ok(/Q1/.test($("doneRows").textContent) && /Q4/.test($("doneRows").textContent),
+     "all four ladders are summed up");
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("review12-results");
+    return b && b.rows.length === 1 && b.rows[0].id === "willow-kolo"
+      && b.rows[0].items.q2.lock === 6 && b.rows[0].items.q1.lock === 6;
+  }, "the run is saved for the teacher", 5000);
+  try{ dom.window.close(); }catch(e){}
+
+  /* ---- the teacher's side ---- */
+  const dom2 = await load("admin.html", w2 => { w2.CHARLIE_TEST_TEACHER = true; });
+  const w2 = dom2.window, d2 = w2.document;
+  await waitFor(() => w2.CharlieStore, "admin store loads");
+  await w2.CharlieStore.init();
+  await w2.CharlieStore.saveMachine({id:"review12-results", type:"results", created:Date.now(), rows:[
+    {id:"willow-kolo", name:"Willow", emoji:"🦋", turn:1, t:Date.now(),
+     items:{q1:{lock:6, floor:false, target:6},
+            q2:{lock:4, floor:false, target:7},
+            q3:{lock:1, floor:true,  target:7},
+            q4:{lock:5, floor:false, target:5}}}
+  ]});
+  d2.getElementById("r12Results").click();
+  await waitFor(() => d2.getElementById("r12Box").dataset.ready === "1", "the levels table renders", 5000);
+  const boxText = d2.getElementById("r12Box").textContent;
+  ok(/L6\/6 ✓/.test(boxText), "a full ladder shows as complete");
+  ok(/L4\/7/.test(boxText), "a part-way ladder shows its level");
+  ok(/L1−\/7/.test(boxText), "a floored ladder is flagged below level 1");
+  ok(/Step from the line into the triangle/.test(boxText) && /Isosceles triangles/.test(boxText),
+     "the missing knowledge is named beside the level");
+  const dls = d2.querySelectorAll(".r12dl");
+  ok(dls.length === 2 && !/Downloaded/.test(dls[0].textContent),
+     "download buttons appear only where something is missing, unticked at first");
+  dls[0].click();
+  await waitFor(() => !!w2.R12_LAST_SHEET, "clicking Download builds the sheet");
+  ok(/Review 12 helper/.test(w2.R12_LAST_SHEET) && /Willow/.test(w2.R12_LAST_SHEET)
+     && /Part 1/.test(w2.R12_LAST_SHEET),
+     "the sheet is the student's own helper, split into parts");
+  await waitFor(async () => {
+    const b = await w2.CharlieStore.getMachine("review12-downloads");
+    return b && b.marks && b.marks["willow-kolo|q2"];
+  }, "the download is remembered", 5000);
+  await waitFor(() => /✓ Downloaded/.test(d2.getElementById("r12Box").textContent),
+     "…and the button now wears its tick", 5000);
+  try{ dom2.window.close(); }catch(e){}
+}
+
 async function testReview(){
   console.log("\nreview.html — the 90-second mixed sprint");
   const dom = await load("review.html", w => {
@@ -2341,7 +2515,8 @@ async function testHub(){
   // the row stays out of sight until the teacher's settings have been read
   await waitFor(() => d.querySelector(".games").classList.contains("ready"),
      "the game row waits for the settings before showing", 6000);
-  ok(cards.length === 7, "the seven games — no 'More games' placeholder");
+  ok(cards.length === 8, "the eight games — no 'More games' placeholder");
+  ok(/Review 12/.test(cards[7].textContent), "Review 12 rounds out the row");
   // the Padlet link sits with them, opening the class wall in a new tab
   const pad = $("padletLink");
   ok(!!pad && /Padlet/.test(pad.textContent), "a Padlet link is on the games page");
@@ -2385,6 +2560,7 @@ async function testHub(){
   await testParallelogram();
   await testReview();
   await testCuboid();
+  await testReview12();
   }catch(e){
     failed++;
     console.error("\nUnexpected error:", e);
