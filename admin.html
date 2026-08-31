@@ -356,10 +356,10 @@
   <section class="card" id="r12Card" style="display:none">
     <h2>📄 Review 12 — levels &amp; helper sheets</h2>
     <p class="note">Each question has a ladder: the top step is the paper question, the steps
-    below are the knowledge it is built from. <b>Download</b> prints an A4 helper sheet with
-    exactly the missing steps — one part per step, about 10 minutes each, answers for you on
-    the last page. Buttons you have already used show a green tick, so the plain ones are the
-    sheets still to print.</p>
+    below are the knowledge it is built from. <b>Download helper sheet</b> prints ONE A4 sheet
+    per student — every missing step across all four questions, one step per page with two
+    practice problems, answers for you on the last page. A button already used shows a green
+    tick, so the plain ones are the sheets still to print.</p>
     <div id="r12Box" style="font-size:14px;color:#4c6b66"></div>
   </section>
 
@@ -727,21 +727,31 @@
             var need = window.R12.neededLevels(it, r);
             html += '<div style="font-size:12px;color:#7a8f8b;margin:3px 0">needs: '
               + need.map(function(n){ return esc2(n.title); }).join(' · ') + '</div>';
-            var key = id + '|' + it.key;
-            var done = !!r12Marks[key];
-            html += '<button class="r12dl' + (done ? ' dl-done' : '') + '" data-sid="' + esc2(id)
-              + '" data-item="' + it.key + '" style="border:2px solid ' + (done ? '#b5e0b8' : '#cfe3df')
-              + ';background:' + (done ? '#eef9ee' : '#fff') + ';color:' + (done ? '#2a9d34' : '#1f5a54')
-              + ';border-radius:9px;padding:4px 10px;font-size:12.5px;font-weight:800;cursor:pointer">'
-              + (done ? '✓ Downloaded' : '⬇ Download') + '</button>';
           } else {
             html += '<div style="font-size:12px;color:#7a8f8b;margin-top:3px">nothing missing 🎉</div>';
           }
           return html + '</td>';
         }).join('');
+        /* one Download for the whole student: every missing step in a single PDF */
+        var anyMissing = window.R12.ITEMS.some(function(it){
+          var r = last.items && last.items[it.key];
+          return r && !(r.lock >= it.diff && !r.floor);
+        });
+        var dlBtn;
+        if(anyMissing){
+          var done = !!r12Marks[id];
+          dlBtn = '<button class="r12dl' + (done ? ' dl-done' : '') + '" data-sid="' + esc2(id)
+            + '" style="float:right;border:2px solid ' + (done ? '#b5e0b8' : '#cfe3df')
+            + ';background:' + (done ? '#eef9ee' : '#fff') + ';color:' + (done ? '#2a9d34' : '#1f5a54')
+            + ';border-radius:9px;padding:4px 12px;font-size:12.5px;font-weight:800;cursor:pointer;margin-left:10px">'
+            + (done ? '✓ Downloaded' : '⬇ Download helper sheet') + '</button>';
+        } else {
+          dlBtn = '<span style="float:right;font-size:12px;color:#2a9d34;font-weight:800;margin-left:10px">all solid 🎉</span>';
+        }
         return '<div style="border:1.5px solid #e2edeb;border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fbfdfc">'
           + '<div style="font-weight:800;color:#1f5a54;margin-bottom:4px">'
           +   esc2(last.emoji || '🙂') + ' ' + esc2(last.name || id)
+          +   dlBtn
           +   '<span style="float:right;color:#8aa19c;font-weight:600;font-size:12.5px">'
           +   (list.length > 1 ? list.length + ' runs · ' : '')
           +   (last.t ? new Date(last.t).toLocaleString() : '') + '</span></div>'
@@ -763,15 +773,13 @@
   });
   document.getElementById('r12Box').addEventListener('click', function(e){
     var b = e.target.closest('.r12dl'); if(!b) return;
-    var sid = b.dataset.sid, ikey = b.dataset.item;
+    var sid = b.dataset.sid;
     var runs = (window.R12_ADMIN_ROWS || {})[sid];
     if(!runs || !runs.length) return;
     var last = runs[runs.length - 1];
-    var r = last.items && last.items[ikey];
-    var it = window.R12.item(ikey);
-    if(!r || !it) return;
-    r12Print(window.R12.worksheetHTML({name:last.name || sid, emoji:last.emoji || ''}, it, r));
-    r12SaveMark(sid + '|' + ikey).then(function(){ r12Render(); });
+    if(!last.items) return;
+    r12Print(window.R12.worksheetHTML({name:last.name || sid, emoji:last.emoji || ''}, last.items));
+    r12SaveMark(sid).then(function(){ r12Render(); });
   });
 
   document.getElementById('triResults').addEventListener('click', function(){

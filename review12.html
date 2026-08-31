@@ -130,6 +130,30 @@
   .drow .lv{font-weight:800; color:var(--teal-dark); white-space:nowrap;}
   .drow.full .lv{color:var(--good);}
   #doneNote{max-width:600px; margin:12px auto 0; text-align:center; font-size:14.5px; color:#4c6b66;}
+  /* the one-time how-to-draw guide */
+  #guideWrap{
+    position:fixed; inset:0; background:rgba(18,42,38,.5); z-index:80;
+    display:none; align-items:center; justify-content:center; padding:16px;
+  }
+  #guideWrap.on{display:flex;}
+  .gcard{
+    background:#fff; border-radius:20px; padding:20px 26px 22px; max-width:400px;
+    text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.3);
+  }
+  .gcard h3{color:var(--teal-dark); font-size:20px; margin-bottom:8px;}
+  .gcard p{font-size:15px; color:#4c6b66; margin:10px 0 14px;}
+  .gcard svg{width:100%; max-width:300px; height:auto;}
+  #guideLine{transition:stroke-dashoffset .6s ease;}
+  #guideCursor{transition:all .5s ease; font-size:30px;}
+  .gbtns{display:flex; gap:12px; justify-content:center;}
+  #guideAgain{
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:10px 18px; font-size:15px; font-weight:700;
+  }
+  #guideGo{
+    border:0; border-radius:12px; background:var(--good); color:#fff;
+    font-size:16px; font-weight:800; padding:10px 26px; box-shadow:0 3px 0 #1c6b23;
+  }
   #confetti{position:fixed; inset:0; z-index:60; pointer-events:none;}
   #toast{
     position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(80px);
@@ -190,6 +214,28 @@
     <button class="bigbtn" id="homeBtn">🏠 Back to the games</button>
   </section>
 </main>
+
+<div id="guideWrap">
+  <div class="gcard">
+    <h3>✏️ How to draw a line</h3>
+    <svg viewBox="0 0 300 200" id="guideSvg">
+      <circle cx="150" cy="100" r="82" fill="#fff" stroke="#2b3a42" stroke-width="2.4"/>
+      <circle cx="150" cy="100" r="3.4" fill="#2b3a42"/>
+      <text x="161" y="112" font-size="15">O</text>
+      <line id="guideLine" x1="100" y1="72" x2="196" y2="58" stroke="#7db8ff" stroke-width="3.2" stroke-linecap="round"/>
+      <circle id="guideDot1" cx="100" cy="72" r="5.5" fill="#1f5a54"/>
+      <circle id="guideDot2" cx="196" cy="58" r="5.5" fill="#1f5a54"/>
+      <text id="guideCursor" x="92" y="95">👆</text>
+    </svg>
+    <p>Tap one point, then tap another — a straight line joins them.
+       A faint line follows your finger to show where the next tap will land.<br>
+       <b>You choose where the points go!</b></p>
+    <div class="gbtns">
+      <button id="guideAgain">↺ Watch again</button>
+      <button id="guideGo">✏️ My turn!</button>
+    </div>
+  </div>
+</div>
 
 <canvas id="confetti"></canvas>
 <div id="toast"></div>
@@ -311,6 +357,7 @@
         + '<button id="drawRedo">↺ Start my drawing again</button></div>';
       initDraw();
       $('checkBtn').disabled = true;
+      maybeShowGuide();
     } else {
       A.innerHTML = qNow.blanks.map(function(b, i){
         return '<label class="blank">' + esc(b.pre) + ' <input inputmode="decimal" autocomplete="off" data-i="' + i + '"> ' + esc(b.post) + '</label>';
@@ -324,9 +371,17 @@
     }
   }
 
-  /* ---------------- the circle drawing task ---------------- */
+  /* ---------------- the circle drawing task ----------------
+     radius: two taps.  diameter: three taps (edge – middle – edge), with a
+     ghost line showing where the next tap would land.  Lines wear their own
+     colour whether right or wrong — the verdict only comes from Check. */
   var CX = 175, CY = 120, CR = 92;
-  var draw = null;   /* {parts:[..], pi, pts:[], results:[], segs:[]} */
+  var PART_COL = {radius:'#2f7d74', diameter:'#3a6ea5'};
+  var draw = null;   /* {parts, pi, pts:[], results:[], segs:[]} */
+  function partNeed(part){ return part === 'diameter' ? 3 : 2; }
+  function curCol(){
+    return draw && draw.pi < draw.parts.length ? PART_COL[draw.parts[draw.pi]] : '#1f5a54';
+  }
   function initDraw(){
     draw = {parts:qNow.parts.slice(), pi:0, pts:[], results:[], segs:[]};
     paintDraw();
@@ -342,35 +397,89 @@
     var part = draw.parts[draw.pi];
     var n = (draw.pi + 1) + '. ';
     return part === 'radius'
-      ? n + 'Radius r — tap the centre O, then tap the circumference.'
-      : n + 'Diameter d — tap two opposite points on the circumference.';
+      ? n + 'Draw the radius r — tap two points to make your line.'
+      : n + 'Draw the diameter d — tap three points to make your line.';
+  }
+  function segLine(a, b, col, op, dash){
+    return '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1]
+      + '" stroke="' + col + '" stroke-width="3" stroke-linecap="round"'
+      + (op ? ' stroke-opacity="' + op + '"' : '') + (dash ? ' stroke-dasharray="7 6"' : '') + '/>';
   }
   function paintDraw(){
+    var col = curCol();
     var inner = '<circle cx="' + CX + '" cy="' + CY + '" r="' + CR + '" fill="#fff" stroke="#2b3a42" stroke-width="2.6"/>'
       + '<circle cx="' + CX + '" cy="' + CY + '" r="4" fill="#2b3a42"/>'
       + '<text x="' + (CX + 14) + '" y="' + (CY + 13) + '" font-size="16">O</text>';
     draw.segs.forEach(function(s){
-      inner += '<line x1="' + s.a[0] + '" y1="' + s.a[1] + '" x2="' + s.b[0] + '" y2="' + s.b[1]
-        + '" stroke="' + (s.ok ? '#2a9d34' : '#e05c5c') + '" stroke-width="3" stroke-linecap="round"/>'
-        + '<text x="' + s.lx + '" y="' + s.ly + '" font-size="17" font-style="italic" fill="'
-        + (s.ok ? '#2a9d34' : '#e05c5c') + '">' + s.label + '</text>';
+      inner += segLine(s.a, s.b, s.col);
+      if(s.label) inner += '<text x="' + s.lx + '" y="' + s.ly
+        + '" font-size="17" font-weight="700" font-style="italic" fill="' + s.col + '">' + s.label + '</text>';
     });
+    var k;
+    for(k = 1; k < draw.pts.length; k++) inner += segLine(draw.pts[k - 1], draw.pts[k], col);
     draw.pts.forEach(function(p){
-      inner += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5" fill="#1f5a54"/>';
+      inner += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5" fill="' + col + '"/>';
     });
+    /* the live ghost line + the dot that follows the finger */
+    inner += '<line id="ghostLine" x1="0" y1="0" x2="0" y2="0" stroke="' + col
+      + '" stroke-width="3" stroke-linecap="round" stroke-opacity=".35" style="display:none"/>'
+      + '<circle id="cursorDot" r="4.6" fill="' + col + '" style="display:none"/>';
     $('drawBox').innerHTML = '<svg id="drawSvg" viewBox="0 0 350 240">' + inner + '</svg>';
     $('drawStep').textContent = drawStepText();
     var svg = $('drawSvg');
-    svg.addEventListener('click', function(e){
+    function toView(e){
       var r = svg.getBoundingClientRect();
-      if(!r.width) return;
-      tapAt((e.clientX - r.left) * 350 / r.width, (e.clientY - r.top) * 240 / r.height);
+      if(!r.width) return null;
+      return [(e.clientX - r.left) * 350 / r.width, (e.clientY - r.top) * 240 / r.height];
+    }
+    svg.addEventListener('click', function(e){
+      var p = toView(e); if(p) tapAt(p[0], p[1]);
     });
+    svg.addEventListener('mousemove', function(e){
+      var p = toView(e); if(p) hoverAt(p[0], p[1]);
+    });
+    svg.addEventListener('mouseleave', function(){ hoverAt(null, null); });
+  }
+  function projT(c, A, B){                         /* where c falls along A→B (0..1 = between) */
+    var vx = B[0] - A[0], vy = B[1] - A[1], L = vx * vx + vy * vy || 1;
+    return ((c[0] - A[0]) * vx + (c[1] - A[1]) * vy) / L;
+  }
+  function distToLine(p, A, B){
+    var vx = B[0] - A[0], vy = B[1] - A[1], L = Math.sqrt(vx * vx + vy * vy) || 1;
+    return Math.abs(vx * (p[1] - A[1]) - vy * (p[0] - A[0])) / L;
+  }
+  function ghostAnchor(x, y){
+    if(!draw || draw.pi >= draw.parts.length) return null;
+    var p = draw.pts;
+    if(p.length === 1) return p[0];
+    if(p.length === 2){
+      var t = projT([x, y], p[0], p[1]);
+      if(t < 0) return p[0];
+      if(t > 1) return p[1];
+      return null;                                 /* over the line itself: no ghost */
+    }
+    return null;
+  }
+  function hoverAt(x, y){
+    var dot = document.getElementById('cursorDot'), gl = document.getElementById('ghostLine');
+    if(!dot || !gl) return;
+    if(x === null || busy || !draw || draw.pi >= draw.parts.length){
+      dot.style.display = 'none'; gl.style.display = 'none'; return;
+    }
+    dot.style.display = ''; dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+    var a = ghostAnchor(x, y);
+    if(a){
+      gl.style.display = '';
+      gl.setAttribute('x1', a[0]); gl.setAttribute('y1', a[1]);
+      gl.setAttribute('x2', x); gl.setAttribute('y2', y);
+    } else {
+      gl.style.display = 'none';
+    }
   }
   function snap(x, y){
     var dx = x - CX, dy = y - CY, d = Math.sqrt(dx * dx + dy * dy);
-    if(d <= 20) return {p:[CX, CY], at:'centre'};
-    if(Math.abs(d - CR) <= 24){
+    if(d <= 26) return {p:[CX, CY], at:'centre'};
+    if(Math.abs(d - CR) <= 26){
       var k = CR / d;
       return {p:[Math.round(CX + dx * k), Math.round(CY + dy * k)], at:'edge'};
     }
@@ -378,35 +487,97 @@
   }
   function tapAt(x, y){
     if(busy || !draw || draw.pi >= draw.parts.length) return;
+    if($('guideWrap').classList.contains('on')) return;
+    var part = draw.parts[draw.pi];
+    if(part === 'diameter' && draw.pts.length === 2){
+      var t = projT([x, y], draw.pts[0], draw.pts[1]);
+      if(t >= 0 && t <= 1){ toast('✏️ Tap a point past the end of your line!'); return; }
+    }
     draw.pts.push(snap(x, y).p);
-    if(draw.pts.length === 2) evalPart();
+    if(draw.pts.length === partNeed(part)) evalPart();
     paintDraw();
   }
+  function labelFor(A, B){                         /* the letter sits beside the line */
+    var dx = B[0] - A[0], dy = B[1] - A[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
+    var nx = -dy / L, ny = dx / L;
+    if(ny > 0){ nx = -nx; ny = -ny; }              /* prefer the upper side */
+    return [Math.round(A[0] + dx * 0.78 + nx * 16), Math.round(A[1] + dy * 0.78 + ny * 16)];
+  }
   function evalPart(){
-    var part = draw.parts[draw.pi];
-    var a = snap(draw.pts[0][0], draw.pts[0][1]), b = snap(draw.pts[1][0], draw.pts[1][1]);
-    var ok = false, A = a.p, B = b.p;
+    var part = draw.parts[draw.pi], col = PART_COL[part], lab = part === 'radius' ? 'r' : 'd';
+    var sn = draw.pts.map(function(p){ return snap(p[0], p[1]); });
+    var ok = false, out = [];
     if(part === 'radius'){
-      ok = (a.at === 'centre' && b.at === 'edge') || (a.at === 'edge' && b.at === 'centre');
+      ok = (sn[0].at === 'centre' && sn[1].at === 'edge') || (sn[0].at === 'edge' && sn[1].at === 'centre');
+      out.push([sn[0].p, sn[1].p]);
     } else {
-      if(a.at === 'edge' && b.at === 'edge'){
-        /* does the chord pass close to the centre? */
-        var vx = B[0] - A[0], vy = B[1] - A[1], L = Math.sqrt(vx * vx + vy * vy) || 1;
-        var dist = Math.abs(vx * (CY - A[1]) - vy * (CX - A[0])) / L;
-        if(dist <= 16){
-          ok = true;
-          B = [2 * CX - A[0], 2 * CY - A[1]];   /* snap to the true diameter */
-        }
+      /* three taps: the two farthest apart are the ends, the third sits between */
+      var P = 0, Q = 1, best = -1, i2, j2;
+      for(i2 = 0; i2 < 3; i2++) for(j2 = i2 + 1; j2 < 3; j2++){
+        var ddx = sn[i2].p[0] - sn[j2].p[0], ddy = sn[i2].p[1] - sn[j2].p[1];
+        if(ddx * ddx + ddy * ddy > best){ best = ddx * ddx + ddy * ddy; P = i2; Q = j2; }
+      }
+      var M = 3 - P - Q, A = sn[P].p, B = sn[Q].p;
+      if(sn[P].at === 'edge' && sn[Q].at === 'edge'
+         && distToLine([CX, CY], A, B) <= 16          /* passes through the centre */
+         && distToLine(sn[M].p, A, B) <= 18){         /* and the path is straight */
+        ok = true;
+        B = [2 * CX - A[0], 2 * CY - A[1]];           /* snap to the true diameter */
+        out.push([A, B]);
+      } else {
+        out.push([draw.pts[0], draw.pts[1]]);         /* keep the path they made */
+        var t2 = projT(draw.pts[2], draw.pts[0], draw.pts[1]);
+        out.push([t2 < 0 ? draw.pts[0] : draw.pts[1], draw.pts[2]]);
       }
     }
-    var mx = (A[0] + B[0]) / 2 + 12, my = (A[1] + B[1]) / 2 - 10;
-    draw.segs.push({a:A, b:B, ok:ok, label:part === 'radius' ? 'r' : 'd',
-                    lx:Math.round(mx), ly:Math.round(my)});
+    /* the longest piece carries the letter */
+    var Lbest = -1, li = 0;
+    out.forEach(function(s2, i3){
+      var l2 = Math.pow(s2[1][0] - s2[0][0], 2) + Math.pow(s2[1][1] - s2[0][1], 2);
+      if(l2 > Lbest){ Lbest = l2; li = i3; }
+    });
+    out.forEach(function(s2, i3){
+      var seg2 = {a:s2[0], b:s2[1], col:col};
+      if(i3 === li){
+        var lp = labelFor(s2[0], s2[1]);
+        seg2.label = lab; seg2.lx = lp[0]; seg2.ly = lp[1];
+      }
+      draw.segs.push(seg2);
+    });
     draw.results.push(ok);
     draw.pts = [];
     draw.pi++;
     if(draw.pi >= draw.parts.length) $('checkBtn').disabled = false;
   }
+
+  /* ---------------- the one-time how-to-draw guide ---------------- */
+  var guideSeen = false, guideTimers = [];
+  function playGuide(){
+    guideTimers.forEach(clearTimeout); guideTimers = [];
+    var d1 = $('guideDot1'), d2 = $('guideDot2'), ln = $('guideLine'), cur = $('guideCursor');
+    ln.style.transition = 'none'; cur.style.transition = 'none';   /* jump back, no rewind */
+    d1.style.opacity = '0'; d2.style.opacity = '0';
+    ln.style.strokeDasharray = '130'; ln.style.strokeDashoffset = '130';
+    cur.setAttribute('x', '92'); cur.setAttribute('y', '95'); cur.style.opacity = '1';
+    try{ void ln.getBoundingClientRect(); }catch(e){}
+    ln.style.transition = ''; cur.style.transition = '';
+    function at(ms, fn){ guideTimers.push(setTimeout(fn, FAST ? 0 : ms)); }
+    at(500, function(){ d1.style.opacity = '1'; });
+    at(1100, function(){ cur.setAttribute('x', '188'); cur.setAttribute('y', '81'); });
+    at(1800, function(){ d2.style.opacity = '1'; });
+    at(2300, function(){ ln.style.strokeDashoffset = '0'; cur.style.opacity = '0'; });
+  }
+  function maybeShowGuide(){
+    if(guideSeen) return;
+    guideSeen = true;
+    $('guideWrap').classList.add('on');
+    playGuide();
+  }
+  $('guideAgain').addEventListener('click', playGuide);
+  $('guideGo').addEventListener('click', function(){
+    $('guideWrap').classList.remove('on');
+    guideTimers.forEach(clearTimeout);
+  });
 
   /* ---------------- checking + the ladder ---------------- */
   function collectOK(){

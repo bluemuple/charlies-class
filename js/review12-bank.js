@@ -694,7 +694,7 @@
       hint:'The radius starts at O; the diameter must pass through O.',
       qs:[
         qD(['radius', 'diameter'], 'O is the centre of the circle. Draw and label the radius r, then the diameter d.', 'paper'),
-        qD(['diameter', 'radius'], 'This time draw the diameter d first, then the radius r.'),
+        qD(['radius', 'diameter'], 'Draw and label the radius r, then the diameter d, on this circle.'),
         qD(['radius', 'diameter'], 'Show me a radius r and a diameter d on the circle.')
       ],
       practice:[
@@ -752,75 +752,86 @@
     return out;
   }
 
-  /* ================= the printable helper sheet ================= */
+  /* ================= the printable helper sheet =================
+     ONE sheet per student: every question's missing steps in a single A4 PDF.
+     A tiny header, then straight into Part 1 — one knowledge step per page,
+     two practice problems each, answers for the teacher on the last page. */
   function escT(s){
     return String(s).replace(/[&<>]/g, function(c){ return {'&':'&amp;', '<':'&lt;', '>':'&gt;'}[c]; });
   }
-  function figFor(q){
-    if(q.figA) return '<div class="figs">' + q.figA + q.figB + '</div>';
-    return q.fig || '';
-  }
-  function worksheetHTML(stu, it, res){
-    var need = neededLevels(it, res);
-    var parts = need.map(function(nd, pi){
-      var lvd = it.levels[nd.lv], k = lvd.know;
-      var h = '<section class="part">';
-      h += '<h2><span class="pn">Part ' + (pi + 1) + '</span> ' + escT(k.title) + '</h2>';
-      if(k.book) h += '<div class="book">📖 In the textbook: ' + escT(k.book) + '</div>';
-      h += '<div class="know">';
-      h += '<ul>' + k.pts.map(function(p){ return '<li>' + escT(p) + '</li>'; }).join('') + '</ul>';
-      if(k.fig) h += '<div class="kfig">' + k.fig + '</div>';
-      if(k.worked) h += '<div class="worked"><b>Worked example.</b> ' + escT(k.worked.text) + '</div>';
-      h += '</div>';
-      h += '<ol class="practice">' + lvd.practice.map(function(p){
-        return '<li><div class="pq">' + escT(p.prompt) + '</div>'
-          + (p.fig ? '<div class="pfig">' + p.fig + '</div>' : '')
-          + (p.space === 'lines' ? '<div class="lines"><div></div><div></div></div>' : '<div class="ansbox"></div>')
-          + '</li>';
-      }).join('') + '</ol>';
-      h += '</section>';
-      return h;
-    }).join('');
+  function worksheetHTML(stu, results){
+    var partNo = 0, solid = [], body = '', keyRows = [];
+    ITEMS.forEach(function(it){
+      var r = results[it.key];
+      if(!r) return;
+      if(r.lock >= it.diff && !r.floor){ solid.push('Q' + it.n); return; }
+      var need = neededLevels(it, r);
+      body += '<div class="qstrip"><b>Question ' + it.n + '</b> · ' + escT(it.name)
+        + '<span class="qs2">reached step ' + (r.floor ? '0' : r.lock) + ' of ' + it.diff + '</span></div>';
+      need.forEach(function(nd){
+        partNo++;
+        var lvd = it.levels[nd.lv], k = lvd.know;
+        var practice = lvd.practice.slice(0, 2);
+        body += '<section class="part">';
+        body += '<h2><span class="pn">Part ' + partNo + '</span> ' + escT(k.title) + '</h2>';
+        if(k.book) body += '<div class="book">📖 ' + escT(k.book) + '</div>';
+        body += '<div class="know">';
+        body += '<ul>' + k.pts.map(function(p){ return '<li>' + escT(p) + '</li>'; }).join('') + '</ul>';
+        if(k.fig) body += '<div class="kfig">' + k.fig + '</div>';
+        if(k.worked) body += '<div class="worked"><b>Worked example.</b> ' + escT(k.worked.text) + '</div>';
+        body += '</div>';
+        body += '<ol class="practice">' + practice.map(function(p){
+          return '<li><div class="pq">' + escT(p.prompt) + '</div>'
+            + (p.fig ? '<div class="pfig">' + p.fig + '</div>' : '')
+            + (p.space === 'lines' ? '<div class="lines"><div></div><div></div></div>' : '<div class="ansbox"></div>')
+            + '</li>';
+        }).join('') + '</ol>';
+        body += '</section>';
+        keyRows.push({no:partNo, title:k.title,
+          keys:practice.map(function(p, i2){ return (i2 + 1) + ') ' + p.key; })});
+      });
+    });
     var keys = '<section class="keypage"><h2>Answers — for the teacher</h2>'
-      + need.map(function(nd, pi){
-          var lvd = it.levels[nd.lv];
-          return '<p><b>Part ' + (pi + 1) + ' · ' + escT(lvd.know.title) + ':</b> '
-            + lvd.practice.map(function(p, i){ return (i + 1) + ') ' + escT(p.key); }).join(' &nbsp; ') + '</p>';
+      + keyRows.map(function(kr){
+          return '<p><b>Part ' + kr.no + ' · ' + escT(kr.title) + ':</b> '
+            + kr.keys.map(escT).join(' &nbsp; ') + '</p>';
         }).join('') + '</section>';
     return '<!doctype html><html><head><meta charset="utf-8"><title>Review 12 helper — '
       + escT(stu.name) + '</title><style>'
-      + '@page{size:A4;margin:13mm 15mm;}'
-      + 'body{font-family:"Trebuchet MS","Avenir Next",sans-serif;color:#222;font-size:12.5pt;margin:0;}'
-      + 'header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #1f5a54;'
-      + 'padding-bottom:4mm;margin-bottom:5mm;}'
-      + 'header h1{font-size:16pt;color:#1f5a54;margin:0;}'
-      + 'header .who{font-size:12pt;} header .who b{font-size:14pt;}'
-      + '.intro{font-size:10.5pt;color:#555;margin:0 0 5mm;}'
-      + '.part{margin:0 0 7mm;page-break-inside:avoid;}'
-      + '.part h2{background:#1f5a54;color:#fff;border-radius:8px;padding:4px 12px;font-size:13.5pt;margin:0 0 3mm;}'
-      + '.part h2 .pn{background:#ffd640;color:#5a4a00;border-radius:12px;padding:1px 10px;font-size:11pt;margin-right:8px;}'
-      + '.book{font-size:9.5pt;color:#666;margin:-1.5mm 0 2mm 2mm;}'
-      + '.know{border:2px solid #2f7d74;border-radius:10px;padding:3mm 5mm;display:flex;gap:6mm;align-items:center;}'
-      + '.know ul{margin:0;padding-left:5mm;flex:1;} .know li{margin:1.2mm 0;}'
-      + '.know .kfig{width:52mm;flex:none;} .know svg{width:100%;height:auto;}'
-      + '.worked{margin-top:2mm;font-size:11pt;background:#fdf6e4;border-radius:6px;padding:2mm 3mm;}'
-      + '.know{flex-wrap:wrap;} .worked{flex-basis:100%;}'
-      + '.practice{margin:3mm 0 0;padding-left:6mm;}'
-      + '.practice li{margin:0 0 3.5mm;page-break-inside:avoid;}'
-      + '.practice .pfig{width:56mm;margin:1mm 0;} .practice svg{width:100%;height:auto;}'
-      + '.ansbox{border:1.5px solid #b9c6c3;border-radius:5px;height:14mm;margin-top:1.5mm;}'
-      + '.lines div{border-bottom:1.2px solid #b9c6c3;height:9mm;}'
-      + '.figs{display:flex;gap:8mm;} .figs svg{width:60mm;height:auto;}'
-      + '.keypage{page-break-before:always;color:#444;font-size:10.5pt;}'
-      + '.keypage h2{color:#1f5a54;font-size:13pt;}'
-      + 'footer{margin-top:6mm;font-size:9.5pt;color:#889;}'
+      + '@page{size:A4;margin:11mm 14mm;}'
+      + 'body{font-family:"Trebuchet MS","Avenir Next",sans-serif;color:#222;font-size:12pt;margin:0;}'
+      + 'header{display:flex;justify-content:space-between;align-items:baseline;'
+      + 'border-bottom:2.5px solid #1f5a54;padding-bottom:1.5mm;margin-bottom:3mm;}'
+      + 'header h1{font-size:13pt;color:#1f5a54;margin:0;}'
+      + 'header .who{font-size:11pt;} header .who b{font-size:12pt;}'
+      + '.solid{font-size:9.5pt;color:#557;margin:0 0 2.5mm;}'
+      + '.qstrip{background:#eef5f3;border-left:4px solid #1f5a54;border-radius:4px;'
+      + 'padding:1.5mm 4mm;font-size:11pt;color:#1f5a54;margin:0 0 2.5mm;}'
+      + '.qstrip .qs2{float:right;color:#8a6d00;font-size:9.5pt;}'
+      + '.part{page-break-after:always;page-break-inside:avoid;margin:0;}'
+      + '.part:last-of-type{page-break-after:auto;}'
+      + '.part h2{background:#1f5a54;color:#fff;border-radius:8px;padding:3px 12px;font-size:13pt;margin:0 0 1.5mm;}'
+      + '.part h2 .pn{background:#ffd640;color:#5a4a00;border-radius:12px;padding:1px 10px;font-size:10.5pt;margin-right:8px;}'
+      + '.book{font-size:9pt;color:#666;margin:0 0 2mm 2mm;}'
+      + '.know{border:2px solid #2f7d74;border-radius:10px;padding:2.5mm 4mm;display:flex;gap:5mm;align-items:center;flex-wrap:wrap;}'
+      + '.know ul{margin:0;padding-left:5mm;flex:1;min-width:80mm;} .know li{margin:1mm 0;}'
+      + '.know .kfig{width:48mm;flex:none;} .know svg{width:100%;height:auto;}'
+      + '.worked{font-size:10.5pt;background:#fdf6e4;border-radius:6px;padding:1.5mm 3mm;flex-basis:100%;}'
+      + '.practice{margin:2.5mm 0 0;padding-left:6mm;}'
+      + '.practice li{margin:0 0 3mm;page-break-inside:avoid;}'
+      + '.practice .pfig{width:52mm;margin:1mm 0;} .practice svg{width:100%;height:auto;}'
+      + '.ansbox{border:1.5px solid #b9c6c3;border-radius:5px;height:13mm;margin-top:1.5mm;}'
+      + '.lines div{border-bottom:1.2px solid #b9c6c3;height:8mm;}'
+      + '.keypage{color:#444;font-size:10pt;}'
+      + '.keypage h2{color:#1f5a54;font-size:12.5pt;margin:0 0 2mm;}'
+      + '.keypage p{margin:1mm 0;}'
       + '</style></head><body>'
-      + '<header><h1>📄 Review 12 helper — Question ' + it.n + ': ' + escT(it.name) + '</h1>'
-      + '<div class="who"><b>' + escT(stu.emoji || '') + ' ' + escT(stu.name) + '</b> · Wharenui Maths</div></header>'
-      + '<p class="intro">Do one part at a time with your teacher — each part takes about 10 minutes. '
-      + 'Read the box together first, then try the practice questions underneath.</p>'
-      + parts + keys
-      + '<footer>Charlie’s Class · Wharenui Maths · printed ' + new Date().toDateString() + '</footer>'
+      + '<header><h1>📄 Review 12 helper</h1>'
+      + '<div class="who"><b>' + escT(stu.emoji || '') + ' ' + escT(stu.name) + '</b> · Wharenui Maths · '
+      + new Date().toLocaleDateString('en-NZ') + '</div></header>'
+      + '<p class="solid">One part at a time with your teacher — about 10 minutes each.'
+      + (solid.length ? ' &nbsp;✓ Already solid: ' + solid.join(', ') + ' — tino pai!' : '') + '</p>'
+      + body + keys
       + '</body></html>';
   }
 

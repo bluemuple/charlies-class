@@ -1657,12 +1657,18 @@ async function testReview12(){
   ok(R12.numOK("66°", 66) && R12.numOK(" 66 degrees ", 66) && R12.numOK("4.5 cm", 4.5) && !R12.numOK("65", 66),
      "typed answers forgive the degree sign, units and spaces");
 
-  /* ---- the worksheet ---- */
-  const ws = R12.worksheetHTML({name:"Willow", emoji:"🦋"}, it2, {lock:5, floor:false, target:7});
+  /* ---- the worksheet: one sheet holding every missing step ---- */
+  const ws = R12.worksheetHTML({name:"Willow", emoji:"🦋"},
+    {q1:{lock:6, floor:false, target:6}, q2:{lock:5, floor:false, target:7},
+     q4:{lock:5, floor:false, target:5}});
   ok(/Part 1/.test(ws) && /Part 2/.test(ws) && !/Part 3/.test(ws),
-     "locked at 5 of 7 → the sheet holds exactly two ten-minute parts");
+     "Q2 locked at 5 of 7 → exactly two one-page parts");
   ok(/Isosceles triangles/.test(ws) && /Putting the angle facts together/.test(ws),
      "the parts are the two missing knowledge steps");
+  ok(/Already solid: Q1, Q4/.test(ws), "questions with nothing missing are listed, not printed");
+  ok((ws.match(/<li><div class="pq"/g) || []).length === 4,
+     "two practice problems per part, so each part fits its page");
+  ok(/page-break-after:always/.test(ws), "every knowledge step starts a fresh page");
   ok(/Answers — for the teacher/.test(ws) && /Willow/.test(ws) && /size:A4/.test(ws),
      "it is a named A4 sheet with a teacher answer key");
   ok(/Lesson 3 — Investigating Angles in Triangles/.test(ws) && /pp\. 115–117/.test(ws),
@@ -1714,22 +1720,40 @@ async function testReview12(){
 
   // question 4: really draw on the circle
   ok(w.R12_TEST.q().kind === "draw", "the circle drawing task renders");
-  ok(/tap the centre/i.test($("drawStep").textContent), "step 1 asks for the radius from O");
+  ok($("guideWrap").classList.contains("on"), "the how-to-draw guide pops up first");
+  ok(/tap another/i.test($("guideWrap").textContent) && !/centre O, then/i.test($("guideWrap").textContent),
+     "the guide shows the tapping, not the answer");
+  w.R12_TEST.tap(175, 120);
+  ok(w.R12_TEST.drawState().pts.length === 0, "taps wait until the guide is closed");
+  $("guideGo").click();
+  ok(!$("guideWrap").classList.contains("on"), "My turn! closes the guide");
+  ok(/tap two points/i.test($("drawStep").textContent) && !/centre/i.test($("drawStep").textContent),
+     "the step asks for two points and never gives the answer away");
   w.R12_TEST.tap(175, 120);            // the centre
   w.R12_TEST.tap(175, 30);             // top of the circumference (snapped)
   ok(w.R12_TEST.drawState().results[0] === true, "centre → circumference counts as a radius");
+  ok(/tap three points/i.test($("drawStep").textContent), "the diameter asks for three taps");
   w.R12_TEST.tap(85, 122);             // left edge
-  w.R12_TEST.tap(265, 118);            // right edge — the chord runs through O
-  ok(w.R12_TEST.drawState().results[1] === true, "an edge-to-edge line through O counts as the diameter");
+  w.R12_TEST.tap(175, 120);            // the middle
+  w.R12_TEST.tap(130, 120);            // between the ends — refused with a nudge
+  ok(w.R12_TEST.drawState().pts.length === 2 && /past the end/.test($("toast").textContent),
+     "a tap between the ends of the line is refused with a nudge");
+  w.R12_TEST.tap(265, 118);            // past the far end — edge · centre · edge
+  ok(w.R12_TEST.drawState().results[1] === true, "edge–centre–edge in a line counts as the diameter");
+  const inkNow = $("drawBox").innerHTML;
+  ok(/#2f7d74/.test(inkNow) && /#3a6ea5/.test(inkNow) && !/#2a9d34/.test(inkNow) && !/#e05c5c/.test(inkNow),
+     "each line wears its own colour — nothing turns green or red before Check");
   ok(!$("checkBtn").disabled, "both parts drawn — Check unlocks");
   $("checkBtn").click();
   await waitFor(() => w.R12_TEST.state().r === 1, "the drawing is marked correct");
 
-  // second drawing: a chord that misses the centre is refused
-  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30);          // edge to edge, missing O
-  ok(w.R12_TEST.drawState().results[0] === false, "a chord that misses O is not a diameter");
-  w.R12_TEST.tap(175, 120); w.R12_TEST.tap(85, 122);
-  ok(w.R12_TEST.drawState().results[1] === true, "…but O to the edge is still a radius");
+  // second drawing (also radius first): a wrong radius stays its own colour too
+  ok(!$("guideWrap").classList.contains("on"), "the guide shows only once");
+  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30);          // edge to edge — not a radius
+  ok(w.R12_TEST.drawState().results[0] === false, "two circumference points are not a radius");
+  ok(!/#e05c5c/.test($("drawBox").innerHTML), "…and the wrong line still is not painted red");
+  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30); w.R12_TEST.tap(250, 60);    // bends past the end
+  ok(w.R12_TEST.drawState().results[1] === false, "a bent three-tap path is not a diameter");
   $("checkBtn").click();
   await waitFor(() => w.R12_TEST.state().w === 1, "the flawed drawing is marked wrong");
   w.R12_TEST.submit(true);
@@ -1764,16 +1788,19 @@ async function testReview12(){
   ok(/Step from the line into the triangle/.test(boxText) && /Isosceles triangles/.test(boxText),
      "the missing knowledge is named beside the level");
   const dls = d2.querySelectorAll(".r12dl");
-  ok(dls.length === 2 && !/Downloaded/.test(dls[0].textContent),
-     "download buttons appear only where something is missing, unticked at first");
+  ok(dls.length === 1 && !/Downloaded/.test(dls[0].textContent),
+     "one Download button per student, unticked at first");
   dls[0].click();
   await waitFor(() => !!w2.R12_LAST_SHEET, "clicking Download builds the sheet");
   ok(/Review 12 helper/.test(w2.R12_LAST_SHEET) && /Willow/.test(w2.R12_LAST_SHEET)
      && /Part 1/.test(w2.R12_LAST_SHEET),
      "the sheet is the student's own helper, split into parts");
+  ok(/Question 2/.test(w2.R12_LAST_SHEET) && /Question 3/.test(w2.R12_LAST_SHEET)
+     && /Part 10/.test(w2.R12_LAST_SHEET) && /Already solid: Q1, Q4/.test(w2.R12_LAST_SHEET),
+     "…and it bundles every question's missing steps into the one PDF");
   await waitFor(async () => {
     const b = await w2.CharlieStore.getMachine("review12-downloads");
-    return b && b.marks && b.marks["willow-kolo|q2"];
+    return b && b.marks && b.marks["willow-kolo"];
   }, "the download is remembered", 5000);
   await waitFor(() => /✓ Downloaded/.test(d2.getElementById("r12Box").textContent),
      "…and the button now wears its tick", 5000);
