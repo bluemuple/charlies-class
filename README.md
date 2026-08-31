@@ -188,9 +188,9 @@ The plan-view question (paper Q5) is left out; the other four each have a ladder
   from (angle facts → straight line → vertically opposite → … ). Every level has
   a knowledge card, a hint, **3 test questions and 3 practice problems**, plus a
   textbook reference (chapter · lesson title · pages, from the MNP teacher guides).
-- **Two right answers lock a level** (that becomes the student's level for the
-  question); **two wrong answers step down one level**. Bottoming out at level 1
-  is recorded with a `floor` flag.
+- **One right answer locks a level** (that becomes the student's level for the
+  question, even if a sibling question was missed first); **two wrong answers
+  step down one level**. Bottoming out at level 1 is recorded with a `floor` flag.
 - Q4 (parts of a circle) is answered by actually drawing on the screen: tap the
   centre + circumference for the radius; tap two opposite edge points for the
   diameter (a chord that misses O is refused).

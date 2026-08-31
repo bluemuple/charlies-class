@@ -1639,16 +1639,17 @@ async function testReview12(){
   const it2 = R12.item("q2");
   let st = R12.newState(it2);
   R12.markAnswer(it2, st, true);
-  ok(!st.done, "one right answer is not enough to lock a level");
-  R12.markAnswer(it2, st, true);
-  ok(st.done && st.lock === 7, "two right answers lock the level");
+  ok(st.done && st.lock === 7, "one right answer locks the level straight away");
   st = R12.newState(it2);
   R12.markAnswer(it2, st, false);
-  ok(st.lv === 7 && st.used === 1, "one wrong answer brings a sibling question at the same level");
-  R12.markAnswer(it2, st, false);
-  ok(st.lv === 6 && st.used === 0, "two wrong answers step down a level");
-  R12.markAnswer(it2, st, true); R12.markAnswer(it2, st, false); R12.markAnswer(it2, st, true);
-  ok(st.done && st.lock === 6, "right-wrong-right still locks — three questions per level is enough");
+  ok(!st.done && st.lv === 7 && st.used === 1, "one wrong answer brings a sibling question at the same level");
+  R12.markAnswer(it2, st, true);
+  ok(st.done && st.lock === 7, "missing a, then getting b, still earns the level");
+  st = R12.newState(it2);
+  R12.markAnswer(it2, st, false); R12.markAnswer(it2, st, false);
+  ok(!st.done && st.lv === 6 && st.used === 0, "two wrong answers step down a level");
+  R12.markAnswer(it2, st, false); R12.markAnswer(it2, st, true);
+  ok(st.done && st.lock === 6, "one right at the lower level settles it there");
   ok(R12.neededLevels(it2, st).map(n => n.lv).join(",") === "7", "locked at 6 of 7 → only the level-7 knowledge is missing");
   st = R12.newState(it2);
   while(!st.done) R12.markAnswer(it2, st, false);
@@ -1694,31 +1695,31 @@ async function testReview12(){
      "…with the promised wording");
   ok(d.querySelectorAll("#answers input").length === 2, "Q1 asks for angles a and b");
 
-  // a typed answer flows through Check
+  // a typed answer flows through Check — one right answer settles the question
   const ins = d.querySelectorAll("#answers input");
   ins[0].value = "66°"; ins[1].value = "24";
   $("checkBtn").click();
-  await waitFor(() => w.R12_TEST.state().path.length === 1, "the answer is marked");
-  ok(w.R12_TEST.state().r === 1, "…as correct, degree sign and all");
-  ok($("paperNote").style.display === "none", "the sibling question is not badged as the paper one");
-  w.R12_TEST.submit(true);
-  await waitFor(() => w.R12_TEST.itemIndex() === 1, "two rights finish question 1");
+  await waitFor(() => w.R12_TEST.itemIndex() === 1, "one right answer finishes question 1");
   ok(w.R12_TEST.results().q1.lock === 6, "…locked at the top level");
 
-  // question 2: drive it down a level, then lock
+  // question 2: miss a, land b — the level still counts
+  w.R12_TEST.submit(false);
+  ok($("paperNote").style.display === "none", "the sibling question is not badged as the paper one");
+  ok($("stepNote").style.display === "none", "…and a top-level sibling is not a stepping stone");
+  w.R12_TEST.submit(true);
+  await waitFor(() => w.R12_TEST.itemIndex() === 2, "wrong-then-right still finishes the question");
+  ok(w.R12_TEST.results().q2.lock === 7, "Q2 keeps the top level after the recovery");
+
+  // question 3: two wrongs step down, one right locks the lower level
   w.R12_TEST.submit(false); w.R12_TEST.submit(false);
-  await waitFor(() => w.R12_TEST.state().lv === 6, "two wrongs on Q2 step down to level 6");
+  await waitFor(() => w.R12_TEST.state().lv === 6, "two wrongs on Q3 step down to level 6");
   ok($("stepNote").style.display === "block", "the page calls it a stepping-stone question");
-  w.R12_TEST.submit(true); w.R12_TEST.submit(true);
-  await waitFor(() => w.R12_TEST.itemIndex() === 2, "level 6 locked, on to question 3");
-  ok(w.R12_TEST.results().q2.lock === 6 && w.R12_TEST.results().q2.target === 7,
-     "Q2 recorded as level 6 of 7");
+  w.R12_TEST.submit(true);
+  await waitFor(() => w.R12_TEST.itemIndex() === 3, "one right at level 6 moves on to question 4");
+  ok(w.R12_TEST.results().q3.lock === 6 && w.R12_TEST.results().q3.target === 7,
+     "Q3 recorded as level 6 of 7");
 
-  // question 3 straight through
-  w.R12_TEST.submit(true); w.R12_TEST.submit(true);
-  await waitFor(() => w.R12_TEST.itemIndex() === 3, "question 4 arrives");
-
-  // question 4: really draw on the circle
+  // question 4: really draw on the circle — the flawed drawing first
   ok(w.R12_TEST.q().kind === "draw", "the circle drawing task renders");
   ok($("guideWrap").classList.contains("on"), "the how-to-draw guide pops up first");
   ok(/tap another/i.test($("guideWrap").textContent) && !/centre O, then/i.test($("guideWrap").textContent),
@@ -1729,10 +1730,21 @@ async function testReview12(){
   ok(!$("guideWrap").classList.contains("on"), "My turn! closes the guide");
   ok(/tap two points/i.test($("drawStep").textContent) && !/centre/i.test($("drawStep").textContent),
      "the step asks for two points and never gives the answer away");
+  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30);          // edge to edge — not a radius
+  ok(w.R12_TEST.drawState().results[0] === false, "two circumference points are not a radius");
+  ok(!/#e05c5c/.test($("drawBox").innerHTML) && !/#2a9d34/.test($("drawBox").innerHTML),
+     "…and the wrong line is neither red nor green before Check");
+  ok(/tap three points/i.test($("drawStep").textContent), "the diameter asks for three taps");
+  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30); w.R12_TEST.tap(250, 60);    // bends past the end
+  ok(w.R12_TEST.drawState().results[1] === false, "a bent three-tap path is not a diameter");
+  $("checkBtn").click();
+  await waitFor(() => w.R12_TEST.state().w === 1, "the flawed drawing is marked wrong");
+
+  // the sibling drawing, done properly, earns the level
+  ok(!$("guideWrap").classList.contains("on"), "the guide shows only once");
   w.R12_TEST.tap(175, 120);            // the centre
   w.R12_TEST.tap(175, 30);             // top of the circumference (snapped)
   ok(w.R12_TEST.drawState().results[0] === true, "centre → circumference counts as a radius");
-  ok(/tap three points/i.test($("drawStep").textContent), "the diameter asks for three taps");
   w.R12_TEST.tap(85, 122);             // left edge
   w.R12_TEST.tap(175, 120);            // the middle
   w.R12_TEST.tap(130, 120);            // between the ends — refused with a nudge
@@ -1745,25 +1757,14 @@ async function testReview12(){
      "each line wears its own colour — nothing turns green or red before Check");
   ok(!$("checkBtn").disabled, "both parts drawn — Check unlocks");
   $("checkBtn").click();
-  await waitFor(() => w.R12_TEST.state().r === 1, "the drawing is marked correct");
-
-  // second drawing (also radius first): a wrong radius stays its own colour too
-  ok(!$("guideWrap").classList.contains("on"), "the guide shows only once");
-  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30);          // edge to edge — not a radius
-  ok(w.R12_TEST.drawState().results[0] === false, "two circumference points are not a radius");
-  ok(!/#e05c5c/.test($("drawBox").innerHTML), "…and the wrong line still is not painted red");
-  w.R12_TEST.tap(85, 122); w.R12_TEST.tap(175, 30); w.R12_TEST.tap(250, 60);    // bends past the end
-  ok(w.R12_TEST.drawState().results[1] === false, "a bent three-tap path is not a diameter");
-  $("checkBtn").click();
-  await waitFor(() => w.R12_TEST.state().w === 1, "the flawed drawing is marked wrong");
-  w.R12_TEST.submit(true);
   await waitFor(() => $("scrDone").classList.contains("on"), "the summary screen arrives", 6000);
   ok(/Q1/.test($("doneRows").textContent) && /Q4/.test($("doneRows").textContent),
      "all four ladders are summed up");
   await waitFor(async () => {
     const b = await w.CharlieStore.getMachine("review12-results");
     return b && b.rows.length === 1 && b.rows[0].id === "willow-kolo"
-      && b.rows[0].items.q2.lock === 6 && b.rows[0].items.q1.lock === 6;
+      && b.rows[0].items.q2.lock === 7 && b.rows[0].items.q3.lock === 6
+      && b.rows[0].items.q1.lock === 6;
   }, "the run is saved for the teacher", 5000);
   try{ dom.window.close(); }catch(e){}
 

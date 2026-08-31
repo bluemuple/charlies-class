@@ -729,18 +729,19 @@
   function questionFor(it, st){
     return it.levels[st.lv].qs[st.used];
   }
-  /* returns 'next' (same level), 'drop', or 'lock' */
+  /* returns 'next' (same level), 'drop', or 'lock'.
+     ONE right answer earns the level — even after a wrong sibling first.
+     Two wrong answers at a level step down one. */
   function markAnswer(it, st, ok){
     st.path.push([st.lv, ok ? 1 : 0]);
     if(ok){
       st.r++;
-      if(st.r >= 2){ st.done = true; st.lock = st.lv; return 'lock'; }
-    } else {
-      st.w++;
-      if(st.w >= 2){
-        if(st.lv > 1){ st.lv--; st.used = 0; st.r = 0; st.w = 0; return 'drop'; }
-        st.done = true; st.lock = 1; st.floor = true; return 'lock';
-      }
+      st.done = true; st.lock = st.lv; return 'lock';
+    }
+    st.w++;
+    if(st.w >= 2){
+      if(st.lv > 1){ st.lv--; st.used = 0; st.r = 0; st.w = 0; return 'drop'; }
+      st.done = true; st.lock = 1; st.floor = true; return 'lock';
     }
     st.used++;
     return 'next';
