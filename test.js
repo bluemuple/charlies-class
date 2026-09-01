@@ -269,7 +269,16 @@ async function testAdmin(){
         && s.algebra.music === true;
   }, "skip-the-shelves and music switches land", 5000);
   ok($("setPadOn").checked && !$("setPadOnly").checked,
-     "Padlet starts visible, and Padlet-only starts off");
+     "Padlet starts visible, and Links-only starts off");
+  ok($("setNewsOn").checked, "the article finder starts visible");
+  $("setNewsOn").checked = false;
+  $("setNewsOn").dispatchEvent(new w.Event("change"));
+  await waitFor(async () => {
+    const s = await w.CharlieStore.getMachine("game-settings");
+    return s && s.hidden.news === true;
+  }, "hiding the article finder lands in the blob", 5000);
+  $("setNewsOn").checked = true;
+  $("setNewsOn").dispatchEvent(new w.Event("change"));
   $("setPadOnly").checked = true;
   $("setPadOnly").dispatchEvent(new w.Event("change"));
   await waitFor(async () => {
@@ -390,14 +399,19 @@ async function testIndex(){
      "it opens in a new tab, safely");
   ok($("loginPart").style.display !== "none" && wpad.style.display !== "none",
      "by default the class sees both the group buttons and the Padlet link");
-  // Padlet only: the group buttons and their prompt step aside
+  const wnews = $("newsBtn");
+  ok(!!wnews && /Find an article/.test(wnews.textContent) && wnews.getAttribute("href") === "news.html",
+     "the article finder sits beside Padlet");
+  // Links only: the group buttons and their prompt step aside
   w.INDEX_TEST.welcome({padletOnly:true});
-  ok($("loginPart").style.display === "none", "Padlet only hides Boys/Girls and the prompt");
-  ok(wpad.style.display !== "none", "and leaves just the Padlet button");
-  ok($("scrWelcome").classList.contains("padonly"), "standing alone, the link is sized up");
-  // hiding the link wins over Padlet only, so the class can still log in
-  w.INDEX_TEST.welcome({padletOnly:true, hidden:{padlet:true}});
-  ok(wpad.style.display === "none", "hiding Padlet takes the link away");
+  ok($("loginPart").style.display === "none", "Links only hides Boys/Girls and the prompt");
+  ok(wpad.style.display !== "none" && wnews.style.display !== "none", "and leaves the two link buttons");
+  ok($("scrWelcome").classList.contains("padonly"), "standing alone, the links are sized up");
+  w.INDEX_TEST.welcome({padletOnly:true, hidden:{news:true}});
+  ok(wnews.style.display === "none" && wpad.style.display !== "none", "hiding the article finder leaves Padlet alone");
+  // hiding every link wins over Links only, so the class can still log in
+  w.INDEX_TEST.welcome({padletOnly:true, hidden:{padlet:true, news:true}});
+  ok(wpad.style.display === "none" && wnews.style.display === "none", "hiding both takes the links away");
   ok($("loginPart").style.display !== "none", "and the group buttons come back, never a dead end");
   w.INDEX_TEST.welcome(null);
 
@@ -1607,6 +1621,43 @@ async function testParallelogram(){
 }
 
 
+
+async function testNews(){
+  console.log("\nnews.html — Find an article");
+  const dom = await load("news.html");
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+  await waitFor(() => d.querySelectorAll(".site").length > 0, "the sites render");
+  const topics = d.querySelectorAll(".topic"), sites = d.querySelectorAll(".site");
+  ok(topics.length >= 8, "at least eight topics: " + topics.length);
+  ok(sites.length >= 40, "at least forty sites to choose from: " + sites.length);
+  ok([...sites].every(a => a.getAttribute("target") === "_blank" && /noopener/.test(a.getAttribute("rel"))),
+     "every link opens in a new tab, safely");
+  ok([...sites].every(a => /^https:\/\//.test(a.getAttribute("href"))), "every link is https");
+  const hrefs = [...sites].map(a => a.getAttribute("href"));
+  ok(new Set(hrefs).size === hrefs.length, "no site is listed twice");
+  const names = [...sites].map(a => a.querySelector(".n").textContent);
+  ["Kiwi Kids News", "RNZ", "NZ Geographic", "Samoa Observer", "Robin Age", "China Daily",
+   "BBC Newsround", "Behind the News (BTN)", "Science News Explores", "Te Ao Māori News"]
+    .forEach(n => ok(names.includes(n), n + " is on the list"));
+  ok(/who owns this site/.test(d.body.textContent), "China Daily carries its who-owns-it prompt");
+  ok(/Who made it\?/.test(d.body.textContent), "the three trust questions sit at the top");
+  // the search narrows the list and folds empty topics away
+  $("filter").value = "samoa";
+  $("filter").dispatchEvent(new w.Event("input"));
+  const shown = [...sites].filter(a => !a.classList.contains("off"));
+  ok(shown.length >= 2 && shown.every(a => /samoa/i.test(a.dataset.k)), "searching 'samoa' keeps only the Samoan sites");
+  ok([...topics].some(t => t.classList.contains("off")), "topics with nothing left fold away");
+  $("filter").value = "zzzz";
+  $("filter").dispatchEvent(new w.Event("input"));
+  ok($("none").style.display === "block", "a search with no matches says so kindly");
+  $("filter").value = "";
+  $("filter").dispatchEvent(new w.Event("input"));
+  ok([...sites].every(a => !a.classList.contains("off")) && $("none").style.display === "none",
+     "clearing the search brings everything back");
+  try{ dom.window.close(); }catch(e){}
+}
+
 async function testReview12(){
   console.log("\nreview12.html — the adaptive Review 12 checkpoint");
 
@@ -2551,6 +2602,9 @@ async function testHub(){
   ok(/^https:\/\/padlet\.com\//.test(pad.getAttribute("href")), "it points at the Padlet wall");
   ok(pad.getAttribute("target") === "_blank" && /noopener/.test(pad.getAttribute("rel")),
      "it opens in a new tab, safely");
+  const newsTile = $("newsLink");
+  ok(!!newsTile && /Find an article/.test(newsTile.textContent) && newsTile.getAttribute("href") === "news.html",
+     "the article finder has its own tile");
   ok(/Al-Zebra/.test(cards[0].textContent), "Al-Zebra comes first");
   ok(/Algebra Machine/.test(cards[1].textContent), "Algebra Machine sits beside it");
   ok(/Paving Race/.test(cards[2].textContent), "Paving Race joins the row");
@@ -2589,6 +2643,7 @@ async function testHub(){
   await testReview();
   await testCuboid();
   await testReview12();
+  await testNews();
   }catch(e){
     failed++;
     console.error("\nUnexpected error:", e);

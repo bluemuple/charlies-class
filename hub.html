@@ -447,6 +447,11 @@
       <span class="t">Review 12</span>
       <span class="badge">▶ Play now</span>
     </button>
+    <a class="tile link" id="newsLink" href="news.html">
+      <span class="art">📰</span>
+      <span class="t">Find an article</span>
+      <span class="badge">→ Go</span>
+    </a>
   </div>
 </main>
 
@@ -1515,6 +1520,7 @@
     if(hid.cuboid) $('cuboidGame').style.display = 'none';
     if(hid.review12) $('rev12Game').style.display = 'none';
     if(hid.padlet) $('padletLink').style.display = 'none';
+    if(hid.news) $('newsLink').style.display = 'none';
     if(hid.alzebra && hid.algebra && hid.paving && hid.triangles && hid.parallelogram
        && hid.review && hid.cuboid && hid.review12){
       document.querySelector('.games').insertAdjacentHTML('beforeend',

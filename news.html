@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find an article — Wharenui Maths</title>
+<meta name="description" content="Good places for Year 7 and 8 students to find news and articles: New Zealand, the Pacific, science, sport, technology, culture and the world — sorted by topic.">
+<link rel="canonical" href="https://bluemuple.github.io/charlies-class/news.html">
+<style>
+  :root{
+    --teal:#2e7d74; --teal-dark:#1f5a54; --yellow:#ffee32; --cream:#fdf6e3;
+    --ink:#22333b; --card:#ffffff; --accent:#e63946; --good:#2a9d34;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink); min-height:100vh;
+    background:linear-gradient(160deg,#eef7f5 0%,#dcefe9 45%,#cfe8df 100%);
+  }
+  button, input{font-family:inherit;}
+  .back{
+    position:fixed; left:14px; top:14px; z-index:10;
+    border:2px solid #cfe3df; background:#fff; color:var(--teal-dark);
+    border-radius:12px; padding:8px 16px; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  main{max-width:1080px; margin:0 auto; padding:64px 18px 60px;}
+  h1{font-size:clamp(26px,4vw,40px); color:var(--teal-dark); text-align:center;}
+  .sub{font-size:clamp(14px,2vw,17px); color:#4c6b66; text-align:center; margin:6px 0 18px;}
+  .check{
+    background:#fff8dd; border:2px dashed #e8c94f; border-radius:14px; padding:12px 18px;
+    max-width:820px; margin:0 auto 18px; font-size:14.5px; color:#5a4a00;
+  }
+  .check b{color:#8a6d00;}
+  .check ol{margin:6px 0 0 20px;} .check li{margin:3px 0;}
+  #filterWrap{max-width:520px; margin:0 auto 22px;}
+  #filter{
+    width:100%; font-size:17px; padding:12px 18px; border-radius:14px;
+    border:2.5px solid #cfe3df; background:#fff; color:var(--ink);
+  }
+  #filter:focus{outline:none; border-color:var(--teal);}
+  .topic{margin-bottom:22px;}
+  .topic h2{
+    font-size:clamp(18px,2.6vw,23px); color:var(--teal-dark); margin:0 0 10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .topic h2 .em{font-size:26px;}
+  .topic h2 .cnt{font-size:12.5px; font-weight:700; color:#7a8f8b; background:#fff; border:1.5px solid #cfe3df; border-radius:20px; padding:2px 10px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px;}
+  .site{
+    display:block; background:var(--card); border-radius:14px; padding:12px 14px 12px;
+    box-shadow:0 2px 10px rgba(31,90,84,.12); text-decoration:none; color:var(--ink);
+    border:2px solid transparent; transition:.15s; position:relative;
+  }
+  .site:hover{transform:translateY(-3px); border-color:var(--teal); box-shadow:0 8px 20px rgba(31,90,84,.2);}
+  .site .flag{position:absolute; right:12px; top:10px; font-size:20px;}
+  .site .n{display:block; font-weight:800; font-size:16.5px; color:var(--teal-dark); padding-right:30px;}
+  .site .u{display:block; font-size:12.5px; color:#7a8f8b; margin:2px 0 6px; word-break:break-all;}
+  .site .d{display:block; font-size:13.5px; color:#3e5552; line-height:1.35;}
+  .site .d em{font-style:normal; background:#fff3cd; border-radius:6px; padding:0 4px; color:#8a6d00;}
+  .site.off{display:none;}
+  .topic.off{display:none;}
+  #none{display:none; text-align:center; color:#7a8f8b; font-weight:700; padding:20px;}
+  .foot{text-align:center; font-size:13px; color:#7a8f8b; margin-top:26px;}
+</style>
+</head>
+<body>
+<button class="back" id="backBtn">← Back</button>
+<main>
+  <h1>📰 Find an article</h1>
+  <p class="sub">Good places to look — sorted by topic. Every link opens in a new tab.</p>
+  <div class="check">
+    <b>Before you trust an article, ask three quick questions:</b>
+    <ol>
+      <li><b>Who made it?</b> A newspaper, a company, a government, a person?</li>
+      <li><b>When was it written?</b> Old news can be out of date.</li>
+      <li><b>Is it news, an opinion, or an ad?</b> They look alike — but they are not the same.</li>
+    </ol>
+  </div>
+  <div id="filterWrap"><input id="filter" type="search" placeholder="🔎 Type to search: space, rugby, Samoa, gaming…" autocomplete="off"></div>
+  <div id="topics"></div>
+  <p id="none">Nothing matches that — try another word, or clear the search.</p>
+  <p class="foot">Wharenui School · Charlie's Class</p>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  /* n = name, u = address (shown), h = link, d = one-line description, f = where it is from */
+  function S(n, u, d, f, h){ return {n:n, u:u, h:h || ('https://' + u), d:d, f:f || '🌍'}; }
+  var TOPICS = [
+    {t:'News written for your age', em:'🐣', sites:[
+      S('Kiwi Kids News', 'kiwikidsnews.co.nz', 'Written for you — our clothesline articles came from here.', '🇳🇿'),
+      S('BBC Newsround', 'bbc.co.uk/newsround', 'World news written for your age — the safe fallback.', '🇬🇧'),
+      S('Behind the News (BTN)', 'abc.net.au/btn', 'Australia\'s news show for kids — every story has a video and the words.', '🇦🇺'),
+      S('DOGOnews', 'dogonews.com', 'World news, science and fun facts written for students.', '🇺🇸'),
+      S('Time for Kids', 'timeforkids.com', 'The famous American magazine, kid-sized.', '🇺🇸'),
+      S('Kids News', 'kidsnews.com.au', 'Daily Australian news for school — with reading levels.', '🇦🇺'),
+      S('The Hindu · Young World', 'thehindu.com/children', 'A real newspaper\'s section written for young readers.', '🇮🇳'),
+      S('Robin Age', 'robinage.com', 'India\'s newspaper for children — sport, science, curiosity.', '🇮🇳')
+    ]},
+    {t:'New Zealand news', em:'🇳🇿', sites:[
+      S('RNZ', 'rnz.co.nz', 'Public radio: news, science, Pacific — reliable, no ads.', '🇳🇿'),
+      S('Stuff', 'stuff.co.nz', 'The big NZ news site — sport, local stories.', '🇳🇿'),
+      S('1News', '1news.co.nz', 'TVNZ\'s news — lots of short videos with the story written underneath.', '🇳🇿'),
+      S('Te Ao Māori News', 'teaonews.co.nz', 'Māori news in English and te reo — kapa haka, sport, iwi stories.', '🇳🇿'),
+      S('NZ Herald', 'nzherald.co.nz', 'Auckland\'s newspaper. Some stories are locked (Premium) — skip those.', '🇳🇿'),
+      S('Te Ara', 'teara.govt.nz', 'The Encyclopedia of New Zealand — not news, but the best place for background facts.', '🇳🇿')
+    ]},
+    {t:'The Pacific', em:'🌺', sites:[
+      S('RNZ Pacific', 'rnz.co.nz/international', 'Pacific news from RNZ — Samoa, Tonga, Fiji, the Cooks and more.', '🌺'),
+      S('Tagata Pasifika', 'tpplus.co.nz', 'Pacific stories from Aotearoa — people, culture, sport.', '🌺'),
+      S('Pacific Media Network', 'pmn.co.nz', 'News for Pacific communities in NZ, in English and Pacific languages.', '🌺'),
+      S('Samoa Observer', 'samoaobserver.ws', 'Samoa\'s own newspaper.', '🇼🇸'),
+      S('Cook Islands News', 'cookislandsnews.com', 'The daily paper of the Cook Islands.', '🇨🇰'),
+      S('Samoa Travel', 'samoa.travel', 'Culture stories — villages, food, fa\'a Samoa.', '🇼🇸')
+    ]},
+    {t:'Science, space & nature', em:'🔬', sites:[
+      S('NZ Geographic', 'nzgeo.com', 'Our National Geographic — nature, places, science, brilliant photos.', '🇳🇿'),
+      S('Science Learning Hub', 'sciencelearn.org.nz', 'NZ science explained for students.', '🇳🇿'),
+      S('DOC Conservation Blog', 'blog.doc.govt.nz', 'Kiwi, kākāpō, pests and rangers — stories from our national parks.', '🇳🇿'),
+      S('National Geographic Kids', 'kids.nationalgeographic.com', 'Animals, nature and science with amazing pictures.', '🇺🇸'),
+      S('Science News Explores', 'snexplores.org', 'Real science news rewritten for students — with the hard words explained.', '🇺🇸'),
+      S('NASA', 'nasa.gov', 'Space news straight from the source — missions, planets, photos.', '🇺🇸'),
+      S('The Conversation · Curious Kids', 'theconversation.com/au', 'Real scientists answer questions kids sent in — search "Curious Kids".', '🇦🇺'),
+      S('Down To Earth', 'downtoearth.org.in', 'India\'s environment and science magazine (their Nat Geo).', '🇮🇳'),
+      S('Smithsonian Magazine', 'smithsonianmag.com', 'Science, history and strange true stories from the museum people.', '🇺🇸')
+    ]},
+    {t:'Sport', em:'⚽', sites:[
+      S('Stuff Sport', 'stuff.co.nz/sport', 'Rugby, league, netball, football — NZ sport every day.', '🇳🇿'),
+      S('1News Sport', '1news.co.nz/sport', 'Sport with video highlights.', '🇳🇿'),
+      S('All Blacks', 'allblacks.com', 'Team news, match reports and players\' stories.', '🇳🇿'),
+      S('BBC Sport', 'bbc.com/sport', 'World sport — football, athletics, cricket, everything.', '🇬🇧'),
+      S('Olympics.com', 'olympics.com', 'Athlete stories and the road to the next Games.', '🌍')
+    ]},
+    {t:'Technology & gaming', em:'💻', sites:[
+      S('Wired', 'wired.com', 'Technology, science and gaming — the big ideas.', '🇺🇸'),
+      S('The Verge', 'theverge.com', 'Gadgets, apps, games and the companies that make them.', '🇺🇸'),
+      S('Common Sense Media · Games', 'commonsensemedia.org/game-reviews', 'Game reviews that say what is actually in the game — and what age it suits.', '🇺🇸')
+    ]},
+    {t:'Culture, food, places & everyday life', em:'🎨', sites:[
+      S('Atlas Obscura', 'atlasobscura.com', 'The world\'s strangest, most wonderful places and foods.', '🌍'),
+      S('NPR', 'npr.org', 'American public radio — science, music, culture, great long reads.', '🇺🇸'),
+      S('Sixth Tone', 'sixthtone.com', 'Features about everyday life in China — the magazine option.', '🇨🇳'),
+      S('The World of Chinese', 'theworldofchinese.com', 'Chinese culture, food, language and history.', '🇨🇳'),
+      S('GMA Lifestyle', 'gmanetwork.com/lifestyle', 'Food, travel and culture from the Philippines.', '🇵🇭')
+    ]},
+    {t:'Big newspapers around the world', em:'🌏', sites:[
+      S('GMA News', 'gmanetwork.com/news', 'One of the Philippines\' main news networks.', '🇵🇭'),
+      S('Inquirer', 'inquirer.net', 'The Philippine Daily Inquirer.', '🇵🇭'),
+      S('Rappler · Science', 'rappler.com/science', 'Philippine news site — its science section is a good one.', '🇵🇭'),
+      S('China Daily', 'chinadaily.com.cn', 'English news from China — ask: <em>who owns this site?</em> (the government does — a fact worth knowing).', '🇨🇳'),
+      S('BBC News', 'bbc.com/news', 'World news, written for adults but clear.', '🇬🇧'),
+      S('ABC News', 'abc.net.au/news', 'Australia\'s public broadcaster — no ads, no paywall.', '🇦🇺')
+    ]}
+  ];
+  window.NEWS_TOPICS = TOPICS;
+
+  function render(){
+    $('topics').innerHTML = TOPICS.map(function(tp, ti){
+      return '<section class="topic" data-t="' + ti + '"><h2><span class="em">' + tp.em + '</span>'
+        + esc(tp.t) + '<span class="cnt">' + tp.sites.length + '</span></h2><div class="grid">'
+        + tp.sites.map(function(s){
+            return '<a class="site" href="' + esc(s.h) + '" target="_blank" rel="noopener noreferrer" '
+              + 'data-k="' + esc((s.n + ' ' + s.u + ' ' + s.d + ' ' + tp.t + ' ' + s.f).toLowerCase()) + '">'
+              + '<span class="flag">' + s.f + '</span>'
+              + '<span class="n">' + esc(s.n) + '</span>'
+              + '<span class="u">' + esc(s.u) + '</span>'
+              + '<span class="d">' + s.d + '</span></a>';
+          }).join('')
+        + '</div></section>';
+    }).join('');
+  }
+  function applyFilter(){
+    var q = $('filter').value.trim().toLowerCase();
+    var words = q ? q.split(/\s+/) : [];
+    var shown = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('.topic'), function(tp){
+      var any = false;
+      Array.prototype.forEach.call(tp.querySelectorAll('.site'), function(a){
+        var k = a.dataset.k;
+        var hit = words.every(function(w){ return k.indexOf(w) >= 0; });
+        a.classList.toggle('off', !hit);
+        if(hit){ any = true; shown++; }
+      });
+      tp.classList.toggle('off', !any);
+    });
+    $('none').style.display = shown ? 'none' : 'block';
+  }
+  render();
+  $('filter').addEventListener('input', applyFilter);
+  $('backBtn').addEventListener('click', function(){
+    if(window.history.length > 1) window.history.back();
+    else window.location.href = 'index.html';
+  });
+})();
+</script>
+</body>
+</html>
