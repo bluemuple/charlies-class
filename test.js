@@ -1636,6 +1636,11 @@ async function testNews(){
   ok([...sites].every(a => /^https:\/\//.test(a.getAttribute("href"))), "every link is https");
   const hrefs = [...sites].map(a => a.getAttribute("href"));
   ok(new Set(hrefs).size === hrefs.length, "no site is listed twice");
+  ok(/Written by students/.test(topics[0].textContent), "articles written by students come first");
+  const firstNames = [...topics[0].querySelectorAll(".site .n")].map(a => a.textContent);
+  ["Best of SNO", "The Booster Redux", "Scholastic Kids Press", "BBC Young Reporter", "Tearaway"]
+    .forEach(n => ok(firstNames.includes(n), n + " is in the student section"));
+  ok(firstNames.length >= 14, "the student section is well stocked: " + firstNames.length);
   const names = [...sites].map(a => a.querySelector(".n").textContent);
   ["Kiwi Kids News", "RNZ", "NZ Geographic", "Samoa Observer", "Robin Age", "China Daily",
    "BBC Newsround", "Behind the News (BTN)", "Science News Explores", "Te Ao Māori News"]

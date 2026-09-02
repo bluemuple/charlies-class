@@ -94,6 +94,23 @@
   /* n = name, u = address (shown), h = link, d = one-line description, f = where it is from */
   function S(n, u, d, f, h){ return {n:n, u:u, h:h || ('https://' + u), d:d, f:f || '🌍'}; }
   var TOPICS = [
+    {t:'Written by students', em:'🖊️', sites:[
+      S('Best of SNO', 'bestofsno.com', 'The top 10% of stories from school newspapers across the USA — only 2,077 of 15,080 made it this year, middle-school stories included. Pick your kind: <em>News · Sports · Opinion · Review · Feature</em>.', '🇺🇸'),
+      S('SNO Distinguished Sites', 'snosites.com/our-customers/award-winners/', '84 award-winning school newspapers — click through to any school\'s own site.', '🇺🇸'),
+      S('The Stuyvesant Spectator', 'stuyspec.com', 'New York, since 1915 — as polished as a real newspaper. This is the ceiling of student writing.', '🇺🇸'),
+      S('The Classic', 'thsclassic.com', 'Townsend Harris High School, New York — often named the city\'s best school paper.', '🇺🇸'),
+      S('The Booster Redux', 'boosterredux.com', 'Pittsburg High School, Kansas — six students fact-checked their new principal\'s qualifications, found they were false, and she resigned.', '🇺🇸'),
+      S('Wayland Student Press', 'waylandstudentpress.com', 'Massachusetts — strong on video and breaking news.', '🇺🇸'),
+      S('Scholastic Kids Press', 'kpcnotebook.scholastic.com', 'Real news reported by Kid Reporters aged 10–14 — your age exactly.', '🇺🇸'),
+      S('PBS Student Reporting Labs', 'studentreportinglabs.org', 'Stories and videos made by US high-school students for public TV.', '🇺🇸'),
+      S('Youth Journalism International', 'youthjournalism.org', 'Teen reporters from all over the world, writing in English.', '🌍'),
+      S('Teen Ink', 'teenink.com', 'A magazine written entirely by teenagers — reviews, opinion, essays, poems.', '🇺🇸'),
+      S('BBC Young Reporter', 'bbc.co.uk/teach/young-reporter', 'Stories and videos reported by students, published by the BBC.', '🇬🇧'),
+      S('Exposure', 'exposure.org.uk', 'London\'s youth magazine — written by young people, for young people.', '🇬🇧'),
+      S('ABC Heywire', 'abc.net.au/heywire', 'Young Australians from the regions tell their own stories — the ABC publishes the best.', '🇦🇺'),
+      S('Tearaway', 'tearaway.co.nz', 'Aotearoa\'s youth magazine, written by young Kiwis aged 13–25.', '🇳🇿'),
+      S('Canta', 'canta.co.nz', 'Canterbury Uni\'s student magazine — local names you\'ll know. Written for university students, so ask your teacher to pick a story first.', '🇳🇿')
+    ]},
     {t:'News written for your age', em:'🐣', sites:[
       S('Kiwi Kids News', 'kiwikidsnews.co.nz', 'Written for you — our clothesline articles came from here.', '🇳🇿'),
       S('BBC Newsround', 'bbc.co.uk/newsround', 'World news written for your age — the safe fallback.', '🇬🇧'),
@@ -101,6 +118,7 @@
       S('DOGOnews', 'dogonews.com', 'World news, science and fun facts written for students.', '🇺🇸'),
       S('Time for Kids', 'timeforkids.com', 'The famous American magazine, kid-sized.', '🇺🇸'),
       S('Kids News', 'kidsnews.com.au', 'Daily Australian news for school — with reading levels.', '🇦🇺'),
+      S('The Day', 'theday.co.uk', 'News for schools, written for students — needs a school subscription, so ask your teacher.', '🇬🇧'),
       S('The Hindu · Young World', 'thehindu.com/children', 'A real newspaper\'s section written for young readers.', '🇮🇳'),
       S('Robin Age', 'robinage.com', 'India\'s newspaper for children — sport, science, curiosity.', '🇮🇳')
     ]},
