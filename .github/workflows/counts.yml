@@ -1,0 +1,41 @@
+name: News counters snapshot
+
+# Copies the click and heart counts for news.html out of Abacus into counts.json on the
+# "counts" branch, so the page loads every number with one request instead of a hundred.
+# Every 15 minutes in New Zealand school hours, hourly otherwise; or press "Run workflow".
+# GitHub switches schedules off after 60 days without a commit — press "Enable workflow" then.
+on:
+  schedule:
+    - cron: '*/15 19-23 * * 0-4'   # NZ Mon–Fri mornings (07:00–12:00 NZST)
+    - cron: '*/15 0-4 * * 1-5'     # NZ Mon–Fri afternoons (12:00–17:00 NZST)
+    - cron: '0 5-18 * * *'         # hourly the rest of the time
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: counts-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read every counter from Abacus
+        run: node js/snapshot-counts.js counts.json
+      - name: Publish counts.json on the counts branch
+        run: |
+          git config user.name "counts-snapshot"
+          git config user.email "actions@users.noreply.github.com"
+          mv counts.json /tmp/counts.json
+          git checkout -q --orphan counts
+          git rm -rfq .
+          mv /tmp/counts.json counts.json
+          git add counts.json
+          git commit -qm "Counters snapshot $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push -fq origin counts

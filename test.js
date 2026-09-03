@@ -1631,10 +1631,16 @@ async function testNews(){
   const topics = d.querySelectorAll(".topic"), sites = d.querySelectorAll(".site");
   ok(topics.length >= 8, "at least eight topics: " + topics.length);
   ok(sites.length >= 40, "at least forty sites to choose from: " + sites.length);
-  ok([...sites].every(a => a.getAttribute("target") === "_blank" && /noopener/.test(a.getAttribute("rel"))),
+  const links = d.querySelectorAll(".site .lnk");
+  ok(links.length === sites.length, "every card is a link");
+  ok([...links].every(a => a.getAttribute("target") === "_blank" && /noopener/.test(a.getAttribute("rel"))),
      "every link opens in a new tab, safely");
-  ok([...sites].every(a => /^https:\/\//.test(a.getAttribute("href"))), "every link is https");
-  const hrefs = [...sites].map(a => a.getAttribute("href"));
+  ok([...links].every(a => /^https:\/\//.test(a.getAttribute("href"))), "every link is https");
+  const hrefs = [...links].map(a => a.getAttribute("href"));
+  ok(hrefs.includes("https://www.boosterredux.com/"), "The Booster Redux links to www.boosterredux.com");
+  const slugs = [...sites].map(c => c.dataset.slug);
+  ok(new Set(slugs).size === slugs.length && slugs.every(s => /^[a-z0-9-]{1,60}$/.test(s)), "every card has its own counter key");
+  ok([...sites].every(c => c.querySelector(".heart b") && c.querySelector(".views b")), "every card shows clicks and a heart");
   ok(new Set(hrefs).size === hrefs.length, "no site is listed twice");
   ok(/Written by students/.test(topics[0].textContent), "articles written by students come first");
   const firstNames = [...topics[0].querySelectorAll(".site .n")].map(a => a.textContent);
@@ -1661,6 +1667,140 @@ async function testNews(){
   ok([...sites].every(a => !a.classList.contains("off")) && $("none").style.display === "none",
      "clearing the search brings everything back");
   try{ dom.window.close(); }catch(e){}
+}
+
+async function testNewsCounters(){
+  console.log("\nnews.html — clicks and hearts");
+  const CT = require("./js/news-counters.js");
+  ok(CT.slug("stuff.co.nz/sport") === "stuff-co-nz-sport" && CT.slug("https://www.boosterredux.com/") === "boosterredux-com",
+     "slugs drop the scheme, www and punctuation");
+  ok(CT.keys("bestofsno.com").views === "v-bestofsno-com" && CT.keys("bestofsno.com").hearts === "h-bestofsno-com",
+     "click and heart keys carry v- and h- prefixes");
+
+  /* a pretend Abacus and snapshot, and a localStorage that survives a reload */
+  const server = { "v-bestofsno-com": 12, "h-bestofsno-com": 5 };
+  const calls = [];
+  const knobs = { snapshotAge: 0, snapshotDown: false, hitsDown: false };
+  const store = {};
+  const storage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); },
+                    removeItem: k => { delete store[k]; }, clear(){ for(const k in store) delete store[k]; } };
+  const reply = (status, body) => Promise.resolve({ ok: status < 300, status, json: () => Promise.resolve(body) });
+  const fakeFetch = url => {
+    calls.push(url);
+    let m;
+    if(url.startsWith(CT.SNAPSHOT)){
+      if(knobs.snapshotDown) return reply(404, {});
+      return reply(200, { generated: new Date(Date.now() - knobs.snapshotAge).toISOString(), counts: Object.assign({}, server) });
+    }
+    if((m = url.match(/\/hit\/wharenui-news\/([^?]+)$/))){
+      if(knobs.hitsDown) return reply(429, {});
+      server[m[1]] = (server[m[1]] || 0) + 1;
+      return reply(200, { value: server[m[1]] });
+    }
+    if((m = url.match(/\/get\/wharenui-news\/([^?]+)$/))) return m[1] in server ? reply(200, { value: server[m[1]] }) : reply(404, {});
+    return reply(404, {});
+  };
+  const extra = w => {
+    w.fetch = fakeFetch;
+    w.NEWS_RETRY_MS = 5;
+    try{ Object.defineProperty(w, "localStorage", { value: storage, configurable: true }); }
+    catch(e){ console.log("  (could not replace localStorage: " + e.message + ")"); }
+  };
+  const abacusCalls = () => calls.filter(u => u.startsWith(CT.API));
+  const hits = key => calls.filter(u => u.endsWith("/hit/wharenui-news/" + key)).length;
+  const open = async label => {
+    const dom = await load("news.html", extra);
+    await waitFor(() => dom.window.document.querySelectorAll(".site").length > 0, label);
+    return dom;
+  };
+  const close = dom => { try{ dom.window.close(); }catch(e){} };
+
+  let dom = await open("the sites render");
+  let w = dom.window, d = w.document;
+  const card = slug => [...d.querySelectorAll(".site")].find(c => c.dataset.slug === slug);
+  const num = key => card(key.slice(2)).querySelector('[data-c="' + key + '"]').textContent;
+  await waitFor(() => num("v-bestofsno-com") === "12" && num("h-bestofsno-com") === "5", "the snapshot fills in 12 clicks and 5 hearts");
+  ok(abacusCalls().length === 0, "opening the page sends nothing to Abacus — one snapshot request does it");
+
+  let heart = card("bestofsno-com").querySelector(".heart");
+  heart.click();
+  await waitFor(() => num("h-bestofsno-com") === "6" && heart.classList.contains("on") && heart.getAttribute("aria-pressed") === "true",
+     "pressing the heart turns it red and counts 6");
+  ok(hits("h-bestofsno-com") === 1, "…and tells Abacus once");
+  heart.click();
+  await sleep(40);
+  ok(num("h-bestofsno-com") === "6" && hits("h-bestofsno-com") === 1, "a second press does nothing — one heart per person");
+
+  card("bestofsno-com").querySelector(".lnk").dispatchEvent(new w.MouseEvent("click", { bubbles: true, cancelable: true }));
+  await waitFor(() => num("v-bestofsno-com") === "13", "opening the site counts a click: 13");
+  ok(hits("v-bestofsno-com") === 1, "…and Abacus is told");
+  close(dom);
+
+  /* come back later: the heart is remembered, and an older snapshot cannot roll the numbers back */
+  server["h-bestofsno-com"] = 5; server["v-bestofsno-com"] = 12;
+  knobs.snapshotAge = 60 * 60 * 1000;
+  dom = await open("the sites render again");
+  w = dom.window; d = w.document;
+  heart = card("bestofsno-com").querySelector(".heart");
+  ok(heart.classList.contains("on"), "the heart is still red after a reload");
+  await sleep(60);
+  ok(num("h-bestofsno-com") === "6" && num("v-bestofsno-com") === "13", "the newer numbers this device saw win over an hour-old snapshot");
+  ok(abacusCalls().length === 2, "a fresh-enough snapshot means still no reads from Abacus");
+  close(dom);
+
+  /* the network is busy: the heart still shows, and the hit is sent on the next visit */
+  knobs.hitsDown = true; knobs.snapshotAge = 0;
+  dom = await open("the sites render a third time");
+  w = dom.window; d = w.document;
+  card("tearaway-co-nz").querySelector(".heart").click();
+  await waitFor(() => num("h-tearaway-co-nz") === "1", "a heart shows straight away even when Abacus is busy");
+  await waitFor(() => /h-tearaway-co-nz/.test(store["news-pending-v1"] || ""), "…and is kept to send later once the retries give up");
+  ok(hits("h-tearaway-co-nz") >= 4, "the page retried before giving up: " + hits("h-tearaway-co-nz") + " tries");
+  close(dom);
+
+  knobs.hitsDown = false;
+  const before = hits("h-tearaway-co-nz");
+  dom = await open("the sites render a fourth time");
+  await waitFor(() => hits("h-tearaway-co-nz") === before + 1, "the next visit sends the saved heart");
+  await waitFor(() => (store["news-pending-v1"] || "[]") === "[]", "…and the queue is empty");
+  ok(server["h-tearaway-co-nz"] === 1, "Abacus ends up with the heart");
+  close(dom);
+
+  /* no snapshot at all (the Action stopped): the page asks Abacus for the numbers on screen, gently */
+  knobs.snapshotDown = true;
+  const gets = () => calls.filter(u => /\/get\/wharenui-news\//.test(u)).length;
+  const g0 = gets();
+  dom = await open("the sites render a fifth time");
+  await waitFor(() => gets() > g0, "without a snapshot the page falls back to reading counters one by one");
+  await sleep(300);
+  ok(gets() - g0 <= 3, "…no faster than a few a second: " + (gets() - g0) + " in 300ms");
+  close(dom);
+
+  /* the snapshot script the Action runs */
+  const snap = require("./js/snapshot-counts.js");
+  const html = fs.readFileSync(path.join(__dirname, "news.html"), "utf8");
+  const addresses = snap.sitesIn(html);
+  ok(addresses.length >= 40 && addresses.includes("boosterredux.com") && addresses.includes("tearaway.co.nz"),
+     "the snapshot script finds every site in news.html: " + addresses.length);
+  const asked = [];
+  const fetchFn = url => {
+    asked.push(url);
+    if(/\/get\/wharenui-news\/v-bestofsno-com$/.test(url)) return reply(200, { value: 40 });
+    if(/\/get\/wharenui-news\/h-tearaway-co-nz$/.test(url)) return reply(429, {});
+    if(/\/create\//.test(url)) return reply(201, { value: 7 });
+    return reply(404, {});
+  };
+  const out = await snap.snapshot({ html, previous: { counts: { "h-tearaway-co-nz": 9, "h-bestofsno-com": 7 } }, fetchFn, retryMs: 1 });
+  ok(out.counts["v-bestofsno-com"] === 40, "a live counter is copied as Abacus reports it");
+  ok(out.counts["h-tearaway-co-nz"] === 9, "a counter Abacus will not answer keeps its old number");
+  ok(out.counts["h-bestofsno-com"] === 7 && asked.some(u => u.endsWith("/create/wharenui-news/h-bestofsno-com?initializer=7")),
+     "a counter Abacus forgot is recreated at its old number");
+  ok(out.counts["v-tearaway-co-nz"] === 0, "a counter nobody has touched is 0");
+  ok(/^\d{4}-\d\d-\d\dT/.test(out.generated) && out.read >= 80 && out.kept === 1,
+     "the snapshot is dated and counted: " + out.read + " read, " + out.kept + " kept");
+  const wf = fs.readFileSync(path.join(__dirname, ".github/workflows/counts.yml"), "utf8");
+  ok(/schedule:/.test(wf) && /workflow_dispatch/.test(wf) && /contents: write/.test(wf) && /snapshot-counts\.js/.test(wf) && /push -fq origin counts/.test(wf),
+     "the workflow runs on a schedule and publishes the counts branch");
 }
 
 async function testReview12(){
@@ -2649,6 +2789,7 @@ async function testHub(){
   await testCuboid();
   await testReview12();
   await testNews();
+  await testNewsCounters();
   }catch(e){
     failed++;
     console.error("\nUnexpected error:", e);

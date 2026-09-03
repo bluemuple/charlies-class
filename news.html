@@ -47,16 +47,34 @@
   .topic h2 .cnt{font-size:12.5px; font-weight:700; color:#7a8f8b; background:#fff; border:1.5px solid #cfe3df; border-radius:20px; padding:2px 10px;}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px;}
   .site{
-    display:block; background:var(--card); border-radius:14px; padding:12px 14px 12px;
-    box-shadow:0 2px 10px rgba(31,90,84,.12); text-decoration:none; color:var(--ink);
+    display:flex; flex-direction:column; background:var(--card); border-radius:14px; padding:12px 14px 10px;
+    box-shadow:0 2px 10px rgba(31,90,84,.12); color:var(--ink);
     border:2px solid transparent; transition:.15s; position:relative;
   }
+  .site .lnk{display:block; flex:1; color:inherit; text-decoration:none;}
+  .site .lnk::after{content:""; position:absolute; left:0; top:0; right:0; bottom:0; border-radius:14px;}  /* the whole card opens the site */
   .site:hover{transform:translateY(-3px); border-color:var(--teal); box-shadow:0 8px 20px rgba(31,90,84,.2);}
   .site .flag{position:absolute; right:12px; top:10px; font-size:20px;}
   .site .n{display:block; font-weight:800; font-size:16.5px; color:var(--teal-dark); padding-right:30px;}
   .site .u{display:block; font-size:12.5px; color:#7a8f8b; margin:2px 0 6px; word-break:break-all;}
   .site .d{display:block; font-size:13.5px; color:#3e5552; line-height:1.35;}
   .site .d em{font-style:normal; background:#fff3cd; border-radius:6px; padding:0 4px; color:#8a6d00;}
+  .site .meta{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:9px;
+    padding-top:8px; border-top:1.5px dashed #e6efec; font-size:12.5px; font-weight:700; color:#7a8f8b;
+  }
+  .site .views{white-space:nowrap;}
+  .heart{
+    position:relative; z-index:1; border:1.5px solid #f3c4cb; background:#fff; color:#c9394a;
+    border-radius:20px; padding:3px 11px; font-size:13px; font-weight:800; line-height:1.4; cursor:pointer;
+    transition:transform .15s, background .15s;
+  }
+  .heart:hover{background:#ffe9ec; transform:scale(1.08);}
+  .heart.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .heart.pop{animation:pop .4s ease;}
+  .heart.wiggle{animation:wiggle .35s ease;}
+  @keyframes pop{0%{transform:scale(1)} 40%{transform:scale(1.5)} 70%{transform:scale(.9)} 100%{transform:scale(1)}}
+  @keyframes wiggle{0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}}
   .site.off{display:none;}
   .topic.off{display:none;}
   #none{display:none; text-align:center; color:#7a8f8b; font-weight:700; padding:20px;}
@@ -82,6 +100,7 @@
   <p class="foot">Wharenui School · Charlie's Class</p>
 </main>
 
+<script src="js/news-counters.js"></script>
 <script>
 (function(){
   "use strict";
@@ -99,7 +118,7 @@
       S('SNO Distinguished Sites', 'snosites.com/our-customers/award-winners/', '84 award-winning school newspapers — click through to any school\'s own site.', '🇺🇸'),
       S('The Stuyvesant Spectator', 'stuyspec.com', 'New York, since 1915 — as polished as a real newspaper. This is the ceiling of student writing.', '🇺🇸'),
       S('The Classic', 'thsclassic.com', 'Townsend Harris High School, New York — often named the city\'s best school paper.', '🇺🇸'),
-      S('The Booster Redux', 'boosterredux.com', 'Pittsburg High School, Kansas — six students fact-checked their new principal\'s qualifications, found they were false, and she resigned.', '🇺🇸'),
+      S('The Booster Redux', 'boosterredux.com', 'Pittsburg High School, Kansas — six students fact-checked their new principal\'s qualifications, found they were false, and she resigned.', '🇺🇸', 'https://www.boosterredux.com/'),
       S('Wayland Student Press', 'waylandstudentpress.com', 'Massachusetts — strong on video and breaking news.', '🇺🇸'),
       S('Scholastic Kids Press', 'kpcnotebook.scholastic.com', 'Real news reported by Kid Reporters aged 10–14 — your age exactly.', '🇺🇸'),
       S('PBS Student Reporting Labs', 'studentreportinglabs.org', 'Stories and videos made by US high-school students for public TV.', '🇺🇸'),
@@ -179,17 +198,131 @@
   ];
   window.NEWS_TOPICS = TOPICS;
 
+  /* ---- shared counters: how many times each site has been opened, and how many hearts ----
+     The numbers live on Abacus (settings in js/news-counters.js). Opening the page loads ONE
+     small snapshot, counts.json, that a GitHub Action rebuilds every few minutes; a click or a
+     heart sends one request straight to Abacus and shows the number it answers with. */
+  var CT = window.NEWS_COUNTERS;
+  var LS_SEEN = 'news-counts-v1', LS_HEARTS = 'news-hearts-v1', LS_PENDING = 'news-pending-v1';
+  var RETRY_MS = window.NEWS_RETRY_MS || 600;
+  function lsGet(k, fallback){
+    try{ var v = JSON.parse(localStorage.getItem(k)); return v == null ? fallback : v; }catch(e){ return fallback; }
+  }
+  function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  var seen = lsGet(LS_SEEN, {});        // key -> [value, when we learned it]; the newest answer wins
+  var hearted = lsGet(LS_HEARTS, {});   // key -> true once this device has hearted the site
+  var pending = lsGet(LS_PENDING, []);  // hits that never reached Abacus — sent again next visit
+
+  function valueOf(key){ return seen[key] ? seen[key][0] : 0; }
+  function paint(key){
+    var els = document.querySelectorAll('[data-c="' + key + '"]');
+    for(var i = 0; i < els.length; i++) els[i].textContent = valueOf(key);
+  }
+  function learn(key, value, when){
+    if(typeof value !== 'number' || !(value >= 0)) return;
+    if(seen[key] && seen[key][1] > when) return;   // we already know something newer
+    seen[key] = [value, when];
+    lsSet(LS_SEEN, seen);
+    paint(key);
+  }
+  function wait(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+  function hit(key, attempt){
+    attempt = attempt || 0;
+    if(!window.fetch) return Promise.resolve();
+    return fetch(CT.API + '/hit/' + CT.NS + '/' + key, {keepalive:true})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(j){ learn(key, j.value, Date.now()); })
+      .catch(function(){
+        if(attempt < 3) return wait(RETRY_MS * Math.pow(2, attempt) + Math.random() * RETRY_MS)
+          .then(function(){ return hit(key, attempt + 1); });
+        pending.push(key); lsSet(LS_PENDING, pending);   // keep showing it; send it next time
+      });
+  }
+  function bump(key){
+    learn(key, valueOf(key) + 1, Date.now());   // show it straight away
+    return hit(key);
+  }
+  function resend(){   // hits that failed last time
+    if(!pending.length || !window.fetch) return;
+    var todo = pending.splice(0, pending.length); lsSet(LS_PENDING, pending);
+    (function next(){ var k = todo.shift(); if(k) hit(k).then(function(){ return wait(400); }).then(next); })();
+  }
+  function loadSnapshot(){
+    if(!window.fetch) return;
+    var bucket = Math.floor(Date.now() / 600000);   // a fresh copy at most every ten minutes
+    fetch(CT.SNAPSHOT + '?t=' + bucket)
+      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(snap){
+        var when = Date.parse(snap.generated) || 0, c = snap.counts || {};
+        Object.keys(c).forEach(function(k){ learn(k, c[k], when); });
+        if(Date.now() - when > 3 * 3600 * 1000) liveNumbers();   // the snapshot has stopped — ask Abacus, gently
+      })
+      .catch(liveNumbers);
+  }
+  /* Fallback when there is no fresh snapshot: fetch the counters of the cards on screen,
+     one every quarter second, so a whole class on one connection stays under Abacus's limit. */
+  var queue = [], queued = {}, draining = false;
+  function liveNumbers(){
+    var cards = document.querySelectorAll('.site');
+    function want(card){
+      var s = card.dataset.slug;
+      ['v-' + s, 'h-' + s].forEach(function(k){ if(!queued[k]){ queued[k] = true; queue.push(k); } });
+      drain();
+    }
+    if(window.IntersectionObserver){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){ if(en.isIntersecting){ want(en.target); io.unobserve(en.target); } });
+      });
+      Array.prototype.forEach.call(cards, function(c){ io.observe(c); });
+    } else Array.prototype.forEach.call(cards, want);
+  }
+  function drain(){
+    if(draining || !queue.length) return;
+    draining = true;
+    var key = queue.shift();
+    fetch(CT.API + '/get/' + CT.NS + '/' + key)
+      .then(function(r){
+        if(r.status === 429){ queue.unshift(key); return 2000; }
+        if(r.status === 404){ learn(key, 0, Date.now()); return 250; }
+        if(!r.ok) return 250;
+        return r.json().then(function(j){ learn(key, j.value, Date.now()); return 250; });
+      })
+      .catch(function(){ return 1000; })
+      .then(function(ms){ setTimeout(function(){ draining = false; drain(); }, ms); });
+  }
+  function flash(el, cls){
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    setTimeout(function(){ el.classList.remove(cls); }, 450);
+  }
+  function setHearted(key){
+    var els = document.querySelectorAll('.heart[data-key="' + key + '"]');
+    for(var i = 0; i < els.length; i++){
+      els[i].classList.add('on'); els[i].setAttribute('aria-pressed', 'true'); els[i].title = 'You hearted this';
+    }
+  }
+  function countClick(e){
+    var lnk = e.target.closest('.lnk');
+    if(lnk) bump('v-' + lnk.closest('.site').dataset.slug);
+  }
+
   function render(){
     $('topics').innerHTML = TOPICS.map(function(tp, ti){
       return '<section class="topic" data-t="' + ti + '"><h2><span class="em">' + tp.em + '</span>'
         + esc(tp.t) + '<span class="cnt">' + tp.sites.length + '</span></h2><div class="grid">'
         + tp.sites.map(function(s){
-            return '<a class="site" href="' + esc(s.h) + '" target="_blank" rel="noopener noreferrer" '
+            var k = CT.keys(s.u), on = !!hearted[k.hearts];
+            return '<div class="site" data-slug="' + CT.slug(s.u) + '" '
               + 'data-k="' + esc((s.n + ' ' + s.u + ' ' + s.d + ' ' + tp.t + ' ' + s.f).toLowerCase()) + '">'
+              + '<a class="lnk" href="' + esc(s.h) + '" target="_blank" rel="noopener noreferrer">'
               + '<span class="flag">' + s.f + '</span>'
               + '<span class="n">' + esc(s.n) + '</span>'
               + '<span class="u">' + esc(s.u) + '</span>'
-              + '<span class="d">' + s.d + '</span></a>';
+              + '<span class="d">' + s.d + '</span></a>'
+              + '<div class="meta">'
+              + '<span class="views" title="How many times this site has been opened">👀 <b data-c="' + k.views + '">0</b></span>'
+              + '<button class="heart' + (on ? ' on' : '') + '" type="button" data-key="' + k.hearts + '" '
+              + 'aria-pressed="' + on + '" title="' + (on ? 'You hearted this' : 'Heart this site') + '">♥ <b data-c="' + k.hearts + '">0</b></button>'
+              + '</div></div>';
           }).join('')
         + '</div></section>';
     }).join('');
@@ -211,6 +344,20 @@
     $('none').style.display = shown ? 'none' : 'block';
   }
   render();
+  Object.keys(seen).forEach(paint);
+  loadSnapshot();
+  resend();
+  $('topics').addEventListener('click', function(e){
+    var heart = e.target.closest('.heart');
+    if(!heart) return countClick(e);
+    e.preventDefault();
+    var key = heart.dataset.key;
+    if(hearted[key]){ flash(heart, 'wiggle'); return; }   // one heart per person per site
+    hearted[key] = true; lsSet(LS_HEARTS, hearted);
+    setHearted(key); flash(heart, 'pop');
+    bump(key);
+  });
+  $('topics').addEventListener('auxclick', function(e){ if(e.button === 1) countClick(e); });   // middle-click opens a tab too
   $('filter').addEventListener('input', applyFilter);
   $('backBtn').addEventListener('click', function(){
     if(window.history.length > 1) window.history.back();

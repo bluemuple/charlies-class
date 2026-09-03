@@ -82,6 +82,25 @@ folder):
 node test.js
 ```
 
+## Clicks and hearts on Find an article
+
+Every card on `news.html` shows how many times the site has been opened (👀) and how
+many hearts it has (♥). One heart per person per site — the browser remembers.
+
+- The numbers live on [Abacus](https://abacus.jasoncameron.dev), a free counter API with
+  no account: namespace `wharenui-news`, one counter per site for clicks (`v-…`) and one
+  for hearts (`h-…`). Settings and key naming are in `js/news-counters.js`.
+- Opening the page fetches **one** file — `counts.json` on the `counts` branch — instead
+  of a hundred counters; a whole class on the school's connection would trip Abacus's
+  rate limit otherwise. A click or a heart sends one request and shows the number
+  Abacus answers with (retried, and kept for next time, if the network is busy).
+- `.github/workflows/counts.yml` rebuilds `counts.json` with `js/snapshot-counts.js`
+  every 15 minutes in NZ school hours and hourly otherwise. GitHub switches schedules
+  off after 60 days without a commit: open the Actions tab and press *Enable workflow*.
+- Abacus forgets a counter six months after its last click; the snapshot job recreates
+  it at the last number it saved. To start everyone from zero, change `NS` in
+  `js/news-counters.js`.
+
 ## Security notes (plain honesty)
 
 This is a class game with play money, so the setup is deliberately simple.
