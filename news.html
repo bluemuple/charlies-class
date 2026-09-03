@@ -72,9 +72,9 @@
   .heart:hover{background:#ffe9ec; transform:scale(1.08);}
   .heart.on{background:var(--accent); border-color:var(--accent); color:#fff;}
   .heart.pop{animation:pop .4s ease;}
-  .heart.wiggle{animation:wiggle .35s ease;}
+  .heart.unpop{animation:unpop .35s ease;}
   @keyframes pop{0%{transform:scale(1)} 40%{transform:scale(1.5)} 70%{transform:scale(.9)} 100%{transform:scale(1)}}
-  @keyframes wiggle{0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}}
+  @keyframes unpop{0%{transform:scale(1)} 50%{transform:scale(.75)} 100%{transform:scale(1)}}
   .site.off{display:none;}
   .topic.off{display:none;}
   #none{display:none; text-align:center; color:#7a8f8b; font-weight:700; padding:20px;}
@@ -199,24 +199,37 @@
   window.NEWS_TOPICS = TOPICS;
 
   /* ---- shared counters: how many times each site has been opened, and how many hearts ----
-     The numbers live on Abacus (settings in js/news-counters.js). Opening the page loads ONE
-     small snapshot, counts.json, that a GitHub Action rebuilds every few minutes; a click or a
-     heart sends one request straight to Abacus and shows the number it answers with. */
+     The numbers live on Abacus (settings in js/news-counters.js): for every site a click counter
+     ("v-…"), a heart counter ("h-…") and a hearts-taken-back counter ("u-…") — Abacus only counts
+     up without a password, so the hearts on screen are hearts given minus hearts taken back.
+     Opening the page loads ONE small snapshot, counts.json, that a GitHub Action rebuilds every
+     few minutes; a click or a heart sends one request straight to Abacus and shows the number it
+     answers with. A heart pressed on and off again within a moment sends nothing at all. */
   var CT = window.NEWS_COUNTERS;
-  var LS_SEEN = 'news-counts-v1', LS_HEARTS = 'news-hearts-v1', LS_PENDING = 'news-pending-v1';
+  var LS_SEEN = 'news-counts-v1', LS_HEARTS = 'news-hearts-v1', LS_TOLD = 'news-hearts-told-v1', LS_PENDING = 'news-pending-v1';
   var RETRY_MS = window.NEWS_RETRY_MS || 600;
+  var SETTLE_MS = window.NEWS_SETTLE_MS || 800;   // how long a heart's clicks may settle before Abacus is told
+  var TITLE_ON = 'You hearted this — press again to take it back', TITLE_OFF = 'Heart this site';
   function lsGet(k, fallback){
     try{ var v = JSON.parse(localStorage.getItem(k)); return v == null ? fallback : v; }catch(e){ return fallback; }
   }
   function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
   var seen = lsGet(LS_SEEN, {});        // key -> [value, when we learned it]; the newest answer wins
-  var hearted = lsGet(LS_HEARTS, {});   // key -> true once this device has hearted the site
+  var hearted = lsGet(LS_HEARTS, {});   // 'h-…' -> true while this device's heart is on the site
+  var told = lsGet(LS_TOLD, null);      // 'h-…' -> true once Abacus has been told about that heart
+  if(!told){ told = {}; Object.keys(hearted).forEach(function(k){ told[k] = true; }); lsSet(LS_TOLD, told); }   // hearts from before this record existed
   var pending = lsGet(LS_PENDING, []);  // hits that never reached Abacus — sent again next visit
 
   function valueOf(key){ return seen[key] ? seen[key][0] : 0; }
+  function shown(key){   // the number on the card: clicks as they are; hearts given minus hearts taken
+    if(key.slice(0, 2) !== 'h-') return valueOf(key);   // back, plus this device's heart Abacus has not heard of yet
+    var mine = (hearted[key] ? 1 : 0) - (told[key] ? 1 : 0);
+    return Math.max(0, valueOf(key) - valueOf('u-' + key.slice(2)) + mine);
+  }
   function paint(key){
+    if(key.slice(0, 2) === 'u-') key = 'h-' + key.slice(2);   // a heart taken back changes the heart number
     var els = document.querySelectorAll('[data-c="' + key + '"]');
-    for(var i = 0; i < els.length; i++) els[i].textContent = valueOf(key);
+    for(var i = 0; i < els.length; i++) els[i].textContent = shown(key);
   }
   function learn(key, value, when){
     if(typeof value !== 'number' || !(value >= 0)) return;
@@ -243,11 +256,26 @@
         pending.push(key); lsSet(LS_PENDING, pending);   // keep showing it; send it next time
       });
   }
-  function bump(key){
-    learn(key, valueOf(key) + 1, Date.now());   // show it straight away
-    return hit(key);
+  function bump(key){ learn(key, valueOf(key) + 1, Date.now()); }   // show one more straight away
+  /* Hearts are sent once the clicking settles: what this device wants (hearted) against what
+     Abacus has been told (told). On, off and on again within a moment is nothing to send. */
+  var settling = {};   // 'h-…' -> timer
+  function syncHeart(key, now){
+    clearTimeout(settling[key]); delete settling[key];
+    function send(){
+      delete settling[key];
+      var want = !!hearted[key];
+      if(want === !!told[key]) return;
+      if(want) told[key] = true; else delete told[key];
+      lsSet(LS_TOLD, told);
+      var k = want ? key : 'u-' + key.slice(2);
+      bump(k); hit(k);   // the number on screen stays put: the heart moves from "mine" into the count
+    }
+    if(now) send(); else settling[key] = setTimeout(send, SETTLE_MS);
   }
-  function resend(){   // hits that failed last time
+  function flushHearts(){ Object.keys(settling).forEach(function(k){ syncHeart(k, true); }); }   // leaving the page
+  function resend(){   // hits that failed last time, and hearts the page was closed on before they were sent
+    Object.keys(hearted).concat(Object.keys(told)).forEach(function(k){ if(!!hearted[k] !== !!told[k]) syncHeart(k, true); });
     if(!pending.length || !window.fetch) return;
     var todo = pending.splice(0, pending.length); lsSet(LS_PENDING, pending);
     (function next(){ var k = todo.shift(); if(k) hit(k).then(function(){ return wait(700); }).then(next); })();
@@ -271,7 +299,7 @@
     var cards = document.querySelectorAll('.site');
     function want(card){
       var s = card.dataset.slug;
-      ['v-' + s, 'h-' + s].forEach(function(k){ if(!queued[k]){ queued[k] = true; queue.push(k); } });
+      ['v-' + s, 'h-' + s, 'u-' + s].forEach(function(k){ if(!queued[k]){ queued[k] = true; queue.push(k); } });
       drain();
     }
     if(window.IntersectionObserver){
@@ -301,15 +329,17 @@
     el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
     setTimeout(function(){ el.classList.remove(cls); }, 450);
   }
-  function setHearted(key){
+  function setHearted(key, on){
     var els = document.querySelectorAll('.heart[data-key="' + key + '"]');
     for(var i = 0; i < els.length; i++){
-      els[i].classList.add('on'); els[i].setAttribute('aria-pressed', 'true'); els[i].title = 'You hearted this';
+      els[i].classList.toggle('on', on); els[i].setAttribute('aria-pressed', String(on)); els[i].title = on ? TITLE_ON : TITLE_OFF;
     }
   }
   function countClick(e){
     var lnk = e.target.closest('.lnk');
-    if(lnk) bump('v-' + lnk.closest('.site').dataset.slug);
+    if(!lnk) return;
+    var key = 'v-' + lnk.closest('.site').dataset.slug;
+    bump(key); hit(key);
   }
 
   function render(){
@@ -328,7 +358,7 @@
               + '<div class="meta">'
               + '<span class="views" title="How many times this site has been opened">👀 <b data-c="' + k.views + '">0</b></span>'
               + '<button class="heart' + (on ? ' on' : '') + '" type="button" data-key="' + k.hearts + '" '
-              + 'aria-pressed="' + on + '" title="' + (on ? 'You hearted this' : 'Heart this site') + '">♥ <b data-c="' + k.hearts + '">0</b></button>'
+              + 'aria-pressed="' + on + '" title="' + (on ? TITLE_ON : TITLE_OFF) + '">♥ <b data-c="' + k.hearts + '">0</b></button>'
               + '</div></div>';
           }).join('')
         + '</div></section>';
@@ -358,12 +388,14 @@
     var heart = e.target.closest('.heart');
     if(!heart) return countClick(e);
     e.preventDefault();
-    var key = heart.dataset.key;
-    if(hearted[key]){ flash(heart, 'wiggle'); return; }   // one heart per person per site
-    hearted[key] = true; lsSet(LS_HEARTS, hearted);
-    setHearted(key); flash(heart, 'pop');
-    bump(key);
+    var key = heart.dataset.key, on = !hearted[key];   // one heart per person per site; press again to take it back
+    if(on) hearted[key] = true; else delete hearted[key];
+    lsSet(LS_HEARTS, hearted);
+    setHearted(key, on); flash(heart, on ? 'pop' : 'unpop');
+    paint(key);   // one more, or one fewer, straight away
+    syncHeart(key);
   });
+  window.addEventListener('pagehide', flushHearts);
   $('topics').addEventListener('auxclick', function(e){ if(e.button === 1) countClick(e); });   // middle-click opens a tab too
   $('filter').addEventListener('input', applyFilter);
   $('backBtn').addEventListener('click', function(){

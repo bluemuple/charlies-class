@@ -1674,8 +1674,8 @@ async function testNewsCounters(){
   const CT = require("./js/news-counters.js");
   ok(CT.slug("stuff.co.nz/sport") === "stuff-co-nz-sport" && CT.slug("https://www.boosterredux.com/") === "boosterredux-com",
      "slugs drop the scheme, www and punctuation");
-  ok(CT.keys("bestofsno.com").views === "v-bestofsno-com" && CT.keys("bestofsno.com").hearts === "h-bestofsno-com",
-     "click and heart keys carry v- and h- prefixes");
+  ok(CT.keys("bestofsno.com").views === "v-bestofsno-com" && CT.keys("bestofsno.com").hearts === "h-bestofsno-com"
+     && CT.keys("bestofsno.com").unhearts === "u-bestofsno-com", "click, heart and taken-back keys carry v-, h- and u- prefixes");
   const r1 = CT.retryAfter('Too many requests. Try again in 8.99998963s', 0, 0), r2 = CT.retryAfter('Try again in 999.99ms', 3, 0),
         r3 = CT.retryAfter('', 2, 10), r4 = CT.retryAfter('Try again in 400s', 0, 0);
   ok(Math.round(r1) === 9000 && Math.round(r2) === 1000, "a 429 hint sets the wait: " + Math.round(r1) + "ms, " + Math.round(r2) + "ms");
@@ -1707,6 +1707,7 @@ async function testNewsCounters(){
   const extra = w => {
     w.fetch = fakeFetch;
     w.NEWS_RETRY_MS = 5;
+    w.NEWS_SETTLE_MS = 30;
     try{ Object.defineProperty(w, "localStorage", { value: storage, configurable: true }); }
     catch(e){ console.log("  (could not replace localStorage: " + e.message + ")"); }
   };
@@ -1727,13 +1728,25 @@ async function testNewsCounters(){
   ok(abacusCalls().length === 0, "opening the page sends nothing to Abacus — one snapshot request does it");
 
   let heart = card("bestofsno-com").querySelector(".heart");
+  const isOn = () => heart.classList.contains("on") && heart.getAttribute("aria-pressed") === "true";
+  const isOff = () => !heart.classList.contains("on") && heart.getAttribute("aria-pressed") === "false";
   heart.click();
-  await waitFor(() => num("h-bestofsno-com") === "6" && heart.classList.contains("on") && heart.getAttribute("aria-pressed") === "true",
-     "pressing the heart turns it red and counts 6");
-  ok(hits("h-bestofsno-com") === 1, "…and tells Abacus once");
+  await waitFor(() => num("h-bestofsno-com") === "6" && isOn(), "pressing the heart turns it red and counts 6");
+  ok(hits("h-bestofsno-com") === 0, "…Abacus is not told until the clicking settles");
+  await waitFor(() => hits("h-bestofsno-com") === 1, "…then it is told once");
   heart.click();
-  await sleep(40);
-  ok(num("h-bestofsno-com") === "6" && hits("h-bestofsno-com") === 1, "a second press does nothing — one heart per person");
+  await waitFor(() => num("h-bestofsno-com") === "5" && isOff(), "pressing again takes the heart back: white again, and 5");
+  await waitFor(() => hits("u-bestofsno-com") === 1, "…and Abacus counts one heart taken back");
+  ok(hits("h-bestofsno-com") === 1 && server["h-bestofsno-com"] === 6 && server["u-bestofsno-com"] === 1,
+     "Abacus holds 6 hearts given and 1 taken back");
+  ok(JSON.parse(store["news-hearts-v1"])["h-bestofsno-com"] === undefined, "the browser no longer remembers a heart on it");
+  heart.click(); heart.click(); heart.click(); heart.click();   // on, off, on, off — quickly
+  await sleep(120);
+  ok(num("h-bestofsno-com") === "5" && isOff() && hits("h-bestofsno-com") === 1 && hits("u-bestofsno-com") === 1,
+     "on and off again quickly ends where it started, and sends nothing");
+  heart.click(); heart.click(); heart.click();   // on, off, on
+  await waitFor(() => hits("h-bestofsno-com") === 2, "on, off and on again sends one heart");
+  ok(num("h-bestofsno-com") === "6" && isOn() && hits("u-bestofsno-com") === 1, "…and shows 6, red");
 
   card("bestofsno-com").querySelector(".lnk").dispatchEvent(new w.MouseEvent("click", { bubbles: true, cancelable: true }));
   await waitFor(() => num("v-bestofsno-com") === "13", "opening the site counts a click: 13");
@@ -1741,15 +1754,28 @@ async function testNewsCounters(){
   close(dom);
 
   /* come back later: the heart is remembered, and an older snapshot cannot roll the numbers back */
-  server["h-bestofsno-com"] = 5; server["v-bestofsno-com"] = 12;
+  server["h-bestofsno-com"] = 5; server["u-bestofsno-com"] = 0; server["v-bestofsno-com"] = 12;
   knobs.snapshotAge = 60 * 60 * 1000;
+  let sent = abacusCalls().length;
   dom = await open("the sites render again");
   w = dom.window; d = w.document;
   heart = card("bestofsno-com").querySelector(".heart");
   ok(heart.classList.contains("on"), "the heart is still red after a reload");
   await sleep(60);
   ok(num("h-bestofsno-com") === "6" && num("v-bestofsno-com") === "13", "the newer numbers this device saw win over an hour-old snapshot");
-  ok(abacusCalls().length === 2, "a fresh-enough snapshot means still no reads from Abacus");
+  ok(abacusCalls().length === sent, "a fresh-enough snapshot means still no reads from Abacus");
+  /* a heart pressed just before leaving: pagehide sends it at once, a crash leaves it for the next visit */
+  card("rnz-co-nz").querySelector(".heart").click();
+  w.dispatchEvent(new w.Event("pagehide"));
+  ok(hits("h-rnz-co-nz") === 1, "leaving the page sends a heart without waiting for it to settle");
+  card("canta-co-nz").querySelector(".heart").click();
+  close(dom);   // before it settles
+  ok(hits("h-canta-co-nz") === 0, "a heart pressed as the page closed was not sent");
+  dom = await open("the sites render once more");
+  w = dom.window; d = w.document;
+  await waitFor(() => hits("h-canta-co-nz") === 1, "…so the next visit sends it");
+  card("canta-co-nz").querySelector(".heart").click();   // take it back
+  await waitFor(() => hits("u-canta-co-nz") === 1, "taking it back on the next visit is sent too");
   close(dom);
 
   /* the network is busy: the heart still shows, and the hit is sent on the next visit */
@@ -1799,8 +1825,10 @@ async function testNewsCounters(){
   ok(out.counts["h-tearaway-co-nz"] === 9, "a counter Abacus will not answer keeps its old number");
   ok(out.counts["h-bestofsno-com"] === 7 && asked.some(u => u.endsWith("/create/wharenui-news/h-bestofsno-com?initializer=7")),
      "a counter Abacus forgot is recreated at its old number");
+  ok(asked.some(u => u.endsWith("/get/wharenui-news/u-bestofsno-com")) && out.counts["u-bestofsno-com"] === 0,
+     "the hearts taken back are copied too");
   ok(out.counts["v-tearaway-co-nz"] === 0, "a counter nobody has touched is 0");
-  ok(/^\d{4}-\d\d-\d\dT/.test(out.generated) && out.read >= 80 && out.kept === 1,
+  ok(/^\d{4}-\d\d-\d\dT/.test(out.generated) && out.read >= 3 * addresses.length - 1 && out.kept === 1,
      "the snapshot is dated and counted: " + out.read + " read, " + out.kept + " kept");
   const wf = fs.readFileSync(path.join(__dirname, ".github/workflows/counts.yml"), "utf8");
   ok(/schedule:/.test(wf) && /workflow_dispatch/.test(wf) && /contents: write/.test(wf) && /snapshot-counts\.js/.test(wf) && /push -fq origin counts/.test(wf),

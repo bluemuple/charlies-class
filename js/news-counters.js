@@ -2,8 +2,10 @@
    The page reads them as window.NEWS_COUNTERS; js/snapshot-counts.js (Node) requires them.
 
    The numbers live on Abacus (https://abacus.jasoncameron.dev), a free counter API that needs
-   no account: one counter per site for clicks ("v-…") and one for hearts ("h-…"), all inside
-   the namespace below. To start everyone from zero again, change NS. */
+   no account: one counter per site for clicks ("v-…"), one for hearts ("h-…") and one for hearts
+   taken back ("u-…"), all inside the namespace below. Abacus only counts up without a password,
+   so a heart pressed a second time adds one to "u-…", and the page shows hearts minus taken back.
+   To start everyone from zero again, change NS. */
 (function(root){
   "use strict";
   var C = {
@@ -17,7 +19,7 @@
         .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       return (s || 'site').slice(0, 60).replace(/-+$/, '');
     },
-    keys: function(u){ var s = C.slug(u); return {views: 'v-' + s, hearts: 'h-' + s}; },
+    keys: function(u){ var s = C.slug(u); return {views: 'v-' + s, hearts: 'h-' + s, unhearts: 'u-' + s}; },
     /* Abacus allows about 30 requests in 10 seconds from one address; past that it answers 429
        with "Try again in 8.9s" (or "999ms"). Wait that long, a little more, and spread out the
        retries; with no hint, back off double each time. */

@@ -2,7 +2,8 @@
 /* Copies every click and heart counter for news.html out of Abacus into counts.json.
    Run by .github/workflows/counts.yml (see README, "Clicks and hearts").
      node js/snapshot-counts.js counts.json
-   Reads gently — one counter every half second — Abacus allows about 30 requests in 10 seconds. */
+   Reads gently — one counter every half second, about two minutes for the lot — Abacus allows
+   about 30 requests in 10 seconds. */
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -46,7 +47,7 @@ async function snapshot(opts){
   let ok = 0, kept = 0;
   for(const u of sitesIn(opts.html)){
     const k = CT.keys(u);
-    for(const key of [k.views, k.hearts]){
+    for(const key of [k.views, k.hearts, k.unhearts]){
       const v = await read(key, previous[key] || 0, fetchFn, retryMs);
       if(v === null){ kept++; if(previous[key]) counts[key] = previous[key]; }
       else { ok++; counts[key] = v; }
