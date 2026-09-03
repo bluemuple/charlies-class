@@ -17,7 +17,15 @@
         .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       return (s || 'site').slice(0, 60).replace(/-+$/, '');
     },
-    keys: function(u){ var s = C.slug(u); return {views: 'v-' + s, hearts: 'h-' + s}; }
+    keys: function(u){ var s = C.slug(u); return {views: 'v-' + s, hearts: 'h-' + s}; },
+    /* Abacus allows about 30 requests in 10 seconds from one address; past that it answers 429
+       with "Try again in 8.9s" (or "999ms"). Wait that long, a little more, and spread out the
+       retries; with no hint, back off double each time. */
+    retryAfter: function(text, attempt, base){
+      var m = /again in ([\d.]+)\s*(ms|s)\b/i.exec(text || '');
+      if(m){ var ms = parseFloat(m[1]) * (m[2].toLowerCase() === 'ms' ? 1 : 1000); return Math.min(ms, 15000) + base * (0.5 + Math.random()); }
+      return base * Math.pow(2, attempt) + Math.random() * base;
+    }
   };
   if(typeof module !== 'undefined' && module.exports) module.exports = C;
   else root.NEWS_COUNTERS = C;

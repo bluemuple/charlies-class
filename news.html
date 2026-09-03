@@ -230,10 +230,15 @@
     attempt = attempt || 0;
     if(!window.fetch) return Promise.resolve();
     return fetch(CT.API + '/hit/' + CT.NS + '/' + key, {keepalive:true})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(r){
+        return r.json().catch(function(){ return {}; }).then(function(j){
+          if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));   // a 429 says how long to wait
+          return j;
+        });
+      })
       .then(function(j){ learn(key, j.value, Date.now()); })
-      .catch(function(){
-        if(attempt < 3) return wait(RETRY_MS * Math.pow(2, attempt) + Math.random() * RETRY_MS)
+      .catch(function(err){
+        if(attempt < 5) return wait(CT.retryAfter(err && err.message, attempt, RETRY_MS))
           .then(function(){ return hit(key, attempt + 1); });
         pending.push(key); lsSet(LS_PENDING, pending);   // keep showing it; send it next time
       });
@@ -245,7 +250,7 @@
   function resend(){   // hits that failed last time
     if(!pending.length || !window.fetch) return;
     var todo = pending.splice(0, pending.length); lsSet(LS_PENDING, pending);
-    (function next(){ var k = todo.shift(); if(k) hit(k).then(function(){ return wait(400); }).then(next); })();
+    (function next(){ var k = todo.shift(); if(k) hit(k).then(function(){ return wait(700); }).then(next); })();
   }
   function loadSnapshot(){
     if(!window.fetch) return;
@@ -260,7 +265,7 @@
       .catch(liveNumbers);
   }
   /* Fallback when there is no fresh snapshot: fetch the counters of the cards on screen,
-     one every quarter second, so a whole class on one connection stays under Abacus's limit. */
+     one every 0.6 s, so a whole class on one connection stays under Abacus's limit. */
   var queue = [], queued = {}, draining = false;
   function liveNumbers(){
     var cards = document.querySelectorAll('.site');
@@ -282,12 +287,14 @@
     var key = queue.shift();
     fetch(CT.API + '/get/' + CT.NS + '/' + key)
       .then(function(r){
-        if(r.status === 429){ queue.unshift(key); return 2000; }
-        if(r.status === 404){ learn(key, 0, Date.now()); return 250; }
-        if(!r.ok) return 250;
-        return r.json().then(function(j){ learn(key, j.value, Date.now()); return 250; });
+        if(r.status === 404){ learn(key, 0, Date.now()); return 600; }
+        return r.json().catch(function(){ return {}; }).then(function(j){
+          if(r.status === 429){ queue.unshift(key); return CT.retryAfter(j.error, 2, 600); }
+          if(r.ok) learn(key, j.value, Date.now());
+          return 600;
+        });
       })
-      .catch(function(){ return 1000; })
+      .catch(function(){ return 1500; })
       .then(function(ms){ setTimeout(function(){ draining = false; drain(); }, ms); });
   }
   function flash(el, cls){

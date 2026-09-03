@@ -2,7 +2,7 @@
 /* Copies every click and heart counter for news.html out of Abacus into counts.json.
    Run by .github/workflows/counts.yml (see README, "Clicks and hearts").
      node js/snapshot-counts.js counts.json
-   Reads gently — one counter at a time — because Abacus allows about 30 requests a second. */
+   Reads gently — one counter every half second — Abacus allows about 30 requests in 10 seconds. */
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -20,7 +20,7 @@ function sitesIn(html){
 
 /* one counter: its value, or null when Abacus would not answer */
 async function read(key, previous, fetchFn, retryMs){
-  for(let attempt = 0; attempt < 4; attempt++){
+  for(let attempt = 0; attempt < 5; attempt++){
     let r;
     try{ r = await fetchFn(CT.API + "/get/" + CT.NS + "/" + key); }
     catch(e){ r = {ok: false, status: 0}; }
@@ -31,10 +31,10 @@ async function read(key, previous, fetchFn, retryMs){
       }
       return previous || 0;
     }
-    if(r.ok){
-      try{ const j = await r.json(); if(typeof j.value === "number") return j.value; }catch(e){}
-    }
-    await sleep(r.status === 429 ? retryMs * 4 : retryMs * (attempt + 1));
+    let j = {};
+    try{ j = await r.json(); }catch(e){}
+    if(r.ok && typeof j.value === "number") return j.value;
+    await sleep(CT.retryAfter(j.error, attempt, retryMs));
   }
   return null;
 }
@@ -64,7 +64,7 @@ if(require.main === module){
     const html = fs.readFileSync(path.join(__dirname, "..", "news.html"), "utf8");
     let previous = null;
     try{ const r = await fetch(CT.SNAPSHOT + "?t=" + Date.now()); if(r.ok) previous = await r.json(); }catch(e){}
-    const snap = await snapshot({html, previous, fetchFn: fetch, delay: 150});
+    const snap = await snapshot({html, previous, fetchFn: fetch, delay: 550});
     if(!snap.read){ console.error("Abacus answered nothing — leaving the old snapshot alone"); process.exit(1); }
     fs.writeFileSync(out, JSON.stringify(snap, null, 1));
     console.log("wrote " + out + ": " + snap.read + " counters read, " + snap.kept + " kept from last time");

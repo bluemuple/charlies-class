@@ -1676,6 +1676,10 @@ async function testNewsCounters(){
      "slugs drop the scheme, www and punctuation");
   ok(CT.keys("bestofsno.com").views === "v-bestofsno-com" && CT.keys("bestofsno.com").hearts === "h-bestofsno-com",
      "click and heart keys carry v- and h- prefixes");
+  const r1 = CT.retryAfter('Too many requests. Try again in 8.99998963s', 0, 0), r2 = CT.retryAfter('Try again in 999.99ms', 3, 0),
+        r3 = CT.retryAfter('', 2, 10), r4 = CT.retryAfter('Try again in 400s', 0, 0);
+  ok(Math.round(r1) === 9000 && Math.round(r2) === 1000, "a 429 hint sets the wait: " + Math.round(r1) + "ms, " + Math.round(r2) + "ms");
+  ok(r3 >= 40 && r3 <= 50 && r4 <= 15000, "no hint doubles the wait each time, and no wait is longer than 15 s");
 
   /* a pretend Abacus and snapshot, and a localStorage that survives a reload */
   const server = { "v-bestofsno-com": 12, "h-bestofsno-com": 5 };
@@ -1755,7 +1759,7 @@ async function testNewsCounters(){
   card("tearaway-co-nz").querySelector(".heart").click();
   await waitFor(() => num("h-tearaway-co-nz") === "1", "a heart shows straight away even when Abacus is busy");
   await waitFor(() => /h-tearaway-co-nz/.test(store["news-pending-v1"] || ""), "…and is kept to send later once the retries give up");
-  ok(hits("h-tearaway-co-nz") >= 4, "the page retried before giving up: " + hits("h-tearaway-co-nz") + " tries");
+  ok(hits("h-tearaway-co-nz") >= 5, "the page retried before giving up: " + hits("h-tearaway-co-nz") + " tries");
   close(dom);
 
   knobs.hitsDown = false;
@@ -1773,7 +1777,7 @@ async function testNewsCounters(){
   dom = await open("the sites render a fifth time");
   await waitFor(() => gets() > g0, "without a snapshot the page falls back to reading counters one by one");
   await sleep(300);
-  ok(gets() - g0 <= 3, "…no faster than a few a second: " + (gets() - g0) + " in 300ms");
+  ok(gets() - g0 <= 2, "…no faster than a couple a second: " + (gets() - g0) + " in 300ms");
   close(dom);
 
   /* the snapshot script the Action runs */
