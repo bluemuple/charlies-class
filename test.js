@@ -2036,6 +2036,177 @@ async function testReview12(){
   try{ dom2.window.close(); }catch(e){}
 }
 
+async function testReview13(){
+  console.log("\nreview13.html — the adaptive Review 13 checkpoint (climbs up)");
+
+  /* ---- the bank on its own ---- */
+  const R13 = require("./js/review13-bank.js");
+  ok(R13.ITEMS.length === 4 && R13.ITEMS.map(i => i.n).join(",") === "1,2,3,4",
+     "four paper questions from Review 13");
+  R13.ITEMS.forEach(it => {
+    ok(it.paper === 4 && it.top === 6, "Q" + it.n + ": the paper question sits at level 4 of 6");
+    let good = true;
+    for(let l = 1; l <= it.top; l++){
+      const lv = it.levels[l];
+      if(!lv || lv.qs.length !== 3 || lv.practice.length !== 3 || !lv.know || !lv.know.title || !lv.hint) good = false;
+    }
+    ok(good, "Q" + it.n + ": every level 1–6 has a knowledge card, a hint, 3 questions and 3 practice problems");
+    ok(it.levels[it.paper].qs[0].note === "paper", "Q" + it.n + ": the first level-4 question is the one from the paper");
+  });
+  // the paper answers themselves
+  ok(R13.item("q1").levels[4].qs[0].blanks.map(b => b.ans).join(",") === "-7,-3,5,12,4",
+     "Q1 paper answers: A=−7, B=−3, C=5, A→C=12, A→B=4");
+  ok(R13.item("q2").levels[4].qs[0].blanks.map(b => b.ans).join(",") === "-2,3,2,1,-3,-2,3,-3",
+     "Q2 paper answers: F(−2,3) G(2,1) H(−3,−2) I(3,−3)");
+  ok(R13.item("q3").levels[4].qs[0].blanks.map(b => b.ans).join(",") === "5,4,2,-2",
+     "Q3 paper answers: B=(5,4), D=(2,−2)");
+  ok(R13.item("q4").levels[4].qs[0].blanks.map(b => b.ans).join(",") === "2,2,3,-2,0,-3",
+     "Q4 paper answers: E→(2,2), F→(3,−2), G→(0,−3)");
+  ok(R13.item("q2").levels[5].qs[0].kind === "choice", "Q2 level 5 is a which-point choice");
+
+  /* ---- the ladder rules: right climbs UP, two wrongs step DOWN ---- */
+  const it = R13.item("q1");
+  let st = R13.newState(it);
+  ok(st.lv === 4, "the checkpoint starts at the paper level (4)");
+  ok(R13.markAnswer(it, st, true) === "up" && st.lv === 5, "a right answer at level 4 climbs to level 5");
+  ok(R13.markAnswer(it, st, true) === "up" && st.lv === 6, "another right answer climbs to level 6");
+  ok(R13.markAnswer(it, st, true) === "lock" && st.done && st.lock === 6, "getting level 6 tops the ladder out");
+
+  st = R13.newState(it);
+  R13.markAnswer(it, st, false);
+  ok(!st.done && st.lv === 4 && st.used === 1, "one wrong answer brings a sibling at the same level");
+  ok(R13.markAnswer(it, st, true) === "up" && st.lv === 5, "wrong-then-right still earns the level and climbs");
+
+  st = R13.newState(it);
+  R13.markAnswer(it, st, true);                 // 4 -> 5
+  R13.markAnswer(it, st, false);
+  ok(R13.markAnswer(it, st, false) === "lock" && st.lock === 4,
+     "climb to 5, then two wrongs → the ceiling is level 4");
+
+  st = R13.newState(it);
+  R13.markAnswer(it, st, false);
+  ok(R13.markAnswer(it, st, false) === "drop" && st.lv === 3 && st.used === 0,
+     "two wrongs at the paper level step DOWN to level 3");
+  ok(R13.markAnswer(it, st, true) === "lock" && st.lock === 3,
+     "one right at the lower level settles it there");
+  ok(R13.neededLevels(it, st).map(n => n.lv).join(",") === "4",
+     "locked at 3 → still needs level 4 to reach the paper standard");
+
+  st = R13.newState(it);
+  while(!st.done) R13.markAnswer(it, st, false);
+  ok(st.lock === 0 && st.floor, "all wrong answers bottom out below level 1, flagged");
+  ok(R13.neededLevels(it, st).map(n => n.lv).join(",") === "1,2,3,4",
+     "a floored student needs levels 1 to 4");
+  let solid = R13.newState(it); R13.markAnswer(it, solid, true); R13.markAnswer(it, solid, true); R13.markAnswer(it, solid, true);
+  ok(R13.neededLevels(it, solid).length === 0, "a student who reached level 4+ needs no helper sheet");
+
+  ok(R13.numOK("5", 5) && R13.numOK("-3", -3) && R13.numOK(" 2.5 ", 2.5) && R13.numOK("(-3,", -3) && !R13.numOK("4", 5),
+     "typed answers forgive brackets, spaces and read negatives and decimals");
+
+  /* ---- the worksheet: only the building blocks up to the paper level ---- */
+  const ws = R13.worksheetHTML({name:"Manaia", emoji:"🐦"},
+    {q1:{lock:6, floor:false}, q2:{lock:2, floor:false}, q3:{lock:0, floor:true}});
+  ok(/Part 1/.test(ws) && /Part 6/.test(ws) && !/Part 7/.test(ws),
+     "Q2 (needs 3–4) and Q3 (needs 1–4) → six one-page parts, Q1 left out");
+  ok(/Already solid: Q1/.test(ws), "the topped-out question is listed, not printed");
+  ok(/reached level 2 of 6/.test(ws) && /reached level 0 of 6/.test(ws), "each strip says how far the student climbed");
+  ok((ws.match(/<li><div class="pq"/g) || []).length === 12, "two practice problems per part");
+  ok(/Review 13 helper/.test(ws) && /Manaia/.test(ws) && /size:A4/.test(ws) && /Answers — for the teacher/.test(ws),
+     "it is a named A4 sheet with a teacher answer key");
+
+  /* ---- the page itself ---- */
+  const dom = await load("review13.html", w => {
+    w.CHARLIE_TEST_SESSION = { id: "willow-kolo", name: "Willow" };
+    w.CHARLIE_TEST_FAST = true;
+  });
+  const w = dom.window, d = w.document;
+  const $ = id => d.getElementById(id);
+  await waitFor(() => w.CharlieStore, "store loads");
+  await w.CharlieStore.init();
+  await waitFor(() => !!w.R13_TEST, "the test hook is available");
+  await waitFor(() => $("scrHome").classList.contains("on"), "the intro screen shows");
+  ok(/climb to a harder one/.test($("scrHome").textContent), "the intro promises a climb");
+
+  $("startBtn").click();
+  ok($("scrPlay").classList.contains("on"), "the checkpoint starts");
+  ok($("paperNote").style.display === "block", "the paper banner shows for the identical question");
+  ok(d.querySelectorAll("#answers input").length === 5, "Q1 asks for A, B, C and the two differences");
+
+  // type the paper answers → right → climb to level 5
+  const ins = [...d.querySelectorAll("#answers input")];
+  ["-7", "-3", "5", "12", "4"].forEach((v, i) => ins[i].value = v);
+  $("checkBtn").click();
+  await waitFor(() => w.R13_TEST.state().lv === 5, "a right paper answer climbs to level 5");
+  ok($("stepNote").classList.contains("harder") && $("stepNote").style.display === "block",
+     "level 5 is badged as a tougher challenge");
+  w.R13_TEST.submit(true);
+  w.R13_TEST.submit(true);
+  await waitFor(() => w.R13_TEST.itemIndex() === 1, "climbing to the top finishes question 1");
+  ok(w.R13_TEST.results().q1.lock === 6, "…recorded at the top level 6");
+
+  // question 2: climb into the which-point choice at level 5
+  w.R13_TEST.submit(true);
+  await waitFor(() => w.R13_TEST.state().lv === 5 && w.R13_TEST.q().kind === "choice",
+     "a right answer opens the level-5 choice question");
+  ok(d.querySelectorAll("#answers .choices button").length === 4 && $("checkBtn").disabled,
+     "the four choices render and Check waits for a pick");
+  const cq = w.R13_TEST.q(), okIdx = cq.choices.findIndex(c => c.ok);
+  d.querySelector('#answers .choices button[data-i="' + okIdx + '"]').click();
+  ok(!$("checkBtn").disabled, "picking a choice unlocks Check");
+  $("checkBtn").click();
+  await waitFor(() => w.R13_TEST.state().lv === 6, "the right choice climbs to level 6");
+  w.R13_TEST.submit(true);
+  await waitFor(() => w.R13_TEST.itemIndex() === 2, "Q2 tops out and moves on");
+  ok(w.R13_TEST.results().q2.lock === 6, "Q2 recorded at level 6");
+
+  // question 3: two wrongs step down, one right settles the lower level
+  w.R13_TEST.submit(false); w.R13_TEST.submit(false);
+  await waitFor(() => w.R13_TEST.state().lv === 3, "two wrongs on Q3 step down to level 3");
+  ok($("stepNote").style.display === "block" && !$("stepNote").classList.contains("harder"),
+     "the page calls it a stepping stone, not a challenge");
+  w.R13_TEST.submit(true);
+  await waitFor(() => w.R13_TEST.itemIndex() === 3, "one right at level 3 moves on to question 4");
+  ok(w.R13_TEST.results().q3.lock === 3, "Q3 recorded at level 3");
+
+  // question 4: climb to the top to finish
+  w.R13_TEST.submit(true); w.R13_TEST.submit(true); w.R13_TEST.submit(true);
+  await waitFor(() => $("scrDone").classList.contains("on"), "the summary screen arrives", 6000);
+  ok(/Q1/.test($("doneRows").textContent) && /Q4/.test($("doneRows").textContent), "all four ladders are summed up");
+  await waitFor(async () => {
+    const b = await w.CharlieStore.getMachine("review13-results");
+    return b && b.rows.length === 1 && b.rows[0].id === "willow-kolo"
+      && b.rows[0].items.q1.lock === 6 && b.rows[0].items.q3.lock === 3;
+  }, "the run is saved for the teacher", 5000);
+  try{ dom.window.close(); }catch(e){}
+
+  /* ---- the teacher's side ---- */
+  const dom2 = await load("admin.html", w2 => { w2.CHARLIE_TEST_TEACHER = true; });
+  const w2 = dom2.window, d2 = w2.document;
+  await waitFor(() => w2.CharlieStore, "admin store loads");
+  await w2.CharlieStore.init();
+  await w2.CharlieStore.saveMachine({id:"review13-results", type:"results", created:Date.now(), rows:[
+    {id:"manaia-pou", name:"Manaia", emoji:"🐦", turn:1, t:Date.now(),
+     items:{q1:{lock:6, floor:false}, q2:{lock:2, floor:false}, q3:{lock:0, floor:true}, q4:{lock:6, floor:false}}}
+  ]});
+  d2.getElementById("r13Results").click();
+  await waitFor(() => d2.getElementById("r13Box").dataset.ready === "1", "the levels table renders", 5000);
+  const boxText = d2.getElementById("r13Box").textContent;
+  ok(/L6\/6 ✓/.test(boxText), "a topped-out ladder shows as solid");
+  ok(/L2\/6/.test(boxText) && /L0\/6/.test(boxText), "a part-way and a floored ladder show their level");
+  ok(/Coordinates in all four parts of the grid/.test(boxText),
+     "the missing knowledge is named beside the level");
+  const dls = d2.querySelectorAll(".r13dl");
+  ok(dls.length === 1 && !/Downloaded/.test(dls[0].textContent), "one Download button, unticked at first");
+  dls[0].click();
+  await waitFor(() => !!w2.R13_LAST_SHEET, "clicking Download builds the sheet");
+  ok(/Review 13 helper/.test(w2.R13_LAST_SHEET) && /Manaia/.test(w2.R13_LAST_SHEET)
+     && /Part 1/.test(w2.R13_LAST_SHEET) && /Already solid: Q1, Q4/.test(w2.R13_LAST_SHEET),
+     "the sheet bundles Q2 and Q3's building blocks and lists the solid ones");
+  await waitFor(() => /✓ Downloaded/.test(d2.getElementById("r13Box").textContent),
+     "…and the button now wears its tick", 5000);
+  try{ dom2.window.close(); }catch(e){}
+}
+
 async function testReview(){
   console.log("\nreview.html — the 90-second mixed sprint");
   const dom = await load("review.html", w => {
@@ -2771,8 +2942,9 @@ async function testHub(){
   // the row stays out of sight until the teacher's settings have been read
   await waitFor(() => d.querySelector(".games").classList.contains("ready"),
      "the game row waits for the settings before showing", 6000);
-  ok(cards.length === 8, "the eight games — no 'More games' placeholder");
-  ok(/Review 12/.test(cards[7].textContent), "Review 12 rounds out the row");
+  ok(cards.length === 9, "the nine games — no 'More games' placeholder");
+  ok(/Review 12/.test(cards[7].textContent), "Review 12 sits in the row");
+  ok(/Review 13/.test(cards[8].textContent), "Review 13 rounds out the row");
   // the Padlet link sits with them, opening the class wall in a new tab
   const pad = $("padletLink");
   ok(!!pad && /Padlet/.test(pad.textContent), "a Padlet link is on the games page");
@@ -2820,6 +2992,7 @@ async function testHub(){
   await testReview();
   await testCuboid();
   await testReview12();
+  await testReview13();
   await testNews();
   await testNewsCounters();
   }catch(e){

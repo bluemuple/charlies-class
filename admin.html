@@ -253,6 +253,14 @@
         student climbs a ladder per question; print each one a helper sheet below.</p>
       </div>
       <div style="min-width:220px">
+        <h3 style="margin:4px 0 8px">📄 Review 13</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setR13On" checked> Visible to students</label>
+        <button id="r13Results" style="border:2px solid #cfe3df;background:#fff;color:#1f5a54;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:6px">📊 Levels &amp; worksheets</button>
+        <p class="note" style="margin:0">Number lines and coordinates (Chapter 13). The paper question
+        sits at level 4; a right answer climbs to the harder levels 5 and 6, a wrong one steps down.</p>
+      </div>
+      <div style="min-width:220px">
         <h3 style="margin:4px 0 8px">📋 Padlet</h3>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setPadOn" checked> Visible to students</label>
@@ -371,6 +379,16 @@
     <div id="r12Box" style="font-size:14px;color:#4c6b66"></div>
   </section>
 
+  <section class="card" id="r13Card" style="display:none">
+    <h2>📄 Review 13 — levels &amp; helper sheets</h2>
+    <p class="note">Number lines and coordinates. The paper question is level 4; getting it right
+    sends the student UP to levels 5 and 6, a wrong answer steps DOWN to the building blocks.
+    A student who reaches level 4 or higher is solid. <b>Download helper sheet</b> prints ONE A4
+    sheet of the building blocks anyone below level 4 still needs — one step per page with two
+    practice problems, answers for you on the last page. A used button shows a green tick.</p>
+    <div id="r13Box" style="font-size:14px;color:#4c6b66"></div>
+  </section>
+
   <section class="card" id="triResultsCard" style="display:none">
     <h2>📊 Try Triangles — results by question type</h2>
     <p class="note">Each turn a student plays adds a row: <b>heights</b> (naming the height for a
@@ -417,6 +435,7 @@
 <script src="js/roster.js"></script>
 <script src="js/store.js"></script>
 <script src="js/review12-bank.js"></script>
+<script src="js/review13-bank.js"></script>
 <script>
 (function(){
   "use strict";
@@ -790,6 +809,122 @@
     r12SaveMark(sid).then(function(){ r12Render(); });
   });
 
+  /* ---------------- Review 13: levels, needed knowledge, helper sheets -------- */
+  var r13Marks = null;
+  function r13LoadMarks(){
+    return store.getMachine('review13-downloads').then(function(b){
+      r13Marks = (b && b.marks) || {};
+      return r13Marks;
+    }).catch(function(){ r13Marks = r13Marks || {}; return r13Marks; });
+  }
+  function r13SaveMark(key){
+    return store.getMachine('review13-downloads').then(function(b){
+      b = b || {id:'review13-downloads', type:'marks', created:Date.now(), marks:{}};
+      b.marks = b.marks || {};
+      b.marks[key] = Date.now();
+      b.created = Date.now();
+      r13Marks = b.marks;
+      return store.saveMachine(b);
+    }).catch(function(){});
+  }
+  function r13Print(html){
+    var fr = document.createElement('iframe');
+    fr.style.position = 'fixed'; fr.style.right = '0'; fr.style.bottom = '0';
+    fr.style.width = '0'; fr.style.height = '0'; fr.style.border = '0';
+    document.body.appendChild(fr);
+    window.R13_LAST_SHEET = html;
+    try{
+      var doc = fr.contentDocument || fr.contentWindow.document;
+      doc.open(); doc.write(html); doc.close();
+      setTimeout(function(){
+        try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){}
+        setTimeout(function(){ try{ document.body.removeChild(fr); }catch(e){} }, 60000);
+      }, 250);
+    }catch(e){}
+  }
+  function r13Full(it, r){ return !!r && !r.floor && r.lock >= it.paper; }
+  function r13Render(){
+    var box = document.getElementById('r13Box');
+    box.textContent = 'Loading…';
+    Promise.all([store.getMachine('review13-results').catch(function(){ return null; }), r13LoadMarks()])
+    .then(function(pair){
+      var rows = (pair[0] && pair[0].rows) || [];
+      if(!rows.length){ box.textContent = 'Nobody has done the checkpoint yet.'; return; }
+      var byId = {}, order = [];
+      rows.forEach(function(r){
+        if(!byId[r.id]){ byId[r.id] = []; order.push(r.id); }
+        byId[r.id].push(r);
+      });
+      order.sort(function(a2, c){
+        var la = byId[a2][byId[a2].length-1].t || 0, lc = byId[c][byId[c].length-1].t || 0;
+        return lc - la;
+      });
+      box.innerHTML = order.map(function(id){
+        var list = byId[id];
+        var last = list[list.length - 1];
+        var cells = window.R13.ITEMS.map(function(it){
+          var r = last.items && last.items[it.key];
+          if(!r) return '<td style="padding:6px;color:#9ab">—</td>';
+          var full = r13Full(it, r);
+          var chip = full
+            ? '<span style="font-weight:800;color:#2a9d34">L' + r.lock + '/' + it.top + ' ✓</span>'
+            : '<span style="font-weight:800;color:' + (r.floor ? '#c0392b' : '#8a6d00') + '">L'
+              + (r.floor ? '0' : r.lock) + '/' + it.top + '</span>';
+          var html = '<td style="padding:6px;vertical-align:top">' + chip;
+          if(!full){
+            var need = window.R13.neededLevels(it, r);
+            html += '<div style="font-size:12px;color:#7a8f8b;margin:3px 0">needs: '
+              + need.map(function(n){ return esc2(n.title); }).join(' · ') + '</div>';
+          } else {
+            html += '<div style="font-size:12px;color:#7a8f8b;margin-top:3px">solid 🎉</div>';
+          }
+          return html + '</td>';
+        }).join('');
+        var anyMissing = window.R13.ITEMS.some(function(it){ return !r13Full(it, last.items && last.items[it.key]); });
+        var dlBtn;
+        if(anyMissing){
+          var done = !!r13Marks[id];
+          dlBtn = '<button class="r13dl' + (done ? ' dl-done' : '') + '" data-sid="' + esc2(id)
+            + '" style="float:right;border:2px solid ' + (done ? '#b5e0b8' : '#cfe3df')
+            + ';background:' + (done ? '#eef9ee' : '#fff') + ';color:' + (done ? '#2a9d34' : '#1f5a54')
+            + ';border-radius:9px;padding:4px 12px;font-size:12.5px;font-weight:800;cursor:pointer;margin-left:10px">'
+            + (done ? '✓ Downloaded' : '⬇ Download helper sheet') + '</button>';
+        } else {
+          dlBtn = '<span style="float:right;font-size:12px;color:#2a9d34;font-weight:800;margin-left:10px">all solid 🎉</span>';
+        }
+        return '<div style="border:1.5px solid #e2edeb;border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fbfdfc">'
+          + '<div style="font-weight:800;color:#1f5a54;margin-bottom:4px">'
+          +   esc2(last.emoji || '🙂') + ' ' + esc2(last.name || id)
+          +   dlBtn
+          +   '<span style="float:right;color:#8aa19c;font-weight:600;font-size:12.5px">'
+          +   (list.length > 1 ? list.length + ' runs · ' : '')
+          +   (last.t ? new Date(last.t).toLocaleString() : '') + '</span></div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:13.5px"><thead>'
+          + '<tr style="color:#7a8f8b;text-align:left">'
+          +   window.R13.ITEMS.map(function(it){ return '<th style="padding:2px 6px">Q' + it.n + ' · ' + esc2(it.name) + '</th>'; }).join('')
+          + '</tr></thead><tbody><tr>' + cells + '</tr></tbody></table></div>';
+      }).join('');
+      box.dataset.ready = '1';
+      window.R13_ADMIN_ROWS = byId;
+    });
+  }
+  document.getElementById('r13Results').addEventListener('click', function(){
+    var card = document.getElementById('r13Card');
+    var openNow = card.style.display === 'none';
+    card.style.display = openNow ? '' : 'none';
+    if(openNow) r13Render();
+  });
+  document.getElementById('r13Box').addEventListener('click', function(e){
+    var b = e.target.closest('.r13dl'); if(!b) return;
+    var sid = b.dataset.sid;
+    var runs = (window.R13_ADMIN_ROWS || {})[sid];
+    if(!runs || !runs.length) return;
+    var last = runs[runs.length - 1];
+    if(!last.items) return;
+    r13Print(window.R13.worksheetHTML({name:last.name || sid, emoji:last.emoji || ''}, last.items));
+    r13SaveMark(sid).then(function(){ r13Render(); });
+  });
+
   document.getElementById('triResults').addEventListener('click', function(){
     var card = document.getElementById('triResultsCard');
     var openNow = card.style.display === 'none';
@@ -953,7 +1088,7 @@
   /* ---------------- per-game settings (shared blob in the machines store) --- */
   var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false, triangles:false,
                                parallelogram:false, review:false, cuboid:false,
-                               review12:false, padlet:false, news:false},
+                               review12:false, review13:false, padlet:false, news:false},
                        padletOnly:false,
                        paving:{nicknames:false, extraSecs:0, measure:3, build:5},
                        algebra:{turnSecs:40},
@@ -989,6 +1124,7 @@
       document.getElementById('setCubOn').checked = !hid.cuboid;
       document.getElementById('setCubNick').checked = !!(g.cuboid && g.cuboid.nicknames);
       document.getElementById('setR12On').checked = !hid.review12;
+      document.getElementById('setR13On').checked = !hid.review13;
       document.getElementById('setPadOn').checked = !hid.padlet;
       document.getElementById('setNewsOn').checked = !hid.news;
       document.getElementById('setPadOnly').checked = !!g.padletOnly;
@@ -1018,6 +1154,7 @@
                 review: !document.getElementById('setRevOn').checked,
                 cuboid: !document.getElementById('setCubOn').checked,
                 review12: !document.getElementById('setR12On').checked,
+                review13: !document.getElementById('setR13On').checked,
                 padlet: !document.getElementById('setPadOn').checked,
                 news: !document.getElementById('setNewsOn').checked},
         padletOnly: document.getElementById('setPadOnly').checked,
@@ -1053,7 +1190,7 @@
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
    'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
    'setPaveOn','setPaveNick','setPaveSecs','setTriOn','setTriNick','setParaOn','setParaNick',
-   'setRevOn','setRevNick','setCubOn','setCubNick','setR12On','setPadOn','setPadOnly','setNewsOn',
+   'setRevOn','setRevNick','setCubOn','setCubNick','setR12On','setR13On','setPadOn','setPadOnly','setNewsOn',
    'setPaveMeasureOn','setPaveMeasure','setPaveBuildOn','setPaveBuild']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);
