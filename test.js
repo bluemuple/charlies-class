@@ -415,6 +415,29 @@ async function testIndex(){
   ok($("loginPart").style.display !== "none", "and the group buttons come back, never a dead end");
   w.INDEX_TEST.welcome(null);
 
+  // Guest: a browser-only login sitting beside Boys and Girls
+  const guest = $("guestBtn");
+  ok(!!guest && /Guest/.test(guest.textContent), "a Guest button sits beside Boys and Girls");
+  ok(guest.style.display !== "none", "the Guest button shows by default");
+  w.INDEX_TEST.welcome({hidden:{guest:true}});
+  ok(guest.style.display === "none", "the teacher can hide the Guest button");
+  w.INDEX_TEST.welcome(null);
+  ok(guest.style.display !== "none", "…and bring it back");
+  // a guest session (sessionStorage is blocked on jsdom's file origin, so inject it
+  // the same way the pages read a test session) — the store surfaces the guest so
+  // every page resolves it as `me`, exactly like a real student
+  w.CHARLIE_TEST_SESSION = { id:"guest", name:"Guest", emoji:"🐾", guest:true };
+  const withGuest = await w.CharlieStore.list();
+  const gRow = withGuest.find(s => s.id === "guest");
+  ok(!!gRow && gRow.name === "Guest" && !gRow.gender,
+     "the store surfaces the guest for every page to resolve");
+  ok(withGuest.filter(s => s.gender === "girl").length === 10
+     && withGuest.filter(s => s.gender === "boy").length === 15,
+     "the guest joins no roster group");
+  w.CHARLIE_TEST_SESSION = null;
+  const noGuest = await w.CharlieStore.list();
+  ok(!noGuest.some(s => s.id === "guest"), "with no guest session, the store lists only real students");
+
   $("girlsBtn").click();
   await waitFor(() => d.querySelectorAll("#nameGrid button").length === 10, "Girls shows 10 name cards");
   ok(/NEW/.test($("nameGrid").textContent), "students without a code are tagged NEW");

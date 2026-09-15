@@ -74,6 +74,7 @@
   .gender-btns button:hover{transform:translateY(-4px) scale(1.03);}
   #boysBtn{background:linear-gradient(160deg,#4a82bd,#2f5d8f);}
   #girlsBtn{background:linear-gradient(160deg,#d06a92,#a93f68);}
+  #guestBtn{background:linear-gradient(160deg,#3f9c8f,#1f5a54);}
 
   /* name grid */
   .names{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:14px;}
@@ -133,6 +134,7 @@
     <div class="gender-btns">
       <button id="boysBtn"><span>👦</span>Boys</button>
       <button id="girlsBtn"><span>👧</span>Girls</button>
+      <button id="guestBtn"><span>🐾</span>Guest</button>
     </div>
   </div>
   <div class="linkrow">
@@ -226,6 +228,13 @@
   }
   $('boysBtn').addEventListener('click', function(){ openNames('boy'); });
   $('girlsBtn').addEventListener('click', function(){ openNames('girl'); });
+  /* Guest: a browser-only login (no name, no code) that can use every service.
+     The teacher can hide this button from the admin page. */
+  $('guestBtn').addEventListener('click', function(){
+    var g = {id:'guest', name:'Guest', emoji:'🐾', guest:true};
+    try{ sessionStorage.setItem('charlie-session', JSON.stringify(g)); }catch(e){}
+    goHub();
+  });
 
   /* ---------------- name → code screen ---------------- */
   function renderStep(){
@@ -343,6 +352,7 @@
     var only = anyLink && !!(s && s.padletOnly);
     $('padletBtn').style.display = hid.padlet ? 'none' : '';
     $('newsBtn').style.display = hid.news ? 'none' : '';
+    $('guestBtn').style.display = hid.guest ? 'none' : '';
     $('loginPart').style.display = only ? 'none' : '';
     $('scrWelcome').classList.toggle('padonly', only);
     $('scrWelcome').classList.add('ready');

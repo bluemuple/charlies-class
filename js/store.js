@@ -65,6 +65,30 @@ window.CharlieStore = (function(){
   }
   function validCode(c){ return /^[0-9]{4}$/.test(String(c)); }
 
+  /* ---------------- guest login ----------------
+     A guest is a browser-only student: it lives in this tab's session, never
+     in the shared database, so it appears on no roster and no score board but
+     this browser's own. list() surfaces it here so every page resolves `me`
+     for a guest exactly as it does for a real student. */
+  function guestSession(){
+    try{
+      var s = JSON.parse(sessionStorage.getItem('charlie-session'));
+      if(s && s.guest && s.id) return s;
+    }catch(e){}
+    /* headless tests (and any place sessionStorage is blocked) inject the
+       session the same way the pages read it back */
+    try{
+      var t = (typeof window !== 'undefined') && window.CHARLIE_TEST_SESSION;
+      if(t && t.guest && t.id) return t;
+    }catch(e){}
+    return null;
+  }
+  function guestStudent(){
+    var s = guestSession();
+    return s ? shape({id:s.id, name:s.name || 'Guest', gender:null,
+                      emoji:s.emoji || '🐾', money:0, code_set:true}) : null;
+  }
+
   /* ---------------- local demo mode ---------------- */
   var memory = null;   // demo data survives here even when localStorage is blocked
   function seed(){
@@ -197,8 +221,10 @@ window.CharlieStore = (function(){
     mode: function(){ return mode; },
 
     list: function(){
-      if(mode === 'supabase') return sbList();
-      return Promise.resolve(sortByName(localAll()).map(shape));
+      var g = guestStudent();
+      if(mode === 'supabase') return sbList().then(function(l){ return g ? l.concat(g) : l; });
+      var l = sortByName(localAll()).map(shape);
+      return Promise.resolve(g ? l.concat(g) : l);
     },
 
     add: function(name, gender){

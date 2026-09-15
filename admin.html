@@ -271,6 +271,14 @@
         the article finder — turn it off again to let them log in.</p>
       </div>
       <div style="min-width:220px">
+        <h3 style="margin:4px 0 8px">🐾 Guest login</h3>
+        <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="setGuestOn" checked> Show the Guest button</label>
+        <p class="note" style="margin:0">Adds a <b>Guest</b> button beside Boys and Girls on the
+        welcome page. A guest needs no name or code and can use every game, but nothing they do
+        is saved to the class. Untick to hide it (during a test, say).</p>
+      </div>
+      <div style="min-width:220px">
         <h3 style="margin:4px 0 8px">📰 Find an article</h3>
         <label style="display:block;font-weight:700;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="setNewsOn" checked> Visible to students</label>
@@ -1088,7 +1096,7 @@
   /* ---------------- per-game settings (shared blob in the machines store) --- */
   var GAME_DEFAULTS = {hidden:{alzebra:false, algebra:false, paving:false, triangles:false,
                                parallelogram:false, review:false, cuboid:false,
-                               review12:false, review13:false, padlet:false, news:false},
+                               review12:false, review13:false, padlet:false, news:false, guest:false},
                        padletOnly:false,
                        paving:{nicknames:false, extraSecs:0, measure:3, build:5},
                        algebra:{turnSecs:40},
@@ -1127,6 +1135,7 @@
       document.getElementById('setR13On').checked = !hid.review13;
       document.getElementById('setPadOn').checked = !hid.padlet;
       document.getElementById('setNewsOn').checked = !hid.news;
+      document.getElementById('setGuestOn').checked = !hid.guest;
       document.getElementById('setPadOnly').checked = !!g.padletOnly;
       document.getElementById('setPaveNick').checked = !!(g.paving && g.paving.nicknames);
       document.getElementById('setPaveSecs').value =
@@ -1156,7 +1165,8 @@
                 review12: !document.getElementById('setR12On').checked,
                 review13: !document.getElementById('setR13On').checked,
                 padlet: !document.getElementById('setPadOn').checked,
-                news: !document.getElementById('setNewsOn').checked},
+                news: !document.getElementById('setNewsOn').checked,
+                guest: !document.getElementById('setGuestOn').checked},
         padletOnly: document.getElementById('setPadOnly').checked,
         triangles:{nicknames: document.getElementById('setTriNick').checked},
         parallelogram:{nicknames: document.getElementById('setParaNick').checked},
@@ -1190,7 +1200,7 @@
   ['setZebraOn','setAlgOn','limPlus','limMinus','limTimes','limDiv','setTurnSecs',
    'setFriendsOn','setFriendsNames','setAlgSkip','setZebraSkip','setAlgMusic',
    'setPaveOn','setPaveNick','setPaveSecs','setTriOn','setTriNick','setParaOn','setParaNick',
-   'setRevOn','setRevNick','setCubOn','setCubNick','setR12On','setR13On','setPadOn','setPadOnly','setNewsOn',
+   'setRevOn','setRevNick','setCubOn','setCubNick','setR12On','setR13On','setPadOn','setPadOnly','setNewsOn','setGuestOn',
    'setPaveMeasureOn','setPaveMeasure','setPaveBuildOn','setPaveBuild']
     .forEach(function(id){
       document.getElementById(id).addEventListener('change', saveGameSettings);
